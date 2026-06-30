@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ArrowRight, User, ChevronDown, LogOut, CheckCircle2 } from "lucide-react";
+import { Menu, X, ArrowRight, ChevronDown, LogOut, CheckCircle2 } from "lucide-react";
 import { useApp } from "@/app/context/AppContext";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +16,17 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
 
   const topLinks = [
     { name: "Home", href: "/" },
@@ -46,15 +57,15 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 w-full border-b border-border bg-white/80 backdrop-blur-md">
+      <nav className="sticky top-0 z-40 w-full border-b border-border bg-white/90 backdrop-blur-lg supports-[backdrop-filter]:bg-white/80">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex-shrink-0">
+          <div className="flex h-14 min-h-14 items-center justify-between gap-2 sm:h-16">
+            <div className="min-w-0 flex-shrink-0">
               <Link href="/" className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-lg font-bold text-white shadow-md shadow-primary/20">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-bold text-white shadow-md shadow-primary/25 sm:h-9 sm:w-9 sm:text-lg">
                   T
                 </span>
-                <span className="text-xl font-bold tracking-tight text-slate-900">
+                <span className="truncate text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
                   Trade<span className="text-primary">Nexa</span>
                 </span>
               </Link>
@@ -67,8 +78,9 @@ export default function Navbar() {
                   <Link
                     key={link.name}
                     href={link.href}
-                    className={`py-2 text-sm font-medium transition-colors hover:text-primary ${isActive ? "border-b-2 border-primary text-primary" : "text-slate-600"
-                      }`}
+                    className={`py-2 text-sm font-medium transition-colors hover:text-primary ${
+                      isActive ? "border-b-2 border-primary text-primary" : "text-slate-600"
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -102,8 +114,9 @@ export default function Navbar() {
                           <Link
                             key={link.name}
                             href={link.href}
-                            className={`block rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-slate-50 hover:text-primary ${isActive ? "bg-primary/5 text-primary" : "text-slate-600"
-                              }`}
+                            className={`block rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-slate-50 hover:text-primary ${
+                              isActive ? "bg-primary/5 text-primary" : "text-slate-600"
+                            }`}
                           >
                             {link.name}
                           </Link>
@@ -120,8 +133,9 @@ export default function Navbar() {
                   <Link
                     key={link.name}
                     href={link.href}
-                    className={`py-2 text-sm font-medium transition-colors hover:text-primary ${isActive ? "border-b-2 border-primary text-primary" : "text-slate-600"
-                      }`}
+                    className={`py-2 text-sm font-medium transition-colors hover:text-primary ${
+                      isActive ? "border-b-2 border-primary text-primary" : "text-slate-600"
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -129,18 +143,20 @@ export default function Navbar() {
               })}
             </div>
 
-            <div className="hidden items-center gap-3 sm:flex">
+            <div className="flex items-center gap-2 sm:gap-3">
               {isAuthenticated && user ? (
-                <div className="relative">
+                <div className="relative hidden sm:block">
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-4.5 py-2 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <span>{user.name}</span>
-                    <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isUserMenuOpen ? "rotate-180" : ""}`} />
+                    <span className="max-w-[120px] truncate">{user.name}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${isUserMenuOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   <AnimatePresence>
@@ -153,10 +169,10 @@ export default function Navbar() {
                           exit={{ opacity: 0, y: 10 }}
                           className="absolute right-0 z-20 mt-2 w-56 rounded-2xl border border-slate-100 bg-white p-2.5 shadow-xl"
                         >
-                          <div className="border-b border-slate-100 pb-2 px-3 mb-2">
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Business catalog</p>
-                            <p className="text-sm font-bold text-slate-900 truncate mt-0.5">{user.company}</p>
-                            <span className="inline-flex items-center gap-1 mt-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
+                          <div className="mb-2 border-b border-slate-100 px-3 pb-2">
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Business catalog</p>
+                            <p className="mt-0.5 truncate text-sm font-bold text-slate-900">{user.company}</p>
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                               <CheckCircle2 className="h-3 w-3" />
                               Verified {user.role.toUpperCase()}
                             </span>
@@ -166,7 +182,7 @@ export default function Navbar() {
                               setIsUserMenuOpen(false);
                               logoutUser();
                             }}
-                            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
                           >
                             <LogOut className="h-4 w-4" />
                             Sign Out
@@ -179,18 +195,27 @@ export default function Navbar() {
               ) : (
                 <button
                   onClick={() => openAuthModal("login")}
-                  className="flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover hover:shadow-md cursor-pointer"
+                  className="hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover hover:shadow-md sm:flex sm:px-5 cursor-pointer"
                 >
                   Join Platform
                   <ArrowRight className="h-4 w-4" />
                 </button>
               )}
-            </div>
 
-            <div className="flex lg:hidden">
+              {!isAuthenticated && (
+                <button
+                  onClick={() => openAuthModal("login")}
+                  className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-primary-hover sm:hidden cursor-pointer"
+                >
+                  Join
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              )}
+
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                className="inline-flex items-center justify-center rounded-xl p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+                aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
               >
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
@@ -206,7 +231,7 @@ export default function Navbar() {
               exit={{ opacity: 0, height: 0 }}
               className="border-t border-border bg-white lg:hidden"
             >
-              <div className="space-y-1 px-4 py-4">
+              <div className="scroll-area max-h-[calc(100dvh-3.5rem)] space-y-1 overflow-y-auto overscroll-contain px-4 py-4">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href;
                   return (
@@ -214,10 +239,11 @@ export default function Navbar() {
                       key={link.name}
                       href={link.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`block rounded-md px-3 py-2 text-base font-medium ${isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-                        }`}
+                      className={`block rounded-xl px-3 py-2.5 text-base font-medium ${
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                      }`}
                     >
                       {link.name}
                     </Link>
@@ -227,8 +253,8 @@ export default function Navbar() {
                   {isAuthenticated && user ? (
                     <div className="space-y-3">
                       <div className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-xs text-slate-400 font-bold uppercase">{user.company}</p>
-                        <p className="text-sm font-bold text-slate-800 mt-0.5">{user.name}</p>
+                        <p className="text-xs font-bold uppercase text-slate-400">{user.company}</p>
+                        <p className="mt-0.5 text-sm font-bold text-slate-800">{user.name}</p>
                       </div>
                       <button
                         onClick={() => {
@@ -242,28 +268,16 @@ export default function Navbar() {
                       </button>
                     </div>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          openAuthModal("login");
-                        }}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover"
-                      >
-                        Join Platform
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          openAuthModal("login");
-                        }}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                      >
-                        <User className="h-4 w-4" />
-                        Login
-                      </button>
-                    </>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        openAuthModal("login");
+                      }}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-hover cursor-pointer"
+                    >
+                      Join Platform
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
               </div>

@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e293b;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  --background: #fafbfc;
+  --foreground: #0f172a;
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
   --accent: #eff6ff;
-  --muted: #f8fafc;
+  --muted: #f1f5f9;
   --border: #e2e8f0;
+  --card: #ffffff;
+  --radius: 1rem;
+  --shadow-soft: 0 4px 24px -4px rgb(15 23 42 / 0.08);
+  --shadow-card: 0 1px 3px rgb(15 23 42 / 0.06), 0 8px 24px -8px rgb(15 23 42 / 0.1);
 }
 
 @theme inline {
@@ -23,17 +27,21 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  min-height: 100dvh;
+  overflow-x: hidden;
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
 }
 
-/* Form focus ring consistency */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
@@ -41,18 +49,38 @@ button:focus-visible {
   outline: none;
 }
 
+/* Prevent horizontal scroll from wide children */
+main {
+  min-width: 0;
+}
+
+/* Modern card surface */
+.surface-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+/* Scrollable regions */
+.scroll-area {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 4px;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

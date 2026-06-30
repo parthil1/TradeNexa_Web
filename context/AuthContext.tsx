@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import {
   User,
   UserRole,
@@ -12,7 +11,7 @@ import {
 } from "@/types/auth";
 import apiClient from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/config/endpoints";
-import { API_ROLE_IDS, DEFAULT_LANGUAGE_ID } from "@/config/constants";
+import { DEFAULT_LANGUAGE_ID, REGISTER_DEVICE } from "@/config/constants";
 import {
   formatMobileNumber,
   getFirebaseVerificationId,
@@ -23,20 +22,12 @@ import {
   userRoleToRoleId,
   type ApiUserProfile,
 } from "@/utils/authHelpers";
-
-interface AsyncOperationState<T> {
-  loading: boolean;
-  success: boolean;
-  error: string | null;
-  response: T | null;
-}
-
-const initialOpState = <T,>(): AsyncOperationState<T> => ({
-  loading: false,
-  success: false,
-  error: null,
-  response: null,
-});
+import {
+  AsyncOperationState,
+  initialOpState,
+  runApiAction,
+} from "@/utils/runApiAction";
+import { showErrorToast } from "@/utils/toast";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -104,38 +95,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
   };
 
+  const clearSession = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
+    }
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
   useEffect(() => {
     const initAuth = async () => {
-      if (typeof window !== "undefined") {
-        const token = localStorage.getItem("token");
-        const cachedUser = localStorage.getItem("user");
-        if (token) {
-          try {
-            const res = await apiClient.get(API_ENDPOINTS.PROFILE);
-            const profile = unwrapApiPayload<ApiUserProfile>(res.data);
-            persistSession(token, mapApiProfileToUser(profile));
-          } catch {
-            if (cachedUser) {
-              setUser(JSON.parse(cachedUser));
-              setIsAuthenticated(true);
-            } else {
-              localStorage.removeItem("token");
-              localStorage.removeItem("refresh_token");
-              localStorage.removeItem("user");
-            }
-          }
-        }
+      if (typeof window === "undefined") {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      const token = localStorage.getItem("token");
+      const cachedUser = localStorage.getItem("user");
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await apiClient.get(API_ENDPOINTS.PROFILE);
+        const profile = unwrapApiPayload<ApiUserProfile>(res.data);
+        persistSession(token, mapApiProfileToUser(profile));
+      } catch {
+        if (cachedUser) {
+          setUser(JSON.parse(cachedUser));
+          setIsAuthenticated(true);
+        } else {
+          clearSession();
+        }
+      } finally {
+        setLoading(false);
+      }
     };
 
     initAuth();
 
     const handleUnauthorized = () => {
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsAuthModalOpen(true);
-      setAuthModalStep("login");
+      clearSession();
+      // Do not auto-open login modal — only open on user action (Join, etc.)
     };
 
     window.addEventListener("auth_unauthorized", handleUnauthorized);
@@ -155,13 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Clear local session even if API logout fails
     }
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
-    }
-    setUser(null);
-    setIsAuthenticated(false);
+    clearSession();
   };
 
   const updateUser = (updatedUser: User) => {
@@ -196,38 +195,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetResendOtp = () => setResendOtpState(initialOpState());
   const resetRegister = () => setRegisterState(initialOpState());
 
-  const sendOtpAction = async (phone: string, countryCode: string): Promise<boolean> => {
-    setSendOtpState({ loading: true, success: false, error: null, response: null });
-    try {
-      const mobile_number = formatMobileNumber(countryCode, phone);
-      const response = await apiClient.post(API_ENDPOINTS.SEND_OTP, { mobile_number });
-      const data = unwrapApiPayload<Record<string, unknown>>(response.data);
+  const sendOtpRequest = async (phone: string, countryCode: string) => {
+    const mobile_number = formatMobileNumber(countryCode, phone);
+    const response = await apiClient.post(API_ENDPOINTS.SEND_OTP, { mobile_number });
+    const data = unwrapApiPayload<Record<string, unknown>>(response.data);
 
-      const verificationId = getFirebaseVerificationId(data);
-      const apiMobileNumber = getMobileNumber(data) || mobile_number;
+    const verificationId = getFirebaseVerificationId(data);
+    const apiMobileNumber = getMobileNumber(data) || mobile_number;
 
-      if (!verificationId) {
-        throw new Error("OTP sent but verification ID missing from server response.");
-      }
-
-      setFirebaseVerificationId(verificationId);
-      setSessionMobileNumber(apiMobileNumber);
-
-      const otpResponse: SendOtpResponse = {
-        firebase_verification_id: verificationId,
-        mobile_number: apiMobileNumber,
-        message: String((response.data as { message?: string }).message || "OTP sent successfully"),
-      };
-
-      setSendOtpState({ loading: false, success: true, error: null, response: otpResponse });
-      showSuccessToast("OTP sent successfully");
-      return true;
-    } catch (err: unknown) {
-      const errorMsg = (err as { message?: string }).message || "Failed to send OTP code";
-      setSendOtpState({ loading: false, success: false, error: errorMsg, response: null });
-      showErrorToast(errorMsg);
-      return false;
+    if (!verificationId) {
+      throw new Error("OTP sent but verification ID missing from server response.");
     }
+
+    setFirebaseVerificationId(verificationId);
+    setSessionMobileNumber(apiMobileNumber);
+
+    return {
+      firebase_verification_id: verificationId,
+      mobile_number: apiMobileNumber,
+      message: String((response.data as { message?: string }).message || "OTP sent successfully"),
+    } as SendOtpResponse;
+  };
+
+  const sendOtpAction = async (phone: string, countryCode: string): Promise<boolean> => {
+    const result = await runApiAction({
+      setState: setSendOtpState,
+      action: () => sendOtpRequest(phone, countryCode),
+      successMessage: "OTP sent successfully",
+      fallbackError: "Failed to send OTP code",
+    });
+    return !!result;
   };
 
   const verifyOtpAction = async (otp: string): Promise<VerifyOtpResponse | null> => {
@@ -238,76 +235,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    setVerifyOtpState({ loading: true, success: false, error: null, response: null });
-    try {
-      const response = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, {
-        firebase_verification_id: firebaseVerificationId,
-        mobile_number: sessionMobileNumber,
-        otp: Number(otp),
-      });
+    return runApiAction({
+      setState: setVerifyOtpState,
+      fallbackError: "Failed to verify OTP code",
+      successMessage: "OTP verified successfully",
+      action: async () => {
+        const response = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, {
+          firebase_verification_id: firebaseVerificationId,
+          mobile_number: sessionMobileNumber,
+          otp: Number(otp),
+        });
 
-      const data = unwrapApiPayload<Record<string, unknown>>(response.data);
-      const session = parseAuthSession(data);
+        const data = unwrapApiPayload<Record<string, unknown>>(response.data);
+        const session = parseAuthSession(data);
 
-      storeTokens(session.access_token, session.refresh_token);
+        storeTokens(session.access_token, session.refresh_token);
 
-      const verifyResponse: VerifyOtpResponse = {
-        is_registered: session.is_registered,
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-        user: session.user,
-        message: String((response.data as { message?: string }).message || "OTP verified successfully"),
-      };
+        if (session.is_registered && session.access_token && session.user) {
+          persistSession(session.access_token, session.user, session.refresh_token);
+        }
 
-      if (session.is_registered && session.access_token && session.user) {
-        persistSession(session.access_token, session.user, session.refresh_token);
-      }
-
-      setVerifyOtpState({ loading: false, success: true, error: null, response: verifyResponse });
-      showSuccessToast("OTP verified successfully");
-      return verifyResponse;
-    } catch (err: unknown) {
-      const errorMsg = (err as { message?: string }).message || "Failed to verify OTP code";
-      setVerifyOtpState({ loading: false, success: false, error: errorMsg, response: null });
-      showErrorToast(errorMsg);
-      return null;
-    }
+        return {
+          is_registered: session.is_registered,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          user: session.user,
+          message: String((response.data as { message?: string }).message || "OTP verified successfully"),
+        } as VerifyOtpResponse;
+      },
+    });
   };
 
   const resendOtpAction = async (): Promise<boolean> => {
     if (!authModalPhone) return false;
-
-    setResendOtpState({ loading: true, success: false, error: null, response: null });
-    try {
-      const mobile_number = formatMobileNumber(authModalCountryCode, authModalPhone);
-      const response = await apiClient.post(API_ENDPOINTS.SEND_OTP, { mobile_number });
-      const data = unwrapApiPayload<Record<string, unknown>>(response.data);
-
-      const verificationId = getFirebaseVerificationId(data);
-      const apiMobileNumber = getMobileNumber(data) || mobile_number;
-
-      if (!verificationId) {
-        throw new Error("OTP resent but verification ID missing from server response.");
-      }
-
-      setFirebaseVerificationId(verificationId);
-      setSessionMobileNumber(apiMobileNumber);
-
-      const otpResponse: SendOtpResponse = {
-        firebase_verification_id: verificationId,
-        mobile_number: apiMobileNumber,
-        message: "OTP resent successfully",
-      };
-
-      setResendOtpState({ loading: false, success: true, error: null, response: otpResponse });
-      showSuccessToast("OTP resent successfully");
-      return true;
-    } catch (err: unknown) {
-      const errorMsg = (err as { message?: string }).message || "Failed to resend OTP code";
-      setResendOtpState({ loading: false, success: false, error: errorMsg, response: null });
-      showErrorToast(errorMsg);
-      return false;
-    }
+    const result = await runApiAction({
+      setState: setResendOtpState,
+      action: () => sendOtpRequest(authModalPhone, authModalCountryCode),
+      successMessage: "OTP resent successfully",
+      fallbackError: "Failed to resend OTP code",
+    });
+    return !!result;
   };
 
   const registerAction = async (formData: RegisterRequest): Promise<RegisterResponse | null> => {
@@ -318,50 +285,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    setRegisterState({ loading: true, success: false, error: null, response: null });
-    try {
-      const body: Record<string, unknown> = {
-        mobile_number: sessionMobileNumber,
-        full_name: formData.name,
-        company_name: formData.company,
-        address_line_1: formData.address,
-        city: formData.city,
-        state: formData.state,
-        country: "India",
-        pincode: formData.pincode,
-        language_id: DEFAULT_LANGUAGE_ID,
-        role_id: userRoleToRoleId(formData.role),
-      };
+    return runApiAction({
+      setState: setRegisterState,
+      successMessage: "Registration successful",
+      fallbackError: "Registration failed",
+      action: async () => {
+        const body: Record<string, unknown> = {
+          mobile_number: sessionMobileNumber,
+          full_name: formData.name,
+          company_name: formData.company,
+          address_line_1: formData.address,
+          city: formData.city,
+          state: formData.state,
+          country: "India",
+          pincode: formData.pincode,
+          language_id: DEFAULT_LANGUAGE_ID,
+          role_id: userRoleToRoleId(formData.role),
+          device: REGISTER_DEVICE,
+        };
 
-      if (formData.email?.trim()) {
-        body.email = formData.email.trim();
-      }
+        if (formData.email?.trim()) {
+          body.email = formData.email.trim();
+        }
 
-      const response = await apiClient.post(API_ENDPOINTS.REGISTER, body);
-      const data = unwrapApiPayload<Record<string, unknown>>(response.data);
-      const session = parseAuthSession(data);
+        const response = await apiClient.post(API_ENDPOINTS.REGISTER, body);
+        const data = unwrapApiPayload<Record<string, unknown>>(response.data);
+        const session = parseAuthSession(data);
 
-      const registerResponse: RegisterResponse = {
-        is_registered: session.is_registered,
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-        user: session.user,
-        message: String((response.data as { message?: string }).message || "Registration successful"),
-      };
+        if (session.access_token && session.user) {
+          persistSession(session.access_token, session.user, session.refresh_token);
+        }
 
-      if (session.access_token && session.user) {
-        persistSession(session.access_token, session.user, session.refresh_token);
-      }
-
-      setRegisterState({ loading: false, success: true, error: null, response: registerResponse });
-      showSuccessToast("Registration successful");
-      return registerResponse;
-    } catch (err: unknown) {
-      const errorMsg = (err as { message?: string }).message || "Registration failed";
-      setRegisterState({ loading: false, success: false, error: errorMsg, response: null });
-      showErrorToast(errorMsg);
-      return null;
-    }
+        return {
+          is_registered: session.is_registered,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          user: session.user,
+          message: String((response.data as { message?: string }).message || "Registration successful"),
+        } as RegisterResponse;
+      },
+    });
   };
 
   return (

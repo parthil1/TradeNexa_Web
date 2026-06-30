@@ -10,3 +10,9 @@ export const API_ROLE_IDS: Record<UserRole, number> = {
   buyer: Number(process.env.NEXT_PUBLIC_ROLE_ID_BUYER) || 4,
   both: Number(process.env.NEXT_PUBLIC_ROLE_ID_BOTH) || 5,
 };
+
+/** Device payload for register API */
+export const REGISTER_DEVICE = {
+  device_type: process.env.NEXT_PUBLIC_DEVICE_TYPE || "android",
+  device_token: process.env.NEXT_PUBLIC_DEVICE_TOKEN || "firebase_device_token",
+};
