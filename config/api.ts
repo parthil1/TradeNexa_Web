@@ -1,6 +1,6 @@
 /**
- * Client calls same-origin `/api/v1` — Next.js rewrites proxy to the real API (avoids CORS).
- * Override with NEXT_PUBLIC_API_BASE_URL for direct API access (e.g. mobile apps).
+ * Client calls same-origin `/api/v1` — Next.js rewrites proxy to Railway backend (avoids CORS).
+ * Set API_PROXY_TARGET on Vercel to your backend URL (default: tradenexabackend-production.up.railway.app).
  */
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";

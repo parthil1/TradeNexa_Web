@@ -1,17 +1,7 @@
 import type { NextConfig } from "next";
 
-const API_PROXY_TARGET =
-  process.env.API_PROXY_TARGET || "https://api.tradenexa.com";
-
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${API_PROXY_TARGET}/api/v1/:path*`,
-      },
-    ];
-  },
+  /* config options here */
 };
 
 export default nextConfig;
