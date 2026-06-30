@@ -43,6 +43,7 @@ export default function AuthModal() {
     authModalRole,
     authModalPhone,
     authModalCountryCode,
+    sessionMobileNumber,
     sendOtpState,
     verifyOtpState,
     resendOtpState,
@@ -84,6 +85,7 @@ export default function AuthModal() {
     address: "",
     city: "",
     state: "",
+    pincode: "",
     role: authModalRole || "buyer",
   });
   // Options for State dropdown (combine states and UTs)
@@ -202,15 +204,16 @@ export default function AuthModal() {
     }
     setErrors({});
 
-    const response = await verifyOtpAction(authModalPhone, authModalCountryCode, otpCode);
-    if (response && response.success) {
-      if (!response.is_registered) {
-        // New user — proceed to registration form
-        setAuthModalStep("register");
-      } else if (response.token && response.user) {
-        // Existing user — log in directly
-        loginUser(response.token, response.user);
+    const response = await verifyOtpAction(otpCode);
+    if (response) {
+      if (response.is_registered && response.user) {
+        const token = response.access_token;
+        if (token) {
+          loginUser(token, response.user, response.refresh_token);
+        }
         closeAuthModal();
+      } else {
+        setAuthModalStep("register");
       }
     }
   };
@@ -224,7 +227,7 @@ export default function AuthModal() {
 
   // 3. RESEND OTP
   const handleResendOtp = async () => {
-    const success = await resendOtpAction(authModalPhone, authModalCountryCode);
+    const success = await resendOtpAction();
     if (success) {
       startTimer();
       setOtp(Array(6).fill(""));
@@ -239,12 +242,13 @@ export default function AuthModal() {
 
     if (!regForm.name.trim()) newErrors.name = "Full name is required";
     if (!regForm.company.trim()) newErrors.company = "Company name is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email)) {
+    if (regForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email)) {
       newErrors.email = "Please enter a valid email address";
     }
     if (!regForm.address.trim()) newErrors.address = "Office address is required";
     if (!regForm.city.trim()) newErrors.city = "City is required";
     if (!regForm.state.trim()) newErrors.state = "State is required";
+    if (!/^\d{6}$/.test(regForm.pincode)) newErrors.pincode = "Enter a valid 6-digit pincode";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -252,28 +256,10 @@ export default function AuthModal() {
     }
     setErrors({});
 
-    const success = await registerAction({
-      ...regForm,
-      phone: authModalPhone,
-      country_code: authModalCountryCode,
-    });
+    const result = await registerAction(regForm);
 
-    if (success && registerState.response) {
-      const { token, user } = registerState.response;
-      loginUser(token, user);
-      setTimeout(() => {
-        closeAuthModal();
-      }, 1000);
-    } else if (success) {
-      // In case state update isn't flushed yet, double check or wait
-      const stored = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      if (stored && token) {
-        loginUser(token, JSON.parse(stored));
-      }
-      setTimeout(() => {
-        closeAuthModal();
-      }, 1000);
+    if (result?.user) {
+      setTimeout(() => closeAuthModal(), 1000);
     }
   };
 
@@ -376,7 +362,11 @@ export default function AuthModal() {
               </div>
               <h4 className="text-lg font-bold text-slate-900">Verify Code</h4>
               <p className="text-sm text-slate-500 mt-1">
-                We've sent a 6-digit OTP code to <span className="font-semibold text-slate-800">{authModalCountryCode} {authModalPhone}</span>.
+                We&apos;ve sent a 6-digit OTP code to{" "}
+                <span className="font-semibold text-slate-800">
+                  {sessionMobileNumber || `${authModalCountryCode} ${authModalPhone}`}
+                </span>
+                .
               </p>
             </div>
 
@@ -490,8 +480,13 @@ export default function AuthModal() {
                   </div>
                   <h4 className="text-lg font-bold text-slate-900">Complete Registration</h4>
                   <p className="text-sm text-slate-500 mt-1">
-                    Setup your enterprise profile details to finalize your account creation.
+                    Setup your enterprise profile to finalize your account.
                   </p>
+                  {sessionMobileNumber && (
+                    <p className="mt-2 text-xs font-medium text-slate-600">
+                      Verified mobile: <span className="text-primary">{sessionMobileNumber}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -534,7 +529,7 @@ export default function AuthModal() {
                   </FormField>
 
                   {/* Email Address */}
-                  <FormField label="Email Address" htmlFor="reg-email" required error={errors.email}>
+                  <FormField label="Email Address" htmlFor="reg-email" error={errors.email}>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                       <input
@@ -613,6 +608,24 @@ export default function AuthModal() {
                       />
                     </FormField>
                   </div>
+                  {/* Pincode */}
+                  <FormField label="Pincode" htmlFor="reg-pincode" required error={errors.pincode}>
+                    <input
+                      id="reg-pincode"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={regForm.pincode}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setRegForm({ ...regForm, pincode: value });
+                        if (errors.pincode) setErrors({ ...errors, pincode: "" });
+                      }}
+                      placeholder="365440"
+                      className={`h-11 w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.pincode ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"}`}
+                    />
+                  </FormField>
+
                   {/* Role Selection */}
                   <FormField label="Account Type" htmlFor="reg-role" required>
                     <RoleSelector

@@ -1,5 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "@/config/api";
+import { API_ENDPOINTS } from "@/config/endpoints";
+import { getAccessToken, getRefreshToken, unwrapApiPayload } from "@/utils/authHelpers";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -8,7 +10,6 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor for appending authorization header
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
@@ -19,27 +20,56 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for handling global exceptions and token invalidation
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const message =
-      error.response?.data?.message || "An unexpected network error occurred. Please try again.";
+  async (error) => {
+    const originalRequest = error.config as { _retry?: boolean; headers?: Record<string, string> } | undefined;
 
-    // Trigger auto-logout on 401 Unauthorized status
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        // Dispatching custom event for global context listener
-        window.dispatchEvent(new Event("auth_unauthorized"));
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      typeof window !== "undefined"
+    ) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem("refresh_token");
+
+      if (refreshToken) {
+        try {
+          const refreshRes = await axios.post(
+            `${API_BASE_URL}${API_ENDPOINTS.REFRESH_TOKEN}`,
+            { refresh_token: refreshToken },
+            { headers: { "Content-Type": "application/json" } }
+          );
+          const data = unwrapApiPayload<Record<string, unknown>>(refreshRes.data);
+          const newAccessToken = getAccessToken(data);
+          const newRefreshToken = getRefreshToken(data);
+
+          if (newAccessToken) {
+            localStorage.setItem("token", newAccessToken);
+            if (newRefreshToken) localStorage.setItem("refresh_token", newRefreshToken);
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return apiClient(originalRequest);
+          }
+        } catch {
+          // Fall through to logout handling
+        }
       }
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
+      window.dispatchEvent(new Event("auth_unauthorized"));
     }
+
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "An unexpected network error occurred. Please try again.";
 
     return Promise.reject({
       message,

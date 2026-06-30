@@ -8,50 +8,41 @@ export interface User {
   address: string;
   city: string;
   state: string;
+  pincode: string;
   role: UserRole;
-  phone: string;
-  country_code: string;
-}
-
-export interface SendOtpRequest {
   phone: string;
   country_code: string;
 }
 
 export interface SendOtpResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface VerifyOtpRequest {
-  phone: string;
-  country_code: string;
-  otp: string;
+  firebase_verification_id: string;
+  mobile_number: string;
+  message?: string;
 }
 
 export interface VerifyOtpResponse {
-  success: boolean;
-  message: string;
-  token?: string;
-  user?: User;
   is_registered: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  user?: User;
+  message?: string;
 }
 
 export interface RegisterRequest {
   name: string;
   company: string;
-  email: string;
+  email?: string;
   address: string;
   city: string;
   state: string;
+  pincode: string;
   role: UserRole;
-  phone: string;
-  country_code: string;
 }
 
 export interface RegisterResponse {
-  success: boolean;
-  message: string;
-  token: string;
-  user: User;
+  is_registered: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  user?: User;
+  message?: string;
 }
