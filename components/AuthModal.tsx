@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Modal } from "@/components/common/Modal";
 import { FormField } from "@/components/common/FormField";
+import { IndianFlag } from "@/components/common/IndianFlag";
 import { RoleSelector } from "@/components/common/RoleSelector";
 import { motion, AnimatePresence } from "framer-motion";
 import Select, { SingleValue, StylesConfig } from "react-select";
@@ -310,7 +311,7 @@ export default function AuthModal() {
                     disabled
                     className="flex h-11 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm font-semibold text-slate-700 cursor-not-allowed"
                   >
-                    <span>{countryCodes.find((c) => c.code === "+91")?.flag}</span>
+                    <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
                     <span>+91</span>
                     <ChevronDown className="h-4 w-4 text-slate-400 opacity-30" />
                   </button>
