@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Select, { SingleValue, StylesConfig } from "react-select";
 
 type StateOption = { value: string; label: string };
-import indianStates from "indian-states/dist/IndianStatesUTCapitals.json";
+import { indianStateNames } from "@/data/indianStates";
 import {
   Smartphone,
   ShieldCheck,
@@ -86,10 +86,7 @@ export default function AuthModal() {
     role: authModalRole || "buyer",
   });
   // Options for State dropdown (combine states and UTs)
-  const stateOptions = [
-    ...Object.keys(indianStates.States),
-    ...Object.keys(indianStates.UT),
-  ].map((name) => ({ value: name, label: name }));
+  const stateOptions = indianStateNames.map((name) => ({ value: name, label: name }));
 
   // Sync parameters when modal starts
   useEffect(() => {
