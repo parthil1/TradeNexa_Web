@@ -12,7 +12,7 @@ import {
 } from "@/types/auth";
 import apiClient from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/config/endpoints";
-import { DEFAULT_LANGUAGE_ID, WEB_DEVICE } from "@/config/constants";
+import { API_ROLE_IDS } from "@/config/constants";
 import {
   formatMobileNumber,
   getFirebaseVerificationId,
@@ -244,7 +244,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         firebase_verification_id: firebaseVerificationId,
         mobile_number: sessionMobileNumber,
         otp: Number(otp),
-        device: WEB_DEVICE,
       });
 
       const data = unwrapApiPayload<Record<string, unknown>>(response.data);
@@ -330,9 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         state: formData.state,
         country: "India",
         pincode: formData.pincode,
-        language_id: DEFAULT_LANGUAGE_ID,
         role_id: userRoleToRoleId(formData.role),
-        device: WEB_DEVICE,
       };
 
       if (formData.email?.trim()) {
