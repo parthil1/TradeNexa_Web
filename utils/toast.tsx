@@ -3,6 +3,9 @@
 import { toast } from "react-hot-toast";
 import { CheckCircle, XCircle, X } from "lucide-react";
 
+/** Toast visible duration in milliseconds (3000ms = 3 seconds) */
+export const TOAST_DURATION_MS = 3000;
+
 type ToastType = "success" | "error";
 
 function showToast(message: string, type: ToastType) {
@@ -33,7 +36,7 @@ function showToast(message: string, type: ToastType) {
         </button>
       </div>
     ),
-    { duration: 4000 }
+    { duration: TOAST_DURATION_MS }
   );
 }
 

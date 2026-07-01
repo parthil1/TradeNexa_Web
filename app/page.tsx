@@ -38,6 +38,7 @@ import ProcessStep from "@/components/ProcessStep";
 import Counter from "@/components/Counter";
 import Testimonials from "@/components/Testimonials";
 import CTABanner from "@/components/CTABanner";
+import TrendingProducts from "@/components/TrendingProducts";
 
 export default function Home() {
   const { openRegisterModal } = useApp();
@@ -382,6 +383,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 4.5 Trending Products */}
+      <TrendingProducts />
 
       {/* 5. Why Choose Us Section */}
       <section className="py-16 bg-slate-50 border-t border-slate-100">

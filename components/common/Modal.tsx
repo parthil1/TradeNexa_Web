@@ -11,6 +11,9 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl";
+  hideHeader?: boolean;
+  headerSlot?: React.ReactNode;
+  bodyClassName?: string;
 }
 
 export function Modal({
@@ -20,19 +23,22 @@ export function Modal({
   children,
   footer,
   maxWidth = "md",
+  hideHeader = false,
+  headerSlot,
+  bodyClassName = "px-6 py-6",
 }: ModalProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Disable body scroll when modal is open
+  // Lock page scroll while modal is open (no position restore — avoids jump on close)
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
+    if (!isOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = prevOverflow;
     };
   }, [isOpen]);
 
@@ -83,11 +89,15 @@ export function Modal({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 15 }}
             transition={{ type: "spring", duration: 0.4 }}
-            className={`relative flex h-full max-h-[85vh] w-full ${maxWidthClasses[maxWidth]} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100/50`}
+            className={`relative flex max-h-[85vh] w-full ${maxWidthClasses[maxWidth]} flex-col overflow-hidden rounded-2xl border border-slate-100/50 bg-white shadow-2xl`}
           >
+            {/* Fixed custom header (e.g. register gradient) */}
+            {headerSlot && <div className="shrink-0">{headerSlot}</div>}
+
             {/* Sticky Header */}
+            {!hideHeader && (
             <div
-              className={`flex items-center justify-between px-6 py-4.5 transition-all duration-300 border-b border-slate-100 ${
+              className={`shrink-0 flex items-center justify-between px-6 py-4.5 transition-all duration-300 border-b border-slate-100 ${
                 isScrolled
                   ? "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)] bg-white/95 backdrop-blur-md z-10"
                   : "bg-white"
@@ -102,18 +112,19 @@ export function Modal({
                 <X className="h-5 w-5" />
               </button>
             </div>
+            )}
 
             {/* Scrollable Body */}
             <div
               ref={bodyRef}
-              className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent"
+              className={`min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent ${bodyClassName}`}
             >
               {children}
             </div>
 
-            {/* Sticky Footer */}
+            {/* Fixed footer — does not scroll with body */}
             {footer && (
-              <div className="border-t border-slate-100 px-6 py-4 bg-slate-50/70 backdrop-blur-sm">
+              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.08)]">
                 {footer}
               </div>
             )}

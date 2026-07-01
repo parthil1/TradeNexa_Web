@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
-import { Store, ShoppingCart, ArrowLeftRight } from "lucide-react";
-import type { UserRole } from "@/app/context/AppContext";
+import React, { useEffect, useState } from "react";
+import { Store, ShoppingCart, ArrowLeftRight, Loader2 } from "lucide-react";
+import type { UserRole } from "@/types/auth";
+import { ensureRolesLoaded, type RegisterableRoleOption } from "@/utils/roleHelpers";
 
 interface RoleSelectorProps {
   value: UserRole | "";
@@ -11,58 +12,91 @@ interface RoleSelectorProps {
   compact?: boolean;
 }
 
-const roles: { id: UserRole; label: string; description: string; icon: typeof Store }[] = [
-  {
-    id: "seller",
-    label: "Seller",
-    description: "List products & receive buyer inquiries",
-    icon: Store,
-  },
-  {
-    id: "buyer",
-    label: "Buyer",
-    description: "Source products from verified suppliers",
-    icon: ShoppingCart,
-  },
-  {
-    id: "both",
-    label: "Both",
-    description: "Buy supplies and sell your own catalog",
-    icon: ArrowLeftRight,
-  },
-];
+const ROLE_ICONS: Record<UserRole, typeof Store> = {
+  seller: Store,
+  buyer: ShoppingCart,
+  both: ArrowLeftRight,
+};
 
 export function RoleSelector({ value, onChange, error, compact }: RoleSelectorProps) {
+  const [roles, setRoles] = useState<RegisterableRoleOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRoles = async () => {
+      setLoading(true);
+      try {
+        const apiRoles = await ensureRolesLoaded();
+        if (!cancelled) setRoles(apiRoles);
+      } catch {
+        if (!cancelled) setRoles([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void loadRoles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 text-sm text-slate-500">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+        Loading account types...
+      </div>
+    );
+  }
+
+  if (!roles.length) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
+        Unable to load account types. Please try again.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className={`grid gap-3 ${compact ? "grid-cols-3" : "grid-cols-1 sm:grid-cols-3"}`}>
         {roles.map((role) => {
-          const Icon = role.icon;
-          const isSelected = value === role.id;
+          const Icon = ROLE_ICONS[role.userRole];
+          const isSelected = value === role.userRole;
           return (
             <button
               key={role.id}
               type="button"
-              onClick={() => onChange(role.id)}
-              className={`group relative flex flex-col items-center rounded-xl border-2 p-4 text-center transition-all ${
+              onClick={() => onChange(role.userRole)}
+              className={`group relative flex flex-col items-center rounded-xl border-2 text-center transition-all ${
+                compact ? "p-2.5" : "p-4"
+              } ${
                 isSelected
                   ? "border-primary bg-primary/5 shadow-sm shadow-primary/10"
                   : "border-slate-200 bg-white hover:border-primary/30 hover:bg-slate-50"
               } ${error && !value ? "border-red-300" : ""}`}
             >
               <div
-                className={`mb-2 flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                className={`flex items-center justify-center rounded-lg transition-colors ${
+                  compact ? "mb-1 h-8 w-8" : "mb-2 h-10 w-10"
+                } ${
                   isSelected
                     ? "bg-primary text-white"
                     : "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
                 }`}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
               </div>
               <span
-                className={`text-sm font-bold ${isSelected ? "text-primary" : "text-slate-900"}`}
+                className={`font-bold ${compact ? "text-[11px] leading-tight" : "text-sm"} ${
+                  isSelected ? "text-primary" : "text-slate-900"
+                }`}
               >
-                {role.label}
+                {role.name}
               </span>
               {!compact && (
                 <span className="mt-1 text-[11px] leading-snug text-slate-500">

@@ -4,26 +4,22 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Modal } from "@/components/common/Modal";
 import { FormField } from "@/components/common/FormField";
+import { Select } from "@/components/common/Select";
+import { IndianFlag } from "@/components/common/IndianFlag";
 import { RoleSelector } from "@/components/common/RoleSelector";
-import { motion, AnimatePresence } from "framer-motion";
-import Select, { SingleValue, StylesConfig } from "react-select";
-
-type StateOption = { value: string; label: string };
-import indianStates from "indian-states/dist/IndianStatesUTCapitals.json";
+import { fetchBusinessTypes } from "@/services/businessTypesService";
+import { ensureRolesLoaded, userRoleToRoleId } from "@/utils/authHelpers";
+import type { ApiBusinessType } from "@/types/businessType";
 import {
   Smartphone,
   ShieldCheck,
-  UserPlus,
   ArrowRight,
   ArrowLeft,
   ChevronDown,
   Loader2,
-  CheckCircle2,
-  Building,
   Mail,
   User,
-  MapPin,
-  Globe,
+  Shapes,
 } from "lucide-react";
 
 // List of B2B trading country codes
@@ -42,6 +38,7 @@ export default function AuthModal() {
     authModalRole,
     authModalPhone,
     authModalCountryCode,
+    sessionMobileNumber,
     sendOtpState,
     verifyOtpState,
     resendOtpState,
@@ -55,6 +52,7 @@ export default function AuthModal() {
     verifyOtpAction,
     resendOtpAction,
     registerAction,
+    openCompleteProfileModal,
     resetSendOtp,
     resetVerifyOtp,
     resetResendOtp,
@@ -78,31 +76,69 @@ export default function AuthModal() {
   // Registration Form Fields
   const [regForm, setRegForm] = useState({
     name: "",
-    company: "",
     email: "",
-    address: "",
-    city: "",
-    state: "",
     role: authModalRole || "buyer",
+    businessTypeId: "",
   });
-  // Options for State dropdown (combine states and UTs)
-  const stateOptions = [
-    ...Object.keys(indianStates.States),
-    ...Object.keys(indianStates.UT),
-  ].map((name) => ({ value: name, label: name }));
+  const [businessTypes, setBusinessTypes] = useState<ApiBusinessType[]>([]);
+  const [businessTypesLoading, setBusinessTypesLoading] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [agreedTerms, setAgreedTerms] = useState(false);
 
   // Sync parameters when modal starts
   useEffect(() => {
     if (isAuthModalOpen) {
       setPhone(authModalPhone);
       setCountryCode(authModalCountryCode);
-      if (authModalRole) {
-        setRegForm((prev) => ({ ...prev, role: authModalRole }));
-      }
+      setRegForm({
+        name: "",
+        email: "",
+        role: authModalRole || "buyer",
+        businessTypeId: "",
+      });
+      setBusinessTypes([]);
+      setSelectedRoleId(null);
       setErrors({});
       setOtp(Array(6).fill(""));
+      setAgreedTerms(false);
     }
   }, [isAuthModalOpen, authModalPhone, authModalCountryCode, authModalRole]);
+
+  useEffect(() => {
+    const shouldLoad =
+      (authModalStep === "role" || authModalStep === "register") && Boolean(regForm.role);
+    if (!shouldLoad) return;
+
+    let cancelled = false;
+
+    const loadBusinessTypesForRole = async () => {
+      setBusinessTypesLoading(true);
+      try {
+        await ensureRolesLoaded();
+        const roleId = userRoleToRoleId(regForm.role);
+        const types = await fetchBusinessTypes(roleId);
+
+        if (cancelled) return;
+
+        setSelectedRoleId(roleId);
+        setBusinessTypes(types);
+        setRegForm((prev) => ({ ...prev, businessTypeId: "" }));
+      } catch {
+        if (!cancelled) {
+          setBusinessTypes([]);
+          setSelectedRoleId(null);
+        }
+      } finally {
+        if (!cancelled) setBusinessTypesLoading(false);
+      }
+    };
+
+    void loadBusinessTypesForRole();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authModalStep, regForm.role]);
 
   // Sync Timer for OTP
   useEffect(() => {
@@ -204,15 +240,21 @@ export default function AuthModal() {
     }
     setErrors({});
 
-    const response = await verifyOtpAction(authModalPhone, authModalCountryCode, otpCode);
-    if (response && response.success) {
-      if (!response.is_registered) {
-        // New user — proceed to registration form
-        setAuthModalStep("register");
-      } else if (response.token && response.user) {
-        // Existing user — log in directly
-        loginUser(response.token, response.user);
+    const response = await verifyOtpAction(otpCode);
+    if (response) {
+      if (response.is_registered && response.user) {
+        const token = response.access_token;
+        if (token) {
+          loginUser(token, response.user, response.refresh_token);
+        }
         closeAuthModal();
+      } else {
+        if (authModalRole) {
+          setRegForm((prev) => ({ ...prev, role: authModalRole }));
+          setAuthModalStep("register");
+        } else {
+          setAuthModalStep("role");
+        }
       }
     }
   };
@@ -226,7 +268,7 @@ export default function AuthModal() {
 
   // 3. RESEND OTP
   const handleResendOtp = async () => {
-    const success = await resendOtpAction(authModalPhone, authModalCountryCode);
+    const success = await resendOtpAction();
     if (success) {
       startTimer();
       setOtp(Array(6).fill(""));
@@ -234,19 +276,31 @@ export default function AuthModal() {
     }
   };
 
-  // 4. REGISTRATION SUBMIT
+  // 4. ROLE SELECTION (before register when no role pre-selected)
+  const handleRoleContinue = () => {
+    if (!regForm.role) {
+      setErrors({ role: "Please select an account type" });
+      return;
+    }
+    setErrors({});
+    setAuthModalStep("register");
+  };
+
+  // 5. REGISTRATION SUBMIT
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
     if (!regForm.name.trim()) newErrors.name = "Full name is required";
-    if (!regForm.company.trim()) newErrors.company = "Company name is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email)) {
+    if (!regForm.email.trim()) {
+      newErrors.email = "Email address is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-    if (!regForm.address.trim()) newErrors.address = "Office address is required";
-    if (!regForm.city.trim()) newErrors.city = "City is required";
-    if (!regForm.state.trim()) newErrors.state = "State is required";
+    if (!regForm.businessTypeId) {
+      newErrors.businessTypeId = "Business type is required";
+    }
+    if (!agreedTerms) newErrors.terms = "You must agree to the terms to continue";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -254,28 +308,15 @@ export default function AuthModal() {
     }
     setErrors({});
 
-    const success = await registerAction({
+    const result = await registerAction({
       ...regForm,
-      phone: authModalPhone,
-      country_code: authModalCountryCode,
+      businessTypeId: Number(regForm.businessTypeId),
     });
 
-    if (success && registerState.response) {
-      const { token, user } = registerState.response;
-      loginUser(token, user);
-      setTimeout(() => {
-        closeAuthModal();
-      }, 1000);
-    } else if (success) {
-      // In case state update isn't flushed yet, double check or wait
-      const stored = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      if (stored && token) {
-        loginUser(token, JSON.parse(stored));
-      }
-      setTimeout(() => {
-        closeAuthModal();
-      }, 1000);
+    if (result?.user) {
+      const role = regForm.role;
+      closeAuthModal();
+      openCompleteProfileModal(role);
     }
   };
 
@@ -313,7 +354,7 @@ export default function AuthModal() {
                     disabled
                     className="flex h-11 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm font-semibold text-slate-700 cursor-not-allowed"
                   >
-                    <span>{countryCodes.find((c) => c.code === "+91")?.flag}</span>
+                    <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
                     <span>+91</span>
                     <ChevronDown className="h-4 w-4 text-slate-400 opacity-30" />
                   </button>
@@ -378,7 +419,11 @@ export default function AuthModal() {
               </div>
               <h4 className="text-lg font-bold text-slate-900">Verify Code</h4>
               <p className="text-sm text-slate-500 mt-1">
-                We've sent a 6-digit OTP code to <span className="font-semibold text-slate-800">{authModalCountryCode} {authModalPhone}</span>.
+                We&apos;ve sent a 6-digit OTP code to{" "}
+                <span className="font-semibold text-slate-800">
+                  {sessionMobileNumber || `${authModalCountryCode} ${authModalPhone}`}
+                </span>
+                .
               </p>
             </div>
 
@@ -471,182 +516,148 @@ export default function AuthModal() {
           </form>
         );
 
+      case "role":
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-2">
+              <h4 className="text-lg font-bold text-slate-900">Choose your account type</h4>
+              <p className="text-sm text-slate-500 mt-1">
+                Select how you want to use TradeNexa. You can update details later.
+              </p>
+            </div>
+
+            <FormField label="Account Type" htmlFor="role-select" required error={errors.role}>
+              <RoleSelector
+                value={regForm.role}
+                onChange={(role) => {
+                  setRegForm((prev) => ({ ...prev, role, businessTypeId: "" }));
+                  if (errors.role) setErrors({ ...errors, role: "" });
+                }}
+              />
+            </FormField>
+
+            <button
+              type="button"
+              onClick={handleRoleContinue}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover"
+            >
+              Continue
+              <ArrowRight className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAuthModalStep("verify")}
+              className="flex w-full items-center justify-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to verification
+            </button>
+          </div>
+        );
+
       case "register":
         return (
-          <form onSubmit={handleRegisterSubmit} className="space-y-5">
-            {registerState.success ? (
-              <div className="py-6 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <CheckCircle2 className="h-8 w-8 animate-bounce" />
+          <form id="register-form" onSubmit={handleRegisterSubmit} className="space-y-4">
+            <FormField label="Full Name" htmlFor="reg-name" required error={errors.name}>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    id="reg-name"
+                    type="text"
+                    value={regForm.name}
+                    onChange={(e) => {
+                      setRegForm({ ...regForm, name: e.target.value });
+                      if (errors.name) setErrors({ ...errors, name: "" });
+                    }}
+                    placeholder="Enter your full name"
+                    className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:ring-2 focus:ring-primary/20 ${errors.name ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"}`}
+                  />
                 </div>
-                <h4 className="text-lg font-bold text-slate-900">Profile Configured!</h4>
-                <p className="text-sm text-slate-500 mt-1">
-                  Welcome to TradeNexa. Redirecting you to the platform...
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="text-center mb-5">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <UserPlus className="h-6 w-6" />
+              </FormField>
+
+              <FormField label="Mobile Number" htmlFor="reg-mobile" required>
+                <div className="flex gap-2">
+                  <div className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+                    <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
+                    <span>+91</span>
                   </div>
-                  <h4 className="text-lg font-bold text-slate-900">Complete Registration</h4>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Setup your enterprise profile details to finalize your account creation.
-                  </p>
+                  <input
+                    id="reg-mobile"
+                    type="text"
+                    readOnly
+                    value={
+                      sessionMobileNumber
+                        ? sessionMobileNumber.replace(/^\+91/, "")
+                        : authModalPhone
+                    }
+                    className="h-11 min-w-0 flex-1 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700"
+                  />
                 </div>
+              </FormField>
 
-                <div className="space-y-4">
-                  {/* Full Name */}
-                  <FormField label="Full Name" htmlFor="reg-name" required error={errors.name}>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                      <input
-                        id="reg-name"
-                        type="text"
-                        value={regForm.name}
-                        onChange={(e) => {
-                          setRegForm({ ...regForm, name: e.target.value });
-                          if (errors.name) setErrors({ ...errors, name: "" });
-                        }}
-                        placeholder="John Doe"
-                        className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.name ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
-                          }`}
-                      />
-                    </div>
-                  </FormField>
-
-                  {/* Company Name */}
-                  <FormField label="Company Name" htmlFor="reg-company" required error={errors.company}>
-                    <div className="relative">
-                      <Building className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                      <input
-                        id="reg-company"
-                        type="text"
-                        value={regForm.company}
-                        onChange={(e) => {
-                          setRegForm({ ...regForm, company: e.target.value });
-                          if (errors.company) setErrors({ ...errors, company: "" });
-                        }}
-                        placeholder="TradeNexa Enterprise Pvt Ltd"
-                        className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.company ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
-                          }`}
-                      />
-                    </div>
-                  </FormField>
-
-                  {/* Email Address */}
-                  <FormField label="Email Address" htmlFor="reg-email" required error={errors.email}>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                      <input
-                        id="reg-email"
-                        type="email"
-                        value={regForm.email}
-                        onChange={(e) => {
-                          setRegForm({ ...regForm, email: e.target.value });
-                          if (errors.email) setErrors({ ...errors, email: "" });
-                        }}
-                        placeholder="name@company.com"
-                        className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
-                          }`}
-                      />
-                    </div>
-                  </FormField>
-
-                  {/* Address */}
-                  <FormField label="Office Address" htmlFor="reg-address" required error={errors.address}>
-                    <div className="relative">
-                      <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                      <input
-                        id="reg-address"
-                        type="text"
-                        value={regForm.address}
-                        onChange={(e) => {
-                          setRegForm({ ...regForm, address: e.target.value });
-                          if (errors.address) setErrors({ ...errors, address: "" });
-                        }}
-                        placeholder="G-12, IT Tech Park"
-                        className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.address ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
-                          }`}
-                      />
-                    </div>
-                  </FormField>
-
-                  {/* City & State (Grid) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField label="City" htmlFor="reg-city" required error={errors.city}>
-                      <div className="relative">
-                        <Globe className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                        <input
-                          id="reg-city"
-                          type="text"
-                          value={regForm.city}
-                          onChange={(e) => {
-                            setRegForm({ ...regForm, city: e.target.value });
-                            if (errors.city) setErrors({ ...errors, city: "" });
-                          }}
-                          placeholder="Mumbai"
-                          className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.city ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
-                            }`}
-                        />
-                      </div>
-                    </FormField>
-                    <FormField label="State" htmlFor="reg-state" required error={errors.state}>
-                      {/* State dropdown */}
-                      <Select<StateOption>
-                        inputId="reg-state"
-                        placeholder="Select State"
-                        options={stateOptions}
-                        value={stateOptions.find((o) => o.value === regForm.state) || null}
-                        onChange={(option: SingleValue<StateOption>) =>
-                          setRegForm({ ...regForm, state: option?.value ?? "" })
-                        }
-                        classNamePrefix="react-select"
-                        styles={{
-                          control: (provided: StylesConfig<StateOption>["control"] extends (base: infer B, ...args: never[]) => unknown ? B : Record<string, unknown>) => ({
-                            ...provided,
-                            height: "44px",
-                            minHeight: "44px",
-                            borderColor: errors.state ? "#f87171" : "#e2e8f0",
-                            boxShadow: "none",
-                          }),
-                        } as StylesConfig<StateOption>}
-                      />
-                    </FormField>
-                  </div>
-                  {/* Role Selection */}
-                  <FormField label="Account Type" htmlFor="reg-role" required>
-                    <RoleSelector
-                      value={regForm.role}
-                      onChange={(role) => setRegForm({ ...regForm, role })}
-                      compact
-                    />
-                  </FormField>
+              <FormField label="Email Address" htmlFor="reg-email" required error={errors.email}>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    id="reg-email"
+                    type="email"
+                    value={regForm.email}
+                    onChange={(e) => {
+                      setRegForm({ ...regForm, email: e.target.value });
+                      if (errors.email) setErrors({ ...errors, email: "" });
+                    }}
+                    placeholder="you@example.com"
+                    className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:ring-2 focus:ring-primary/20 ${errors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"}`}
+                  />
                 </div>
+              </FormField>
 
-                {registerState.error && (
-                  <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
-                    {registerState.error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={registerState.loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover disabled:bg-slate-300 mt-2"
-                >
-                  {registerState.loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
+              <FormField
+                label="Business Type"
+                htmlFor="reg-business-type"
+                required
+                error={errors.businessTypeId}
+              >
+                <div className="relative">
+                  <Shapes className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  {businessTypesLoading ? (
+                    <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      Loading business types...
+                    </div>
                   ) : (
-                    "Complete Registration"
+                    <Select
+                      id="reg-business-type"
+                      value={regForm.businessTypeId}
+                      onChange={(e) => {
+                        setRegForm({ ...regForm, businessTypeId: e.target.value });
+                        if (errors.businessTypeId) setErrors({ ...errors, businessTypeId: "" });
+                      }}
+                      options={businessTypes.map((type) => ({
+                        value: String(type.id),
+                        label: type.name,
+                      }))}
+                      placeholder={
+                        businessTypes.length
+                          ? "Select business type"
+                          : selectedRoleId
+                            ? "No business types for this role"
+                            : "Select account type first"
+                      }
+                      error={!!errors.businessTypeId}
+                      disabled={!businessTypes.length}
+                      className="pl-10"
+                    />
                   )}
-                </button>
-              </>
-            )}
+                </div>
+              </FormField>
+
+              {registerState.error && (
+                <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
+                  {registerState.error}
+                </div>
+              )}
           </form>
         );
 
@@ -661,19 +672,65 @@ export default function AuthModal() {
         return <span className="font-bold text-slate-950">Authenticate</span>;
       case "verify":
         return <span className="font-bold text-slate-950">Secure verification</span>;
+      case "role":
+        return <span className="font-bold text-slate-950">Account type</span>;
       case "register":
-        return <span className="font-bold text-slate-950">Complete profile setup</span>;
+        return <span className="font-bold text-slate-950">Register</span>;
       default:
         return "TradeNexa Portal";
     }
   };
+
+  const isRegisterStep = authModalStep === "register";
+
+  const registerFooter = (
+    <div className="space-y-3">
+      <label className="flex items-start gap-2.5 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          checked={agreedTerms}
+          onChange={(e) => {
+            setAgreedTerms(e.target.checked);
+            if (errors.terms) setErrors({ ...errors, terms: "" });
+          }}
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-primary focus:ring-primary/20"
+        />
+        <span className="leading-snug">
+          I agree to the{" "}
+          <span className="font-semibold text-primary">Terms of Service</span> and{" "}
+          <span className="font-semibold text-primary">Privacy Policy</span>
+        </span>
+      </label>
+      {errors.terms && <p className="text-xs font-semibold text-red-500">{errors.terms}</p>}
+      <button
+        type="submit"
+        form="register-form"
+        disabled={registerState.loading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover disabled:bg-slate-300"
+      >
+        {registerState.loading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Creating Account...
+          </>
+        ) : (
+          <>
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </>
+        )}
+      </button>
+    </div>
+  );
 
   return (
     <Modal
       isOpen={isAuthModalOpen}
       onClose={handleClose}
       title={getModalTitle()}
-      maxWidth={authModalStep === "register" ? "md" : "sm"}
+      bodyClassName="px-6 py-6"
+      footer={isRegisterStep ? registerFooter : undefined}
+      maxWidth="sm"
     >
       {renderStep()}
     </Modal>
