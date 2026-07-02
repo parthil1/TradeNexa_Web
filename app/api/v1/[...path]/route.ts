@@ -24,7 +24,8 @@ async function proxyRequest(request: NextRequest, path: string[]) {
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = await request.text();
+    // Preserve raw bytes — request.text() corrupts multipart/form-data file uploads
+    init.body = await request.arrayBuffer();
   }
 
   try {

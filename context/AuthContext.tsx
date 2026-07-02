@@ -358,9 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       action: async () => {
         const formData = buildProfileFormData(payload);
 
-        const response = await apiClient.put(API_ENDPOINTS.PROFILE, formData, {
-          headers: { "Content-Type": undefined },
-        });
+        const response = await apiClient.put(API_ENDPOINTS.PROFILE, formData);
         const profile = unwrapApiPayload<ApiUserProfile>(response.data);
         const updatedUser = mapApiProfileToUser(profile);
 

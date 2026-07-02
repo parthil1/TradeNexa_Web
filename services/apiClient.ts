@@ -12,6 +12,15 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
+    if (config.data instanceof FormData && config.headers) {
+      // Let the browser set multipart/form-data with the correct boundary
+      if (typeof config.headers.delete === "function") {
+        config.headers.delete("Content-Type");
+      } else {
+        delete (config.headers as Record<string, string>)["Content-Type"];
+      }
+    }
+
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
       if (token && config.headers) {
