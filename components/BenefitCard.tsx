@@ -27,10 +27,10 @@ export default function BenefitCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      className={`rounded-2xl p-6 shadow-sm border transition-all hover:shadow-xl ${
+      className={`rounded-2xl border p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${
         highlighted
-          ? "bg-slate-900 border-slate-800 text-white hover:border-primary/40"
-          : "bg-white border-slate-100 text-slate-850 hover:border-primary/20"
+          ? "border-transparent bg-gradient-to-br from-[#1a3a5c] to-[#234a73] text-white hover:shadow-primary/10"
+          : "border-slate-100 bg-white text-slate-850 hover:border-slate-200"
       }`}
     >
       <div
@@ -40,7 +40,7 @@ export default function BenefitCard({
       >
         <Icon className="h-6 w-6" />
       </div>
-      <h3 className={`text-xl font-bold mb-2 ${highlighted ? "text-white" : "text-slate-900"}`}>
+      <h3 className={`mb-2 text-xl font-bold ${highlighted ? "text-white" : "text-[#1a2b4c]"}`}>
         {title}
       </h3>
       <p className={`text-sm mb-4 leading-relaxed ${highlighted ? "text-slate-300" : "text-slate-500"}`}>

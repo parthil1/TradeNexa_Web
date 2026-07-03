@@ -10,6 +10,7 @@ import { RoleSelector } from "@/components/common/RoleSelector";
 import { fetchBusinessTypes } from "@/services/businessTypesService";
 import { ensureRolesLoaded, userRoleToRoleId } from "@/utils/authHelpers";
 import type { ApiBusinessType } from "@/types/businessType";
+import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import {
   Smartphone,
   ShieldCheck,
@@ -169,10 +170,17 @@ export default function AuthModal() {
     e.preventDefault();
     if (!phone) {
       setErrors({ phone: "Phone number is required" });
+      scrollToFirstFormError({ phone: "Phone number is required" }, {
+        fieldIds: { phone: "auth-phone" },
+      });
       return;
     }
     if (countryCode === "+91" && !/^\d{10}$/.test(phone)) {
       setErrors({ phone: "Please enter a valid 10-digit phone number" });
+      scrollToFirstFormError(
+        { phone: "Please enter a valid 10-digit phone number" },
+        { fieldIds: { phone: "auth-phone" } }
+      );
       return;
     }
     setErrors({});
@@ -236,6 +244,10 @@ export default function AuthModal() {
     const otpCode = otp.join("");
     if (otpCode.length < 6) {
       setErrors({ otp: "Please enter the complete 6-digit OTP code" });
+      scrollToFirstFormError(
+        { otp: "Please enter the complete 6-digit OTP code" },
+        { fieldIds: { otp: "auth-otp-0" } }
+      );
       return;
     }
     setErrors({});
@@ -280,6 +292,9 @@ export default function AuthModal() {
   const handleRoleContinue = () => {
     if (!regForm.role) {
       setErrors({ role: "Please select an account type" });
+      scrollToFirstFormError({ role: "Please select an account type" }, {
+        fieldIds: { role: "role-select" },
+      });
       return;
     }
     setErrors({});
@@ -304,6 +319,15 @@ export default function AuthModal() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      scrollToFirstFormError(newErrors, {
+        fieldOrder: ["name", "email", "businessTypeId", "terms"],
+        fieldIds: {
+          name: "reg-name",
+          email: "reg-email",
+          businessTypeId: "reg-business-type",
+          terms: "auth-terms",
+        },
+      });
       return;
     }
     setErrors({});
@@ -363,6 +387,7 @@ export default function AuthModal() {
                 {/* Phone Input Field */}
                 <div className="relative flex-1">
                   <input
+                    id="auth-phone"
                     type="tel"
                     value={phone}
                     onChange={(e) => {
@@ -436,6 +461,7 @@ export default function AuthModal() {
                 {otp.map((digit, idx) => (
                   <input
                     key={idx}
+                    id={idx === 0 ? "auth-otp-0" : undefined}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -526,7 +552,7 @@ export default function AuthModal() {
               </p>
             </div>
 
-            <FormField label="Account Type" htmlFor="role-select" required error={errors.role}>
+            <FormField label="Account Type" htmlFor="role-select" fieldKey="role-select" required error={errors.role}>
               <RoleSelector
                 value={regForm.role}
                 onChange={(role) => {
@@ -685,9 +711,13 @@ export default function AuthModal() {
 
   const registerFooter = (
     <div className="space-y-3">
-      <label className="flex items-start gap-2.5 text-sm text-slate-600">
+      <label
+        data-form-field="auth-terms"
+        className="flex items-start gap-2.5 text-sm text-slate-600"
+      >
         <input
           type="checkbox"
+          id="auth-terms"
           checked={agreedTerms}
           onChange={(e) => {
             setAgreedTerms(e.target.checked);

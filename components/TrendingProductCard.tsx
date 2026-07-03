@@ -36,7 +36,7 @@ export default function TrendingProductCard({ product, delay = 0 }: TrendingProd
     >
       <div className={`relative flex h-36 items-center justify-center ${product.imageColor}`}>
         <span className="text-4xl font-black text-white/20">{product.name.charAt(0)}</span>
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 shadow-sm">
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1a3a5c] shadow-sm">
           <TrendingUp className="h-3 w-3" />
           {product.trend}
         </span>
@@ -62,7 +62,7 @@ export default function TrendingProductCard({ product, delay = 0 }: TrendingProd
           </p>
           <div className="flex items-center justify-between pt-1">
             <span className="flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <Star className="h-3.5 w-3.5 fill-slate-400 text-slate-400" />
               {product.rating.toFixed(1)}
             </span>
             <span className="text-slate-400">{product.inquiries} inquiries this week</span>

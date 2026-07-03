@@ -32,7 +32,7 @@ function FilterButton({
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition lg:w-full lg:justify-between lg:rounded-xl lg:px-4 lg:py-3 lg:text-left ${
         isActive
-          ? "bg-[#3d2914] text-white shadow-md lg:border-l-4 lg:border-primary lg:bg-primary/5 lg:text-primary lg:shadow-none"
+          ? "bg-[#1a3a5c] text-white shadow-md lg:border-l-4 lg:border-primary lg:bg-primary/5 lg:text-primary lg:shadow-none"
           : "bg-transparent text-[#1a2b4c] hover:bg-slate-50 lg:text-slate-700 lg:hover:bg-slate-100"
       }`}
     >

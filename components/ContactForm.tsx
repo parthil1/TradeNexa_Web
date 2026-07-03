@@ -7,6 +7,7 @@ import { FormField } from "@/components/common/FormField";
 import { Input } from "@/components/common/Input";
 import { Textarea } from "@/components/common/Textarea";
 import { RoleSelector } from "@/components/common/RoleSelector";
+import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 
 export default function ContactForm() {
   const { addInquiry } = useApp();
@@ -50,12 +51,17 @@ export default function ContactForm() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setTimeout(() => {
-        const firstErrorKey = Object.keys(newErrors)[0];
-        const element = document.getElementById(`contact-${firstErrorKey}`);
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-        element?.focus();
-      }, 100);
+      scrollToFirstFormError(newErrors, {
+        fieldOrder: ["role", "name", "email", "phone", "company", "message"],
+        fieldIds: {
+          role: "contact-role",
+          name: "contact-name",
+          email: "contact-email",
+          phone: "contact-phone",
+          company: "contact-company",
+          message: "contact-message",
+        },
+      });
       return;
     }
 
@@ -75,10 +81,10 @@ export default function ContactForm() {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-xl md:p-8">
+    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:p-8">
       {submitted ? (
         <div className="py-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <CheckCircle2 className="h-10 w-10" />
           </div>
           <h3 className="text-xl font-bold text-slate-900">Inquiry Sent Successfully!</h3>
@@ -89,13 +95,13 @@ export default function ContactForm() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Send a Direct Message</h3>
+          <h3 className="text-lg font-bold text-[#1a2b4c]">Send a Direct Message</h3>
             <p className="mt-1 text-sm text-slate-500">
               Tell us about your business and how we can help you connect.
             </p>
           </div>
 
-          <FormField label="Your Role" htmlFor="contact-role" required error={errors.role}>
+          <FormField label="Your Role" htmlFor="contact-role" fieldKey="role" required error={errors.role}>
             <RoleSelector
               value={formData.role}
               onChange={(role) => {

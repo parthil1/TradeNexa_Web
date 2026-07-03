@@ -6,6 +6,7 @@ import { FormField } from "@/components/common/FormField";
 import { Textarea } from "@/components/common/Textarea";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserRole } from "@/types/auth";
+import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import {
   Building2,
   Factory,
@@ -263,7 +264,35 @@ export default function CompleteProfileModal() {
     }
 
     setErrors(next);
-    return Object.keys(next).length === 0;
+    if (Object.keys(next).length > 0) {
+      const fieldOrder =
+        role === "seller"
+          ? ["companyName", "gstNumber", "panNumber", "businessDescription"]
+          : role === "both"
+            ? [
+                "companyName",
+                "industry",
+                "address",
+                "gstNumber",
+                "panNumber",
+                "businessDescription",
+              ]
+            : ["companyName", "industry", "address", "gstNumber"];
+
+      scrollToFirstFormError(next, {
+        fieldOrder,
+        fieldIds: {
+          companyName: "cp-company",
+          industry: "cp-industry",
+          address: "cp-address",
+          gstNumber: "cp-gst",
+          panNumber: "cp-pan",
+          businessDescription: "cp-description",
+        },
+      });
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

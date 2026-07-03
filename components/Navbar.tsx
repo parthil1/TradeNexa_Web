@@ -163,7 +163,7 @@ export default function Navbar() {
                           <div className="mb-2 border-b border-slate-100 px-3 pb-2">
                             <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Business catalog</p>
                             <p className="mt-0.5 truncate text-sm font-bold text-slate-900">{user.company}</p>
-                            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary">
                               <CheckCircle2 className="h-3 w-3" />
                               Verified {user.role.toUpperCase()}
                             </span>

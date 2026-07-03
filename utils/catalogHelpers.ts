@@ -69,14 +69,12 @@ export function getInitials(name: string): string {
 
 export function productGradient(id: number): string {
   const gradients = [
-    "from-slate-600 to-slate-800",
-    "from-emerald-500 to-green-700",
-    "from-blue-500 to-indigo-700",
-    "from-amber-500 to-orange-600",
-    "from-violet-500 to-purple-700",
-    "from-stone-500 to-stone-700",
-    "from-cyan-500 to-teal-700",
-    "from-rose-500 to-pink-700",
+    "from-[#1a3a5c] to-[#234a73]",
+    "from-slate-700 to-slate-900",
+    "from-blue-900 to-[#1a3a5c]",
+    "from-[#234a73] to-[#1a2b4c]",
+    "from-slate-600 to-blue-900",
+    "from-blue-800 to-slate-800",
   ];
   return gradients[id % gradients.length];
 }

@@ -48,7 +48,7 @@ export default function CategoriesPage() {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <section className={`relative bg-gradient-to-br ${MARKETPLACE_NAVY} pb-8 pt-8 lg:pb-12 lg:pt-10`}>
         <div className={`${MARKETPLACE_CONTAINER} relative`}>
-          <div className="hidden lg:block">
+          <div className="mb-6 hidden lg:block lg:mb-8">
             <CatalogBreadcrumbs items={[{ label: "Categories" }]} variant="light" />
           </div>
 
@@ -82,8 +82,9 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          <div className="mt-8 lg:mt-10 lg:max-w-xl">
+          <div className="mt-6 max-w-md lg:mt-8">
             <MarketplaceSearchBar
+              size="sm"
               value={filterQuery}
               onChange={setFilterQuery}
               placeholder={`Search across ${pagination.total || "all"} categories...`}

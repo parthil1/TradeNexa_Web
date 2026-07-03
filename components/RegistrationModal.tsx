@@ -8,6 +8,7 @@ import { FormField } from "@/components/common/FormField";
 import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { RoleSelector } from "@/components/common/RoleSelector";
+import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 
 const categoryOptions = [
   { value: "electronics", label: "Electronics & Electricals" },
@@ -86,6 +87,17 @@ export default function RegistrationModal() {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      scrollToFirstFormError(newErrors, {
+        fieldOrder: ["role", "name", "company", "phone", "email", "category"],
+        fieldIds: {
+          role: "role-seller",
+          name: "reg-name",
+          company: "reg-company",
+          phone: "reg-phone",
+          email: "reg-email",
+          category: "reg-category",
+        },
+      });
       return;
     }
 
@@ -129,6 +141,7 @@ export default function RegistrationModal() {
             initial={{ scale: 0.95, opacity: 0, y: 15 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 15 }}
+            data-form-scroll-container
             className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8"
           >
             <button
@@ -141,7 +154,7 @@ export default function RegistrationModal() {
 
             {isSuccess ? (
               <div className="py-8 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <CheckCircle2 className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Registration Successful!</h3>
@@ -168,7 +181,7 @@ export default function RegistrationModal() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                  <FormField label="I want to" htmlFor="role-seller" required error={errors.role}>
+                  <FormField label="I want to" htmlFor="role-seller" fieldKey="role" required error={errors.role}>
                     <RoleSelector
                       value={formData.role}
                       onChange={(role) => {

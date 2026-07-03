@@ -27,9 +27,10 @@ import SectionHeading from "@/components/SectionHeading";
 import FeatureCard from "@/components/FeatureCard";
 import ProcessStep from "@/components/ProcessStep";
 import Counter from "@/components/Counter";
-import Testimonials from "@/components/Testimonials";
 import CTABanner from "@/components/CTABanner";
 import FeaturedCategories from "@/components/FeaturedCategories";
+import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
+import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
 
 export default function Home() {
   const { openRegisterModal } = useApp();
@@ -71,36 +72,35 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* 1. Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center">
-            {/* Hero Left Content */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <motion.span
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      {/* Hero Section */}
+      <section className={`relative overflow-hidden bg-gradient-to-br ${MARKETPLACE_NAVY} pb-12 pt-10 lg:pb-16 lg:pt-14`}>
+        <div className={MARKETPLACE_CONTAINER}>
+          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl space-y-6 text-center lg:text-left">
+              <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold text-primary"
+                className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/90"
               >
-                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-                India's Modern B2B Platform
-              </motion.span>
-              <motion.h4
+                India&apos;s Modern B2B Platform
+              </motion.p>
+              <motion.h1
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl"
+                className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl"
               >
-                India's Smart B2B Marketplace for <span className="text-primary">Growing Businesses</span>
-              </motion.h4>
+                India&apos;s Smart B2B Marketplace for Growing Businesses
+              </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="mx-auto lg:mx-0 max-w-2xl text-lg text-slate-500 leading-relaxed"
+                className="mx-auto max-w-xl text-base leading-relaxed text-blue-100/90 lg:mx-0 lg:text-lg"
               >
-                Connect Buyers with Verified Sellers across India through a powerful, transparent, and easy-to-use digital marketplace.
+                Connect buyers with verified sellers across India through a powerful, transparent, and
+                easy-to-use digital marketplace.
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
@@ -110,110 +110,70 @@ export default function Home() {
               >
                 <button
                   onClick={() => openRegisterModal("seller")}
-                  className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-hover hover:shadow-primary/25"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary-hover"
                 >
                   Join as Seller
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => openRegisterModal("buyer")}
-                  className="flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-8 py-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
                 >
                   Join as Buyer
-                  <Search className="h-4 w-4 text-primary" />
+                  <Search className="h-4 w-4" />
                 </button>
                 <Link
-                  href="/products"
-                  className="flex items-center justify-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-8 py-4 text-sm font-semibold text-primary transition hover:bg-primary/10"
+                  href="/categories"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/20 px-8 py-4 text-sm font-semibold text-blue-100/90 transition hover:bg-white/10 hover:text-white"
                 >
-                  Browse Products
+                  Browse Categories
                 </Link>
               </motion.div>
             </div>
 
-            {/* Hero Right Graphic */}
-            <div className="lg:col-span-5 flex justify-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="relative w-full max-w-md aspect-square bg-slate-100 rounded-3xl overflow-hidden shadow-inner border border-slate-100 flex items-center justify-center p-8 bg-gradient-to-br from-blue-50/50 to-white"
-              >
-                {/* SVG Visual Representation of Marketplace */}
-                <svg viewBox="0 0 400 400" className="w-full h-full text-slate-800">
-                  <defs>
-                    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#2563eb" />
-                      <stop offset="100%" stopColor="#1d4ed8" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Central Platform Orb */}
-                  <circle cx="200" cy="200" r="70" fill="url(#blueGrad)" opacity="0.1" />
-                  <circle cx="200" cy="200" r="50" fill="url(#blueGrad)" opacity="0.8" />
-                  <path d="M185,185 h30 v30 h-30 z" fill="#ffffff" opacity="0.9" />
-                  <path d="M200,175 l20,20 h-40 z" fill="#ffffff" />
-
-                  {/* Connecting Lines */}
-                  <line x1="80" y1="120" x2="150" y2="170" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4" />
-                  <line x1="320" y1="120" x2="250" y2="170" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4" />
-                  <line x1="80" y1="280" x2="150" y2="230" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4" />
-                  <line x1="320" y1="280" x2="250" y2="230" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4" />
-
-                  {/* Sellers Group */}
-                  <g transform="translate(60, 100)">
-                    <circle cx="20" cy="20" r="28" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-                    <rect x="10" y="10" width="20" height="20" rx="3" fill="#2563eb" />
-                    <text x="20" y="48" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#475569">Sellers</text>
-                  </g>
-
-                  {/* Products Group */}
-                  <g transform="translate(300, 100)">
-                    <circle cx="20" cy="20" r="28" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-                    <path d="M12,12 h16 v16 h-16 z" fill="#10b981" />
-                    <text x="20" y="48" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#475569">Products</text>
-                  </g>
-
-                  {/* Buyers Group */}
-                  <g transform="translate(60, 260)">
-                    <circle cx="20" cy="20" r="28" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-                    <circle cx="20" cy="18" r="8" fill="#f59e0b" />
-                    <path d="M10,30 q10,-8 20,0" stroke="#f59e0b" strokeWidth="2" fill="none" />
-                    <text x="20" y="48" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#475569">Buyers</text>
-                  </g>
-
-                  {/* Connections Group */}
-                  <g transform="translate(300, 260)">
-                    <circle cx="20" cy="20" r="28" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-                    <path d="M10,20 h20 M20,10 v20" stroke="#6366f1" strokeWidth="3" />
-                    <text x="20" y="48" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#475569">Inquiries</text>
-                  </g>
-                </svg>
-              </motion.div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4 lg:shrink-0"
+            >
+              {[
+                { label: "Products Listed", value: "10,000+" },
+                { label: "Verified Sellers", value: "5,000+" },
+                { label: "Categories", value: "25+" },
+                { label: "Cities Active", value: "50+" },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm"
+                >
+                  <p className="text-xs font-medium text-blue-100/80">{stat.label}</p>
+                  <p className="mt-1 text-2xl font-extrabold text-white">{stat.value}</p>
+                </div>
+              ))}
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 2. Our Platform (3 Cards) */}
-      <section className="py-16 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Platform Overview */}
+      <section className="py-16 lg:py-20">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Overview"
             title="Our Platform Core Solutions"
             subtitle="Explore how our system facilitates B2B trade across industrial categories."
           />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {/* Card 1 */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <motion.div
-              whileHover={{ y: -5 }}
-              className="rounded-2xl border border-slate-100 bg-slate-50 p-8 shadow-sm flex flex-col justify-between"
+              whileHover={{ y: -4 }}
+              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition hover:border-slate-200 hover:shadow-lg"
             >
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white">
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Search className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Find Products</h3>
+                <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">Find Products</h3>
                 <p className="text-sm text-slate-500 leading-relaxed mb-6">
                   Browse thousands of certified products and raw supplies across industrial, agricultural, and retail categories.
                 </p>
@@ -223,16 +183,15 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Card 2 */}
             <motion.div
-              whileHover={{ y: -5 }}
-              className="rounded-2xl border border-slate-100 bg-slate-50 p-8 shadow-sm flex flex-col justify-between"
+              whileHover={{ y: -4 }}
+              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition hover:border-slate-200 hover:shadow-lg"
             >
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white">
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <CheckCircle className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Verified Sellers</h3>
+                <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">Verified Sellers</h3>
                 <p className="text-sm text-slate-500 leading-relaxed mb-6">
                   Partner with trusted, verified business partners with complete credentials and verified profiles.
                 </p>
@@ -242,16 +201,15 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Card 3 */}
             <motion.div
-              whileHover={{ y: -5 }}
-              className="rounded-2xl border border-slate-100 bg-slate-50 p-8 shadow-sm flex flex-col justify-between"
+              whileHover={{ y: -4 }}
+              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition hover:border-slate-200 hover:shadow-lg"
             >
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500 text-white">
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <TrendingUp className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Grow Your Business</h3>
+                <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">Grow Your Business</h3>
                 <p className="text-sm text-slate-500 leading-relaxed mb-6">
                   List your company catalog, expand digital market reach, and receive genuine buyer inquiries daily.
                 </p>
@@ -264,9 +222,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2.5 Choose Your Role */}
-      <section className="border-y border-slate-100 bg-slate-50 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Choose Your Role */}
+      <section className="border-y border-slate-100 bg-white py-16 lg:py-20">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Get Started"
             title="Choose Your Path"
@@ -279,21 +237,18 @@ export default function Home() {
                 title: "I'm a Seller",
                 desc: "List products and receive buyer inquiries from across India.",
                 icon: Package,
-                color: "bg-primary",
               },
               {
                 role: "buyer" as const,
                 title: "I'm a Buyer",
                 desc: "Source verified suppliers and send RFQs without middlemen.",
                 icon: Search,
-                color: "bg-emerald-500",
               },
               {
                 role: "both" as const,
                 title: "I Do Both",
                 desc: "Buy raw materials and sell your own catalog from one account.",
                 icon: ArrowRightLeft,
-                color: "bg-indigo-500",
               },
             ].map((item, i) => {
               const Icon = item.icon;
@@ -305,12 +260,12 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08 }}
                   onClick={() => openRegisterModal(item.role)}
-                  className="group rounded-2xl border border-slate-100 bg-white p-6 text-left shadow-sm transition hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
+                  className="group rounded-2xl border border-slate-100 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg"
                 >
-                  <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${item.color} text-white`}>
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mb-2 text-lg font-bold text-slate-900">{item.title}</h3>
+                  <h3 className="mb-2 text-lg font-bold text-[#1a2b4c]">{item.title}</h3>
                   <p className="mb-4 text-sm text-slate-500">{item.desc}</p>
                   <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary group-hover:gap-2 transition-all">
                     Get Started <ArrowRight className="h-4 w-4" />
@@ -322,9 +277,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. How It Works Section */}
-      <section className="py-16 bg-slate-50 border-y border-slate-100">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* How It Works */}
+      <section className="py-16 lg:py-20">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Process"
             title="How It Works"
@@ -337,9 +292,9 @@ export default function Home() {
       {/* 4. Industries Section */}
       <FeaturedCategories />
 
-      {/* 5. Why Choose Us Section */}
-      <section className="py-16 bg-slate-50 border-t border-slate-100">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Why Choose Us */}
+      <section className="border-t border-slate-100 bg-white py-16 lg:py-20">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Benefits"
             title="Why Choose Our B2B Platform?"
@@ -359,9 +314,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. Statistics Section */}
-      <section className="py-16 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Statistics */}
+      <section className="py-16 lg:py-20">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Scale"
             title="Our Platform in Numbers"

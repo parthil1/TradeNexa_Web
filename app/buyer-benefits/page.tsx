@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import BenefitCard from "@/components/BenefitCard";
 import CTABanner from "@/components/CTABanner";
-import Link from "next/link";
-import { Search, CheckCircle, List, Zap, Clock, ShieldCheck } from "lucide-react";
+import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePageHero";
+import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
+import { Search, CheckCircle, List, Zap, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 
 export default function BuyerBenefits() {
   const benefits = [
@@ -16,7 +18,7 @@ export default function BuyerBenefits() {
       points: [
         "Faceted sidebar filters to sort items by region or city.",
         "Keyword auto-suggestions indicating active catalogs.",
-        "Mobile-first responsive search layout."
+        "Mobile-first responsive search layout.",
       ],
       highlighted: false,
     },
@@ -27,7 +29,7 @@ export default function BuyerBenefits() {
       points: [
         "Distinct verification trust badge on profiles.",
         "View registered office location and contact details.",
-        "Report suspicious catalog listings instantly to admins."
+        "Report suspicious catalog listings instantly to admins.",
       ],
       highlighted: true,
     },
@@ -38,7 +40,7 @@ export default function BuyerBenefits() {
       points: [
         "Broader market view across small, medium, and large mills.",
         "Access technical catalogs and downloadable brochures.",
-        "Explore related products in identical category pages."
+        "Explore related products in identical category pages.",
       ],
       highlighted: false,
     },
@@ -49,7 +51,7 @@ export default function BuyerBenefits() {
       points: [
         "Direct RFQs forwarded immediately without broker steps.",
         "Integration for direct call, mail, or message channels.",
-        "No platform brokerage fees or contact access limits."
+        "No platform brokerage fees or contact access limits.",
       ],
       highlighted: false,
     },
@@ -60,7 +62,7 @@ export default function BuyerBenefits() {
       points: [
         "Sellers contact you back with pricing quotes.",
         "Receive matching catalogs within hours.",
-        "Consolidated dashboard view to manage active inquiries."
+        "Consolidated dashboard view to manage active inquiries.",
       ],
       highlighted: false,
     },
@@ -71,47 +73,36 @@ export default function BuyerBenefits() {
       points: [
         "Constant monitoring of seller activity.",
         "Clean, spam-free interfaces without banner ads.",
-        "Direct B2B matching focused purely on business procurement."
+        "Direct B2B matching focused purely on business procurement.",
       ],
       highlighted: false,
     },
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Page Hero */}
-      <section className="relative bg-slate-50 py-16 border-b border-slate-100">
-        <div className="mx-auto max-w-5xl px-4 text-center space-y-4">
-          <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            For Buyers
-          </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Streamlined Bulk Sourcing for Buyers
-          </h1>
-          <p className="mx-auto max-w-2xl text-base text-slate-500">
-            Find the right wholesale partner. Source raw materials, machinery, finished goods, and commercial products directly from verified sellers across India.
-          </p>
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <MarketplacePageHero
+        eyebrow="For Buyers"
+        title="Streamlined Bulk Sourcing for Buyers"
+        subtitle="Find the right wholesale partner. Source raw materials, machinery, finished goods, and commercial products directly from verified sellers across India."
+      >
+        <Link
+          href="/categories"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/10 transition hover:bg-primary-hover"
+        >
+          Start Sourcing Products
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </MarketplacePageHero>
 
-          <div className="pt-6">
-            <Link
-              href="/categories"
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-white hover:bg-primary-hover transition shadow-md shadow-primary/10"
-            >
-              Start Sourcing Products
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Grid */}
-      <section className="py-16 bg-white flex-1">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="flex-1 py-12 lg:py-16">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Solutions"
             title="Procurement Advantages"
             subtitle="Discover how our simplified B2B platform saves weeks of manual vendor sourcing."
           />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {benefits.map((b, idx) => (
               <BenefitCard
                 key={idx}
@@ -127,7 +118,6 @@ export default function BuyerBenefits() {
         </div>
       </section>
 
-      {/* CTA */}
       <CTABanner />
     </div>
   );

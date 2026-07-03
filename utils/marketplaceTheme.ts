@@ -6,62 +6,49 @@ export interface MarketplaceTheme {
   pastel: string;
 }
 
+/** B2B palette — navy / slate / blue variants only (no consumer rainbow) */
 const THEMES: MarketplaceTheme[] = [
   {
+    iconBg: "bg-slate-100",
+    iconText: "text-slate-700",
+    productBadge: "bg-[#1a3a5c]",
+    productBadgeText: "text-white",
+    pastel: "bg-slate-50",
+  },
+  {
+    iconBg: "bg-blue-50",
+    iconText: "text-blue-800",
+    productBadge: "bg-blue-800",
+    productBadgeText: "text-white",
+    pastel: "bg-blue-50/80",
+  },
+  {
+    iconBg: "bg-slate-100",
+    iconText: "text-[#234a73]",
+    productBadge: "bg-[#234a73]",
+    productBadgeText: "text-white",
+    pastel: "bg-slate-50",
+  },
+  {
     iconBg: "bg-blue-100",
-    iconText: "text-blue-600",
-    productBadge: "bg-blue-500",
+    iconText: "text-blue-700",
+    productBadge: "bg-primary",
     productBadgeText: "text-white",
     pastel: "bg-blue-50",
   },
   {
-    iconBg: "bg-emerald-100",
-    iconText: "text-emerald-600",
-    productBadge: "bg-emerald-500",
+    iconBg: "bg-slate-100",
+    iconText: "text-slate-600",
+    productBadge: "bg-slate-700",
     productBadgeText: "text-white",
-    pastel: "bg-emerald-50",
+    pastel: "bg-slate-50",
   },
   {
-    iconBg: "bg-orange-100",
-    iconText: "text-orange-500",
-    productBadge: "bg-orange-500",
+    iconBg: "bg-blue-50",
+    iconText: "text-[#1a3a5c]",
+    productBadge: "bg-[#1a2b4c]",
     productBadgeText: "text-white",
-    pastel: "bg-orange-50",
-  },
-  {
-    iconBg: "bg-red-100",
-    iconText: "text-red-500",
-    productBadge: "bg-red-500",
-    productBadgeText: "text-white",
-    pastel: "bg-red-50",
-  },
-  {
-    iconBg: "bg-violet-100",
-    iconText: "text-violet-600",
-    productBadge: "bg-violet-500",
-    productBadgeText: "text-white",
-    pastel: "bg-violet-50",
-  },
-  {
-    iconBg: "bg-teal-100",
-    iconText: "text-teal-600",
-    productBadge: "bg-teal-500",
-    productBadgeText: "text-white",
-    pastel: "bg-teal-50",
-  },
-  {
-    iconBg: "bg-amber-100",
-    iconText: "text-amber-600",
-    productBadge: "bg-amber-500",
-    productBadgeText: "text-white",
-    pastel: "bg-amber-50",
-  },
-  {
-    iconBg: "bg-pink-100",
-    iconText: "text-pink-500",
-    productBadge: "bg-pink-500",
-    productBadgeText: "text-white",
-    pastel: "bg-pink-50",
+    pastel: "bg-slate-50",
   },
 ];
 
@@ -83,3 +70,6 @@ function hashString(value: string): number {
 }
 
 export const MARKETPLACE_NAVY = "from-[#1a3a5c] to-[#234a73]";
+export const B2B_HEADING = "#1a2b4c";
+export const B2B_NAVY = "#1a3a5c";
+export const B2B_NAVY_MID = "#234a73";

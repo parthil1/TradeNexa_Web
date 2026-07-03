@@ -82,7 +82,9 @@ export default function MarketplaceDetailHeader({
       <section className={`hidden bg-gradient-to-br ${MARKETPLACE_NAVY} lg:block`}>
         <div className="mx-auto max-w-7xl px-6 py-10 xl:px-8 xl:py-12">
           {breadcrumbs.length > 0 && (
-            <CatalogBreadcrumbs items={breadcrumbs} variant="light" />
+            <div className="mb-6 lg:mb-8">
+              <CatalogBreadcrumbs items={breadcrumbs} variant="light" />
+            </div>
           )}
 
           {loading ? (

@@ -52,7 +52,7 @@ function StarRating({ rating, reviews }: { rating: number; reviews?: number | nu
           <Star
             key={i}
             className={`h-4 w-4 ${
-              i < fullStars ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200"
+              i < fullStars ? "fill-slate-500 text-slate-500" : "fill-slate-200 text-slate-200"
             }`}
           />
         ))}
@@ -123,7 +123,7 @@ function SellerProfileCard({
         <div className="text-center">
           <p className="text-lg font-extrabold text-primary">
             {formatRating(seller.rating.average)}{" "}
-            <Star className="inline h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <Star className="inline h-3.5 w-3.5 fill-slate-500 text-slate-500" />
           </p>
           <p className="mt-0.5 text-[11px] font-medium text-slate-400">Rating</p>
         </div>
@@ -348,13 +348,13 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
             <div className="mb-4 flex items-start justify-between gap-4">
               <div className="flex flex-wrap items-center gap-2">
                 {isPremium && (
-                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600">
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
                     <Sparkles className="h-3.5 w-3.5" />
                     Premium
                   </span>
                 )}
                 {marketplace.is_trending && (
-                  <span className="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">
+                  <span className="rounded-lg bg-[#1a3a5c]/10 px-2.5 py-1 text-xs font-bold text-[#1a3a5c]">
                     Trending
                   </span>
                 )}
@@ -457,7 +457,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                   href={whatsAppHref(whatsapp, inquiryMessage)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-3.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-6 py-3.5 text-sm font-bold text-[#1a2b4c] transition hover:border-primary/30 hover:bg-white"
                 >
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp

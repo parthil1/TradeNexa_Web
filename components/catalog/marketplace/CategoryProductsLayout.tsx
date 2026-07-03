@@ -88,10 +88,11 @@ export default function CategoryProductsLayout({
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-center lg:justify-between">
             <MarketplaceSearchBar
+              size="sm"
               value={search}
               onChange={onSearchChange}
               placeholder={searchPlaceholder}
-              className="lg:max-w-lg lg:flex-1"
+              className="max-w-md lg:max-w-sm lg:flex-1"
             />
             {resultsLabel && products.length > 0 && (
               <p className="shrink-0 text-sm font-medium text-slate-500">{resultsLabel}</p>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mail, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useApp } from "@/app/context/AppContext";
 import { Logo } from "@/components/common/Logo";
+import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 
 export default function Footer() {
   const { openRegisterModal } = useApp();
@@ -17,10 +18,19 @@ export default function Footer() {
     // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      setEmailError('Email is required');
+      setEmailError("Email is required");
+      scrollToFirstFormError(
+        { email: "Email is required" },
+        { fieldIds: { email: "footer-newsletter-email" } }
+      );
       return;
-    } else if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address');
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address");
+      scrollToFirstFormError(
+        { email: "Please enter a valid email address" },
+        { fieldIds: { email: "footer-newsletter-email" } }
+      );
       return;
     }
     setEmailError('');
@@ -32,7 +42,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="mt-auto shrink-0 border-t border-slate-200 bg-slate-50 text-slate-600">
+    <footer className="mt-auto shrink-0 border-t border-slate-200 bg-white text-slate-600">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-5">
           {/* Column 1 - Brand & Desc */}
@@ -45,7 +55,7 @@ export default function Footer() {
             <div>
               <h4 className="text-sm font-semibold text-slate-900 mb-3">Subscribe to our Newsletter</h4>
               {subscribed ? (
-                <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
                   <CheckCircle2 className="h-4 w-4" />
                   Subscribed successfully!
                 </div>
@@ -53,6 +63,7 @@ export default function Footer() {
                 <form onSubmit={handleSubscribeSubmit} className="flex max-w-md flex-col gap-2" noValidate>
                   <div className="flex items-center gap-2">
                     <input
+                      id="footer-newsletter-email"
                       type="email"
                       value={email}
                       onChange={(e) => {

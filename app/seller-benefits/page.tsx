@@ -4,6 +4,8 @@ import React from "react";
 import SectionHeading from "@/components/SectionHeading";
 import BenefitCard from "@/components/BenefitCard";
 import CTABanner from "@/components/CTABanner";
+import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePageHero";
+import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 import { useApp } from "@/app/context/AppContext";
 import { Building, Upload, ShieldCheck, Mail, LineChart, Globe } from "lucide-react";
 
@@ -18,7 +20,7 @@ export default function SellerBenefits() {
       points: [
         "Include GSTIN and business registration verification.",
         "Add custom company brochures and branding logos.",
-        "Highlight factory size, export status, and capabilities."
+        "Highlight factory size, export status, and capabilities.",
       ],
       highlighted: false,
     },
@@ -29,7 +31,7 @@ export default function SellerBenefits() {
       points: [
         "No listing caps or high subscription listing boundaries.",
         "Detailed descriptions, technical specifications, and rich graphics.",
-        "Manage prices dynamically in response to market raw material rates."
+        "Manage prices dynamically in response to market raw material rates.",
       ],
       highlighted: true,
     },
@@ -40,7 +42,7 @@ export default function SellerBenefits() {
       points: [
         "Optimized pages designed for high search result ranking.",
         "Dedicated category mapping based on product keywords.",
-        "Clean sharing URLs to promote your catalog externally."
+        "Clean sharing URLs to promote your catalog externally.",
       ],
       highlighted: false,
     },
@@ -51,7 +53,7 @@ export default function SellerBenefits() {
       points: [
         "Direct RFQs sent straight to your email or dashboard.",
         "Verified buyer contact details including phone numbers.",
-        "Filter and categorize incoming leads by region or budget."
+        "Filter and categorize incoming leads by region or budget.",
       ],
       highlighted: false,
     },
@@ -62,7 +64,7 @@ export default function SellerBenefits() {
       points: [
         "Receive instant notifications for every inquiry.",
         "Track customer follow-up statuses inside your workspace.",
-        "Archive past communications for long-term customer relations."
+        "Archive past communications for long-term customer relations.",
       ],
       highlighted: false,
     },
@@ -73,47 +75,35 @@ export default function SellerBenefits() {
       points: [
         "Modern layout that renders perfectly on mobile viewports.",
         "Integrated inquiry form on every product page.",
-        "Verification status badge highlighting your business trust."
+        "Verification status badge highlighting your business trust.",
       ],
       highlighted: false,
     },
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Page Hero */}
-      <section className="relative bg-slate-50 py-16 border-b border-slate-100">
-        <div className="mx-auto max-w-5xl px-4 text-center space-y-4">
-          <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            For Sellers
-          </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Empowering Sellers to Scale Digital Trade
-          </h1>
-          <p className="mx-auto max-w-2xl text-base text-slate-500">
-            List your business catalog on India's smart marketplace directory. Attract verified procurers and collect direct sales inquiries without paying commission.
-          </p>
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <MarketplacePageHero
+        eyebrow="For Sellers"
+        title="Empowering Sellers to Scale Digital Trade"
+        subtitle="List your business catalog on India's smart marketplace directory. Attract verified procurers and collect direct sales inquiries without paying commission."
+      >
+        <button
+          onClick={() => openRegisterModal("seller")}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/10 transition hover:bg-primary-hover"
+        >
+          Get Started as a Seller
+        </button>
+      </MarketplacePageHero>
 
-          <div className="pt-6">
-            <button
-              onClick={() => openRegisterModal("seller")}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-white hover:bg-primary-hover transition shadow-md shadow-primary/10"
-            >
-              Get Started as a Seller
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Grid */}
-      <section className="py-16 bg-white flex-1">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="flex-1 py-12 lg:py-16">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Features"
             title="Sellers Growth Suite"
             subtitle="Discover everything you receive when launching your catalog pages on our platform."
           />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {benefits.map((b, idx) => (
               <BenefitCard
                 key={idx}
@@ -129,7 +119,6 @@ export default function SellerBenefits() {
         </div>
       </section>
 
-      {/* CTA */}
       <CTABanner />
     </div>
   );

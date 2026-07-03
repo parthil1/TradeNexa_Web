@@ -117,6 +117,7 @@ export function Modal({
             {/* Scrollable Body */}
             <div
               ref={bodyRef}
+              data-form-scroll-container
               className={`min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent ${bodyClassName}`}
             >
               {children}

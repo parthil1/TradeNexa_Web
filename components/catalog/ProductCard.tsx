@@ -45,13 +45,13 @@ export default function ProductCard({ product, delay = 0 }: ProductCardProps) {
 
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
           {product.is_trending && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/90 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-[4px]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#1a3a5c]/90 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-[4px]">
               <TrendingUp className="h-3 w-3" />
               Hot
             </span>
           )}
           {product.verified && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/90 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-[4px]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-[4px]">
               <BadgeCheck className="h-3 w-3" />
               Verified
             </span>
@@ -73,8 +73,8 @@ export default function ProductCard({ product, delay = 0 }: ProductCardProps) {
             </p>
             <span className="text-[11px] font-medium text-slate-400">/ {product.unit}</span>
           </div>
-          <div className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+          <div className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+            <Star className="h-3 w-3 fill-slate-400 text-slate-400" />
             <span>{product.rating.toFixed(1)}</span>
           </div>
         </div>

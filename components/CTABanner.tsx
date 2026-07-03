@@ -5,12 +5,13 @@ import Link from "next/link";
 import { ArrowRight, MessageSquare, Store, ShoppingCart, ArrowLeftRight } from "lucide-react";
 import { useApp } from "@/app/context/AppContext";
 import { motion } from "framer-motion";
+import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
 
 export default function CTABanner() {
   const { openRegisterModal } = useApp();
 
   return (
-    <section className="relative mx-4 my-12 overflow-hidden rounded-3xl bg-slate-900 py-16 sm:mx-8 sm:py-20 lg:mx-12">
+    <section className={`relative mx-4 my-12 overflow-hidden rounded-3xl bg-gradient-to-br ${MARKETPLACE_NAVY} py-16 sm:mx-8 sm:py-20 lg:mx-12`}>
       <div className="absolute -right-12 -top-12 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
       <div className="absolute -bottom-12 -left-12 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
 
@@ -29,7 +30,7 @@ export default function CTABanner() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="mx-auto mt-4 max-w-xl text-lg text-slate-300"
+          className="mx-auto mt-4 max-w-xl text-lg text-blue-100/90"
         >
           Join thousands of sellers, buyers, and dual-role businesses expanding their reach through TradeNexa.
         </motion.p>
@@ -49,21 +50,21 @@ export default function CTABanner() {
           </button>
           <button
             onClick={() => openRegisterModal("buyer")}
-            className="flex items-center justify-center gap-2 rounded-full border border-slate-600 bg-slate-800/80 px-6 py-3.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
+            className="flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
           >
-            <ShoppingCart className="h-4 w-4 text-emerald-400" />
+            <ShoppingCart className="h-4 w-4 text-blue-200" />
             Join as Buyer
           </button>
           <button
             onClick={() => openRegisterModal("both")}
-            className="flex items-center justify-center gap-2 rounded-full border border-slate-600 bg-slate-800/80 px-6 py-3.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
+            className="flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
           >
-            <ArrowLeftRight className="h-4 w-4 text-indigo-400" />
+            <ArrowLeftRight className="h-4 w-4 text-blue-200" />
             Join as Both
           </button>
           <Link
             href="/contact"
-            className="flex items-center justify-center gap-2 rounded-full border border-slate-700 px-6 py-3.5 text-sm font-semibold text-slate-300 transition hover:text-white"
+            className="flex items-center justify-center gap-2 rounded-full border border-white/20 px-6 py-3.5 text-sm font-semibold text-blue-100/90 transition hover:bg-white/10 hover:text-white"
           >
             <MessageSquare className="h-4 w-4 text-primary" />
             Contact Us

@@ -2,8 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import CategoryCard from "@/components/CategoryCard";
-import { CatalogGridSkeleton } from "@/components/catalog/CatalogSkeleton";
+import MarketplaceCategoryRow from "@/components/catalog/marketplace/MarketplaceCategoryRow";
+import {
+  MARKETPLACE_CONTAINER,
+  MarketplaceCategoryGridSkeleton,
+} from "@/components/catalog/marketplace/marketplaceLayout";
 import { fetchCategories } from "@/services/catalogService";
 import type { ApiCategory } from "@/types/catalog";
 import { ArrowRight } from "lucide-react";
@@ -19,7 +22,7 @@ export default function FeaturedCategories() {
       try {
         const data = await fetchCategories({
           page: 1,
-          limit: 10,
+          limit: 9,
           is_active: true,
           sort_by: "name",
           sort_order: "asc",
@@ -39,18 +42,23 @@ export default function FeaturedCategories() {
   }, []);
 
   return (
-    <section className="bg-white py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="text-center sm:text-left">
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">Featured Industries</h2>
-            <p className="mt-2 text-sm text-slate-500">
+    <section className="bg-slate-50 py-16 lg:py-20">
+      <div className={MARKETPLACE_CONTAINER}>
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              Industries
+            </p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-[#1a2b4c] sm:text-4xl">
+              Featured Categories
+            </h2>
+            <p className="mt-2 max-w-xl text-sm text-slate-500">
               Discover products across major B2B manufacturing segments.
             </p>
           </div>
           <Link
             href="/categories"
-            className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-5 py-2.5 text-sm font-semibold text-primary transition hover:bg-slate-100"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/10 transition hover:bg-primary-hover"
           >
             All Categories
             <ArrowRight className="h-4 w-4" />
@@ -58,11 +66,11 @@ export default function FeaturedCategories() {
         </div>
 
         {loading ? (
-          <CatalogGridSkeleton count={10} />
+          <MarketplaceCategoryGridSkeleton count={9} />
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {categories.map((cat, i) => (
-              <CategoryCard
+              <MarketplaceCategoryRow
                 key={cat.id}
                 slug={cat.slug}
                 imageUrl={cat.icon || cat.image}
@@ -70,7 +78,7 @@ export default function FeaturedCategories() {
                 productCount={cat.product_count ?? 0}
                 subcategoryCount={cat.subcategory_count}
                 href={`/categories/${cat.slug}`}
-                delay={i * 0.05}
+                index={i}
               />
             ))}
           </div>

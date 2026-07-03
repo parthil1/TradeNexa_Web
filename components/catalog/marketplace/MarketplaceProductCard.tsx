@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, BadgeCheck, Package, MapPin } from "lucide-react";
+import { BadgeCheck, Package, MapPin } from "lucide-react";
 import type { ApiProductListItem } from "@/types/catalog";
 import { formatPrice, formatLocation, getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { getMarketplaceTheme } from "@/utils/marketplaceTheme";
@@ -36,15 +36,6 @@ export default function MarketplaceProductCard({
             {subcategoryLabel}
           </span>
         )}
-
-        <button
-          type="button"
-          onClick={(e) => e.preventDefault()}
-          aria-label="Save product"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-400 shadow-sm backdrop-blur-sm transition hover:text-red-400 lg:h-9 lg:w-9"
-        >
-          <Heart className="h-4 w-4" />
-        </button>
 
         {resolvedThumb ? (
           <Image

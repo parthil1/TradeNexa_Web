@@ -4,6 +4,8 @@ import React from "react";
 import SectionHeading from "@/components/SectionHeading";
 import FAQAccordion from "@/components/FAQAccordion";
 import CTABanner from "@/components/CTABanner";
+import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePageHero";
+import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 
 export default function FAQ() {
   const faqItems = [
@@ -34,35 +36,26 @@ export default function FAQ() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Page Hero */}
-      <section className="relative bg-slate-50 py-16 border-b border-slate-100">
-        <div className="mx-auto max-w-5xl px-4 text-center space-y-4">
-          <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            Help Center
-          </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Frequently Asked Questions
-          </h1>
-          <p className="mx-auto max-w-2xl text-base text-slate-500">
-            Have questions about how to list products, send RFQs, or verify profiles? Explore our quick guidance answers.
-          </p>
-        </div>
-      </section>
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <MarketplacePageHero
+        eyebrow="Help Center"
+        title="Frequently Asked Questions"
+        subtitle="Have questions about how to list products, send RFQs, or verify profiles? Explore our quick guidance answers."
+      />
 
-      {/* Accordions Section */}
-      <section className="py-16 bg-white flex-1">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="flex-1 py-12 lg:py-16">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Help"
             title="General Queries"
             subtitle="Frequently asked questions about listing setup, buyer matching, and account trust."
           />
-          <FAQAccordion items={faqItems} />
+          <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
+            <FAQAccordion items={faqItems} />
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
       <CTABanner />
     </div>
   );

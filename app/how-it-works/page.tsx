@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import CTABanner from "@/components/CTABanner";
+import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePageHero";
+import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 import { useApp } from "@/app/context/AppContext";
 import { motion } from "framer-motion";
 import {
@@ -90,7 +92,7 @@ export default function HowItWorks() {
       return (
         <Link
           href="/categories"
-          className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/10 transition hover:bg-primary-hover"
         >
           Browse Product Catalog
           <ArrowRight className="h-4 w-4 text-primary" />
@@ -110,45 +112,36 @@ export default function HowItWorks() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <section className="relative border-b border-slate-100 bg-slate-50 py-16">
-        <div className="mx-auto max-w-5xl space-y-4 px-4 text-center">
-          <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            Ecosystem
-          </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            How Our Marketplace Connects Businesses
-          </h1>
-          <p className="mx-auto max-w-2xl text-base text-slate-500">
-            Whether you sell, buy, or do both — here is how TradeNexa works for your business.
-          </p>
-
-          <div className="flex justify-center pt-6">
-            <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1.5">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all sm:px-6 ${activeTab === tab.id
-                    ? "bg-primary text-white shadow"
-                    : "text-slate-600 hover:text-slate-900"
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <MarketplacePageHero
+        eyebrow="Ecosystem"
+        title="How Our Marketplace Connects Businesses"
+        subtitle="Whether you sell, buy, or do both — here is how TradeNexa works for your business."
+      >
+        <div className="inline-flex rounded-xl border border-white/20 bg-white/10 p-1.5 backdrop-blur-sm">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-lg px-5 py-2.5 text-sm font-semibold transition-all sm:px-6 ${
+                activeTab === tab.id
+                  ? "bg-white text-[#1a2b4c] shadow"
+                  : "text-blue-100/90 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </section>
+      </MarketplacePageHero>
 
-      <section className="flex-1 bg-white py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="flex-1 py-12 lg:py-16">
+        <div className={MARKETPLACE_CONTAINER}>
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <span className="mb-2 inline-block rounded bg-primary/15 px-2.5 py-0.5 text-xs font-bold uppercase text-primary">
               {config.badge}
             </span>
-            <h2 className="text-2xl font-bold text-slate-900">{config.title}</h2>
+            <h2 className="text-2xl font-bold text-[#1a2b4c]">{config.title}</h2>
             <p className="mt-1 text-sm text-slate-500">{config.subtitle}</p>
           </div>
 
@@ -162,7 +155,7 @@ export default function HowItWorks() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: idx * 0.08 }}
-                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50 p-6 transition-all hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
+                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg"
                 >
                   <div>
                     <div className="mb-4 flex items-center justify-between">
@@ -173,7 +166,7 @@ export default function HowItWorks() {
                         0{idx + 1}
                       </span>
                     </div>
-                    <h3 className="mb-2 text-base font-bold text-slate-900">{step.title}</h3>
+                    <h3 className="mb-2 text-base font-bold text-[#1a2b4c]">{step.title}</h3>
                     <p className="text-xs leading-relaxed text-slate-500">{step.desc}</p>
                   </div>
                 </motion.div>

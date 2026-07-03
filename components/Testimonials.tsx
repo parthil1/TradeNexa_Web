@@ -55,11 +55,11 @@ export default function Testimonials() {
 
           <div>
             {/* Stars */}
-            <div className="mb-4 flex gap-1 text-amber-400">
+            <div className="mb-4 flex gap-1 text-slate-400">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
-                  className={`h-4 w-4 fill-current ${i < t.rating ? "text-amber-400" : "text-slate-200"}`}
+                  className={`h-4 w-4 fill-current ${i < t.rating ? "text-slate-600" : "text-slate-200"}`}
                 />
               ))}
             </div>

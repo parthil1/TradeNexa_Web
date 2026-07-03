@@ -10,6 +10,8 @@ interface FormFieldProps {
   required?: boolean;
   children: React.ReactNode;
   className?: string;
+  /** Used for scroll-to-error targeting (`data-form-field`) */
+  fieldKey?: string;
 }
 
 export function FormField({
@@ -19,9 +21,13 @@ export function FormField({
   required,
   children,
   className = "",
+  fieldKey,
 }: FormFieldProps) {
   return (
-    <div className={`space-y-1.5 ${className}`}>
+    <div
+      className={`space-y-1.5 ${className}`}
+      data-form-field={fieldKey ?? htmlFor}
+    >
       <label
         htmlFor={htmlFor}
         className="block text-xs font-semibold uppercase tracking-wider text-slate-600"
