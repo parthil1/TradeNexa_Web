@@ -21,24 +21,15 @@ import {
   Globe,
   Lock,
   Building,
-  Tv,
-  Wrench,
-  Sprout,
-  Shirt,
-  HardHat,
-  FlaskConical,
-  Armchair,
-  Box
 } from "lucide-react";
 
 import SectionHeading from "@/components/SectionHeading";
 import FeatureCard from "@/components/FeatureCard";
-import CategoryCard from "@/components/CategoryCard";
 import ProcessStep from "@/components/ProcessStep";
 import Counter from "@/components/Counter";
 import Testimonials from "@/components/Testimonials";
 import CTABanner from "@/components/CTABanner";
-import TrendingProducts from "@/components/TrendingProducts";
+import FeaturedCategories from "@/components/FeaturedCategories";
 
 export default function Home() {
   const { openRegisterModal } = useApp();
@@ -68,17 +59,6 @@ export default function Home() {
       description: "Buyer contacts seller directly to finalize deals.",
       icon: ArrowRightLeft,
     },
-  ];
-
-  const categories = [
-    { title: "Electronics", description: "Consumer electronics, wiring, semiconductors & components.", count: 2400, icon: Tv },
-    { title: "Machinery", description: "Industrial manufacturing plants, heavy machinery & spare tools.", count: 1850, icon: Wrench },
-    { title: "Agriculture", description: "Fresh crops, organic fertilizers, grains & farming machinery.", count: 1200, icon: Sprout },
-    { title: "Fashion", description: "Textiles, bulk apparel, yarn, garments & accessories.", count: 3100, icon: Shirt },
-    { title: "Construction", description: "Cement, steel bars, aggregates & brick manufacturing items.", count: 950, icon: HardHat },
-    { title: "Chemicals", description: "Industrial chemical solutions, dyes, polymers & minerals.", count: 1500, icon: FlaskConical },
-    { title: "Furniture", description: "Office desks, commercial chairs, steel racks & wood fittings.", count: 800, icon: Armchair },
-    { title: "Packaging", description: "Corrugated boxes, food containers, wrapping films & tapes.", count: 1150, icon: Box },
   ];
 
   const features = [
@@ -143,7 +123,7 @@ export default function Home() {
                   <Search className="h-4 w-4 text-primary" />
                 </button>
                 <Link
-                  href="/categories"
+                  href="/products"
                   className="flex items-center justify-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-8 py-4 text-sm font-semibold text-primary transition hover:bg-primary/10"
                 >
                   Browse Products
@@ -355,37 +335,7 @@ export default function Home() {
       </section>
 
       {/* 4. Industries Section */}
-      <section className="py-16 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-            <div className="text-center sm:text-left">
-              <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">Featured Industries</h2>
-              <p className="mt-2 text-slate-500 text-sm">Discover products across major B2B manufacturing segments.</p>
-            </div>
-            <Link
-              href="/categories"
-              className="rounded-full bg-slate-50 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-slate-100 transition"
-            >
-              All Categories →
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {categories.map((c, i) => (
-              <CategoryCard
-                key={i}
-                icon={c.icon}
-                title={c.title}
-                description={c.description}
-                productCount={c.count}
-                delay={i * 0.05}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4.5 Trending Products */}
-      <TrendingProducts />
+      <FeaturedCategories />
 
       {/* 5. Why Choose Us Section */}
       <section className="py-16 bg-slate-50 border-t border-slate-100">

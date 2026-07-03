@@ -1,53 +1,108 @@
 "use client";
 
 import React from "react";
-import { LucideIcon, Tag } from "lucide-react";
+import Link from "next/link";
+import { Tag, Layers, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import CatalogImage from "@/components/catalog/CatalogImage";
+import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
+import type { LucideIcon } from "lucide-react";
 
 interface CategoryCardProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  imageUrl?: string | null;
+  slug?: string;
   title: string;
-  description: string;
-  productCount: number;
+  description?: string;
+  productCount?: number;
+  subcategoryCount?: number;
+  href?: string;
   delay?: number;
 }
 
 export default function CategoryCard({
   icon: Icon,
+  imageUrl,
+  slug,
   title,
   description,
-  productCount,
+  productCount = 0,
+  subcategoryCount,
+  href,
   delay = 0,
 }: CategoryCardProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay }}
-      whileHover={{ y: -4 }}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-primary/20 hover:shadow-lg"
-    >
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-            <Icon className="h-6 w-6" />
-          </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
-            <Tag className="h-3.5 w-3.5" />
-            {productCount.toLocaleString()}+ Items
-          </span>
-        </div>
-        <h3 className="text-lg font-bold text-slate-900 group-hover:text-primary transition-colors mb-2">
+  const statsLabel =
+    productCount > 0
+      ? `${productCount.toLocaleString()} products`
+      : subcategoryCount !== undefined
+        ? `${subcategoryCount} subcategories`
+        : "Explore";
+
+  const FallbackIcon = Icon ?? getCategoryFallbackIcon(slug, title);
+
+  const inner = (
+    <>
+      <div className="relative h-28 overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-slate-50">
+        <CatalogImage
+          src={imageUrl}
+          alt={title}
+          fallbackIcon={FallbackIcon}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white/60 to-transparent pointer-events-none" />
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold text-slate-600 shadow-sm backdrop-blur-sm">
+          <Tag className="h-3 w-3 text-primary" />
+          {statsLabel}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="text-base font-bold text-slate-900 transition-colors group-hover:text-primary">
           {title}
         </h3>
-        <p className="text-sm text-slate-500 leading-relaxed">
-          {description}
-        </p>
+        {description && (
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-500">{description}</p>
+        )}
+        <div className="mt-auto flex items-center justify-between pt-4">
+          <span className="text-xs font-semibold text-primary">View subcategories</span>
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-white">
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </div>
       </div>
-      <div className="mt-4 pt-4 border-t border-slate-50 flex items-center text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-        Explore Products & Sellers →
-      </div>
+    </>
+  );
+
+  const className =
+    "group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all hover:border-primary/25 hover:shadow-lg hover:shadow-primary/5";
+
+  if (href) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.35, delay }}
+        whileHover={{ y: -4 }}
+        className="h-full"
+      >
+        <Link href={href} className={className}>
+          {inner}
+        </Link>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.35, delay }}
+      whileHover={{ y: -4 }}
+      className={className}
+    >
+      {inner}
     </motion.div>
   );
 }
