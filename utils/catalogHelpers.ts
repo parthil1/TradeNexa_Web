@@ -86,6 +86,19 @@ export function formatRating(value: number | null | undefined): string {
   return value > 0 ? value.toFixed(1) : "New";
 }
 
+export function formatListedAgo(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "Recently listed";
+
+  const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Listed today";
+  if (days === 1) return "Listed 1 day ago";
+  if (days < 30) return `Listed ${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months === 1) return "Listed 1 month ago";
+  return `Listed ${months} months ago`;
+}
+
 export function whatsAppHref(phone: string, message?: string): string {
   const digits = phone.replace(/\D/g, "");
   const text = message ? `?text=${encodeURIComponent(message)}` : "";

@@ -69,10 +69,114 @@ export async function fetchSubcategories(
   params?: CatalogListParams
 ): Promise<PaginatedResult<ApiSubcategory>> {
   const response = await apiClient.get(`${API_ENDPOINTS.CATEGORIES}/${categoryId}/subcategories`, {
-    params: buildParams(params),
+    params: buildParams({ ...params, is_active: params?.is_active ?? true }),
   });
   const data = unwrapApiPayload<unknown>(response.data);
   return unwrapPaginatedResult<ApiSubcategory>(data);
+}
+
+export async function findSubcategoryBySlug(
+  categoryId: number,
+  subSlug: string
+): Promise<ApiSubcategory | null> {
+  let page = 1;
+  const limit = 50;
+
+  while (page <= 20) {
+    const { results, pagination } = await fetchSubcategories(categoryId, { page, limit });
+    const match = results.find((s) => s.slug === subSlug && s.is_active);
+    if (match) return match;
+    if (page >= pagination.totalPages) break;
+    page += 1;
+  }
+  return null;
+}
+
+export interface CatalogPathContext {
+  categoryHref: string;
+  subcategoryHref?: string;
+  categoryName?: string;
+  subcategoryName?: string;
+}
+
+export async function resolveCatalogPaths(
+  categoryId: number,
+  subcategoryId?: number | null
+): Promise<CatalogPathContext | null> {
+  const detail = await fetchCategoryById(categoryId);
+  if (!detail) return null;
+
+  const categoryHref = `/categories/${detail.slug}`;
+  const base: CatalogPathContext = {
+    categoryHref,
+    categoryName: detail.name,
+  };
+
+  if (!subcategoryId) return base;
+
+  let page = 1;
+  const limit = 50;
+  while (page <= 20) {
+    const { results, pagination } = await fetchSubcategories(categoryId, { page, limit });
+    const sub = results.find((s) => s.id === subcategoryId && s.is_active);
+    if (sub) {
+      return {
+        ...base,
+        subcategoryHref: `/categories/${detail.slug}/${sub.slug}`,
+        subcategoryName: sub.name,
+      };
+    }
+    if (page >= pagination.totalPages) break;
+    page += 1;
+  }
+
+  const embedded = detail.subcategories?.find((s) => s.id === subcategoryId && s.is_active);
+  if (embedded) {
+    return {
+      ...base,
+      subcategoryHref: `/categories/${detail.slug}/${embedded.slug}`,
+      subcategoryName: embedded.name,
+    };
+  }
+
+  return base;
+}
+
+export async function findSubcategoryById(subcategoryId: number): Promise<{
+  category: ApiCategoryDetail;
+  subcategory: ApiSubcategory;
+} | null> {
+  let catPage = 1;
+
+  while (catPage <= 20) {
+    const { results: categories, pagination: catPagination } = await fetchCategories({
+      page: catPage,
+      limit: 50,
+      is_active: true,
+    });
+
+    for (const cat of categories) {
+      let subPage = 1;
+      while (subPage <= 20) {
+        const { results: subs, pagination: subPagination } = await fetchSubcategories(cat.id, {
+          page: subPage,
+          limit: 50,
+        });
+        const match = subs.find((s) => s.id === subcategoryId && s.is_active);
+        if (match) {
+          const detail = await fetchCategoryById(cat.id);
+          if (detail) return { category: detail, subcategory: match };
+        }
+        if (subPage >= subPagination.totalPages) break;
+        subPage += 1;
+      }
+    }
+
+    if (catPage >= catPagination.totalPages) break;
+    catPage += 1;
+  }
+
+  return null;
 }
 
 export async function fetchProducts(

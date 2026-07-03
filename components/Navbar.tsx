@@ -21,8 +21,16 @@ export default function Navbar() {
     { name: "Home", href: "/" },
     { name: "About", href: "/about" },
     { name: "Categories", href: "/categories" },
+    { name: "Products", href: "/products" },
     { name: "Contact", href: "/contact" },
   ];
+
+  function isNavActive(href: string) {
+    if (href === "/") return pathname === "/";
+    if (href === "/categories") return pathname.startsWith("/categories");
+    if (href === "/products") return pathname.startsWith("/products");
+    return pathname === href;
+  }
 
   const dropdownLinks = [
     { name: "How It Works", href: "/how-it-works" },
@@ -37,6 +45,7 @@ export default function Navbar() {
     { name: "About", href: "/about" },
     { name: "How It Works", href: "/how-it-works" },
     { name: "Categories", href: "/categories" },
+    { name: "Products", href: "/products" },
     { name: "Seller Benefits", href: "/seller-benefits" },
     { name: "Buyer Benefits", href: "/buyer-benefits" },
     { name: "Why Choose Us", href: "/why-choose-us" },
@@ -54,8 +63,8 @@ export default function Navbar() {
             </div>
 
             <div className="hidden lg:flex lg:items-center lg:gap-x-6 xl:gap-x-8">
-              {topLinks.slice(0, 3).map((link) => {
-                const isActive = pathname === link.href;
+              {topLinks.slice(0, 4).map((link) => {
+                const isActive = isNavActive(link.href);
                 return (
                   <Link
                     key={link.name}
@@ -91,7 +100,7 @@ export default function Navbar() {
                       className="absolute left-1/2 z-50 mt-2 w-48 -translate-x-1/2 rounded-xl border border-slate-100 bg-white p-2 shadow-xl"
                     >
                       {dropdownLinks.map((link) => {
-                        const isActive = pathname === link.href;
+                        const isActive = isNavActive(link.href);
                         return (
                           <Link
                             key={link.name}
@@ -109,8 +118,8 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
-              {topLinks.slice(3).map((link) => {
-                const isActive = pathname === link.href;
+              {topLinks.slice(4).map((link) => {
+                const isActive = isNavActive(link.href);
                 return (
                   <Link
                     key={link.name}
@@ -215,7 +224,7 @@ export default function Navbar() {
             >
               <div className="scroll-area max-h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto overscroll-contain px-4 py-4">
                 {navLinks.map((link) => {
-                  const isActive = pathname === link.href;
+                  const isActive = isNavActive(link.href);
                   return (
                     <Link
                       key={link.name}

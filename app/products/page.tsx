@@ -1,25 +1,67 @@
 "use client";
 
-import React, { useCallback, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useCallback, useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import CTABanner from "@/components/CTABanner";
 import CatalogPageHeader from "@/components/catalog/CatalogPageHeader";
 import ProductCard from "@/components/catalog/ProductCard";
 import CatalogLoadMore from "@/components/catalog/CatalogLoadMore";
 import CatalogEmptyState from "@/components/catalog/CatalogEmptyState";
 import { ProductGridSkeleton } from "@/components/catalog/CatalogSkeleton";
-import { fetchProducts } from "@/services/catalogService";
+import {
+  fetchProducts,
+  fetchCategoryById,
+  findSubcategoryById,
+} from "@/services/catalogService";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 
 function ProductsPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("category_id");
   const subcategoryId = searchParams.get("subcategory_id");
   const trendingOnly = searchParams.get("trending") === "true";
 
   const [search, setSearch] = useState("");
+  const [redirecting, setRedirecting] = useState(!!(categoryId || subcategoryId) && !trendingOnly);
   const debouncedSearch = useDebouncedValue(search);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function redirectToCatalogRoute() {
+      if (trendingOnly) return;
+
+      if (subcategoryId) {
+        setRedirecting(true);
+        const ctx = await findSubcategoryById(Number(subcategoryId));
+        if (cancelled) return;
+        if (ctx) {
+          router.replace(`/categories/${ctx.category.slug}/${ctx.subcategory.slug}`);
+          return;
+        }
+        setRedirecting(false);
+        return;
+      }
+
+      if (categoryId) {
+        setRedirecting(true);
+        const detail = await fetchCategoryById(Number(categoryId));
+        if (cancelled) return;
+        if (detail) {
+          router.replace(`/categories/${detail.slug}`);
+          return;
+        }
+        setRedirecting(false);
+      }
+    }
+
+    void redirectToCatalogRoute();
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, subcategoryId, trendingOnly, router]);
 
   const fetchPage = useCallback(
     (page: number) =>
@@ -40,13 +82,29 @@ function ProductsPageContent() {
     useLoadMoreList({
       fetchPage,
       resetDeps: [debouncedSearch, categoryId, subcategoryId, trendingOnly],
+      enabled: !redirecting,
     });
 
-  const pageTitle = trendingOnly
-    ? "Trending Products"
-    : categoryId
-      ? "Category Products"
-      : "All Products";
+  const pageTitle = trendingOnly ? "Trending Products" : "All Products";
+
+  const breadcrumbs = trendingOnly
+    ? [
+        { label: "Categories", href: "/categories" },
+        { label: "Products", href: "/products" },
+        { label: pageTitle },
+      ]
+    : [
+        { label: "Categories", href: "/categories" },
+        { label: pageTitle },
+      ];
+
+  if (redirecting) {
+    return (
+      <div className="flex min-h-[50vh] flex-col">
+        <ProductGridSkeleton count={8} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -54,10 +112,7 @@ function ProductsPageContent() {
         badge="Marketplace"
         title={pageTitle}
         subtitle="Discover verified B2B listings from sellers across India."
-        breadcrumbs={[
-          { label: "Categories", href: "/categories" },
-          { label: pageTitle },
-        ]}
+        breadcrumbs={breadcrumbs}
         search={{
           value: search,
           onChange: setSearch,
