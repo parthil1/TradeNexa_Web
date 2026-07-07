@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, Bell, LogOut } from "lucide-react";
+import { ArrowLeftRight, Bell, Globe, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/context/ActiveRoleContext";
 import { Logo } from "@/components/common/Logo";
@@ -46,6 +46,17 @@ export default function PortalTopBar({ title, subtitle, accent = "buyer" }: Port
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <PortalTooltip label="Back to Website">
+            <Link
+              href="/"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#E0E6ED] px-2.5 text-[#546E7A] transition hover:border-[#1565C0] hover:text-[#1565C0] sm:px-3 lg:hidden"
+              aria-label="Back to Website"
+            >
+              <Globe className="h-4 w-4 shrink-0" />
+              <span className="hidden text-xs font-semibold sm:inline">Back to Website</span>
+            </Link>
+          </PortalTooltip>
+
           {canSwitchRole ? (
             <PortalTooltip label={activeRole === "buyer" ? "Switch to seller mode" : "Switch to buyer mode"}>
               <button
