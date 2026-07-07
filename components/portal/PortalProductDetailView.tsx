@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Package,
   Phone,
+  Play,
   Share2,
   ShoppingBag,
   Sparkles,
@@ -28,7 +29,10 @@ import {
   formatPrice,
   formatRating,
   getInitials,
+  getYoutubeThumbnailUrl,
   resolveImageUrl,
+  resolveProductVideos,
+  type ResolvedProductVideo,
   whatsAppHref,
 } from "@/utils/catalogHelpers";
 import {
@@ -53,6 +57,7 @@ import {
 interface PortalProductDetailViewProps {
   product: ApiProductDetail;
   similarProducts?: ApiProductListItem[];
+  links?: ProductDetailLinks;
 }
 
 const cardClass = "rounded-2xl border border-[#E8ECF0] bg-white shadow-sm";
@@ -84,24 +89,105 @@ function IconAction({
   );
 }
 
+type GalleryMediaItem =
+  | { id: string; kind: "image"; src: string }
+  | { id: string; kind: "video"; video: ResolvedProductVideo };
+
 function ProductGallery({
   name,
-  gallery,
-  heroImage,
+  media,
+  activeId,
   onSelect,
 }: {
   name: string;
-  gallery: string[];
-  heroImage: string | null;
-  onSelect: (url: string) => void;
+  media: GalleryMediaItem[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
 }) {
+  const active = media.find((item) => item.id === activeId) ?? media[0] ?? null;
+  const displayName = name || "Product";
+
+  function renderVideoPlayer(video: ResolvedProductVideo, className: string) {
+    if (video.type === "file") {
+      return (
+        <video
+          key={video.key}
+          src={video.src}
+          controls
+          playsInline
+          preload="metadata"
+          className={className}
+        />
+      );
+    }
+
+    return (
+      <iframe
+        key={video.key}
+        src={video.embedUrl}
+        title={`${displayName} video`}
+        className={className}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    );
+  }
+
+  function renderVideoThumb(video: ResolvedProductVideo) {
+    const youtubeThumb =
+      video.type === "youtube" ? getYoutubeThumbnailUrl(video.src) : null;
+
+    if (youtubeThumb) {
+      return (
+        <>
+          <Image src={youtubeThumb} alt="" fill className="object-cover" unoptimized />
+          <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[#1565C0] shadow">
+              <Play className="ml-0.5 h-4 w-4 fill-current" />
+            </span>
+          </span>
+        </>
+      );
+    }
+
+    if (video.type === "file") {
+      return (
+        <>
+          <video
+            src={video.src}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover"
+          />
+          <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[#1565C0] shadow">
+              <Play className="ml-0.5 h-4 w-4 fill-current" />
+            </span>
+          </span>
+        </>
+      );
+    }
+
+    return (
+      <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#0D1B2A] text-white">
+        <Play className="h-5 w-5 fill-white" />
+        <span className="text-[9px] font-bold uppercase tracking-wide">Video</span>
+      </span>
+    );
+  }
+
   return (
     <div className={`${cardClass} p-4 lg:p-5`}>
       <div className="relative aspect-square overflow-hidden rounded-xl bg-[#F4F6F9]">
-        {heroImage ? (
+        {active?.kind === "video" ? (
+          <div className="absolute inset-0 bg-black">
+            {renderVideoPlayer(active.video, "h-full w-full object-contain")}
+          </div>
+        ) : active?.kind === "image" ? (
           <Image
-            src={heroImage}
-            alt={name}
+            src={active.src}
+            alt={displayName}
             fill
             className="object-contain p-6 lg:p-10"
             unoptimized
@@ -110,27 +196,34 @@ function ProductGallery({
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[#B0BEC5]">
             <Package className="h-16 w-16 opacity-40" strokeWidth={1.25} />
-            <span className="text-3xl font-black opacity-30">{getInitials(name)}</span>
+            <span className="text-3xl font-black opacity-30">{getInitials(displayName)}</span>
             <span className="text-xs font-medium text-[#90A4AE]">No image available</span>
           </div>
         )}
       </div>
-      {gallery.length > 1 ? (
+      {media.length > 1 ? (
         <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-5">
-          {gallery.map((url) => (
-            <button
-              key={url}
-              type="button"
-              onClick={() => onSelect(url)}
-              className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${
-                heroImage === url
-                  ? "border-[#1565C0] ring-2 ring-[#1565C0]/15"
-                  : "border-[#E8ECF0] hover:border-[#1565C0]/40"
-              }`}
-            >
-              <Image src={url} alt="" fill className="object-cover" unoptimized />
-            </button>
-          ))}
+          {media.map((item) => {
+            const isActive = active?.id === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelect(item.id)}
+                className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${
+                  isActive
+                    ? "border-[#1565C0] ring-2 ring-[#1565C0]/15"
+                    : "border-[#E8ECF0] hover:border-[#1565C0]/40"
+                }`}
+              >
+                {item.kind === "image" ? (
+                  <Image src={item.src} alt="" fill className="object-cover" unoptimized />
+                ) : (
+                  renderVideoThumb(item.video)
+                )}
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </div>
@@ -247,12 +340,6 @@ function SupplierCard({
   );
 }
 
-interface PortalProductDetailViewProps {
-  product: ApiProductDetail;
-  similarProducts?: ApiProductListItem[];
-  links?: ProductDetailLinks;
-}
-
 export default function PortalProductDetailView({
   product,
   similarProducts = [],
@@ -284,8 +371,34 @@ export default function PortalProductDetailView({
     return urls;
   }, [product.images]);
 
-  const [activeImage, setActiveImage] = useState<string | null>(gallery[0] ?? null);
-  const heroImage = activeImage ?? gallery[0] ?? null;
+  const videos = useMemo(() => resolveProductVideos(product.videos), [product.videos]);
+
+  const galleryMedia = useMemo(() => {
+    const items: GalleryMediaItem[] = gallery.map((src) => ({
+      id: `image:${src}`,
+      kind: "image",
+      src,
+    }));
+
+    for (const video of videos) {
+      items.push({
+        id: `video:${video.key}`,
+        kind: "video",
+        video,
+      });
+    }
+
+    return items;
+  }, [gallery, videos]);
+
+  const [activeMediaId, setActiveMediaId] = useState<string | null>(galleryMedia[0]?.id ?? null);
+
+  useEffect(() => {
+    setActiveMediaId(galleryMedia[0]?.id ?? null);
+  }, [product.id, galleryMedia]);
+
+  const activeMedia =
+    galleryMedia.find((item) => item.id === activeMediaId) ?? galleryMedia[0] ?? null;
 
   const { keySpecs, fullSpecs } = useMemo(() => buildProductSpecs(product), [product]);
 
@@ -400,10 +513,10 @@ export default function PortalProductDetailView({
         <div className="lg:col-span-5">
           <div className="lg:sticky lg:top-6">
             <ProductGallery
-              name={basic.name}
-              gallery={gallery}
-              heroImage={heroImage}
-              onSelect={setActiveImage}
+              name={basic.name ?? ""}
+              media={galleryMedia}
+              activeId={activeMedia?.id ?? null}
+              onSelect={setActiveMediaId}
             />
           </div>
         </div>

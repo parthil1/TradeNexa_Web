@@ -23,7 +23,17 @@ function coerceImageUrl(input: unknown): string | null {
 
   if (typeof input === "object") {
     const record = input as Record<string, unknown>;
-    for (const key of ["url", "image_url", "image", "path", "src", "thumbnail", "file"]) {
+    for (const key of [
+      "url",
+      "image_url",
+      "video_url",
+      "video",
+      "image",
+      "path",
+      "src",
+      "thumbnail",
+      "file",
+    ]) {
       const value = record[key];
       if (typeof value === "string" && value.trim()) return value.trim();
     }
@@ -61,6 +71,102 @@ export function resolveImageUrl(url: unknown): string | null {
   }
 
   return `${BACKEND_ORIGIN}${cleanUrl}`;
+}
+
+export type ProductVideoType = "youtube" | "vimeo" | "file";
+
+export interface ResolvedProductVideo {
+  key: string;
+  type: ProductVideoType;
+  src: string;
+  embedUrl?: string;
+}
+
+function getYoutubeEmbedId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      const id = parsed.pathname.split("/").filter(Boolean)[0];
+      return id || null;
+    }
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      if (parsed.pathname.startsWith("/embed/")) {
+        return parsed.pathname.split("/")[2] ?? null;
+      }
+      if (parsed.pathname.startsWith("/shorts/")) {
+        return parsed.pathname.split("/")[2] ?? null;
+      }
+      return parsed.searchParams.get("v");
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function getVimeoEmbedId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (host !== "vimeo.com" && host !== "player.vimeo.com") return null;
+
+    if (parsed.pathname.startsWith("/video/")) {
+      return parsed.pathname.split("/")[2] ?? null;
+    }
+
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function getYoutubeThumbnailUrl(src: string): string | null {
+  const id = getYoutubeEmbedId(src);
+  return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
+}
+
+/** Normalize product video entries from API (strings, objects, or embed links). */
+export function resolveProductVideos(videos: unknown[] | null | undefined): ResolvedProductVideo[] {
+  if (!videos?.length) return [];
+
+  const seen = new Set<string>();
+  const resolved: ResolvedProductVideo[] = [];
+
+  for (const entry of videos) {
+    const src = resolveImageUrl(entry);
+    if (!src || seen.has(src)) continue;
+    seen.add(src);
+
+    const youtubeId = getYoutubeEmbedId(src);
+    if (youtubeId) {
+      resolved.push({
+        key: src,
+        type: "youtube",
+        src,
+        embedUrl: `https://www.youtube.com/embed/${youtubeId}`,
+      });
+      continue;
+    }
+
+    const vimeoId = getVimeoEmbedId(src);
+    if (vimeoId) {
+      resolved.push({
+        key: src,
+        type: "vimeo",
+        src,
+        embedUrl: `https://player.vimeo.com/video/${vimeoId}`,
+      });
+      continue;
+    }
+
+    resolved.push({ key: src, type: "file", src });
+  }
+
+  return resolved;
 }
 
 export function unwrapPaginatedResult<T>(payload: unknown): PaginatedResult<T> {
