@@ -31,6 +31,11 @@ import {
   runApiAction,
 } from "@/utils/runApiAction";
 import { showErrorToast } from "@/utils/toast";
+import {
+  getDashboardPathForRole,
+  getDefaultActiveRole,
+  writeStoredActiveRole,
+} from "@/utils/roleNavigation";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -93,6 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isCompleteProfileOpen, setIsCompleteProfileOpen] = useState(false);
   const [completeProfileRole, setCompleteProfileRole] = useState<UserRole | null>(null);
   const [completeProfileState, setCompleteProfileState] = useState<AsyncOperationState<User>>(initialOpState());
+
+  const redirectToDashboard = useCallback((userData: User) => {
+    if (userData.role !== "both") {
+      writeStoredActiveRole(getDefaultActiveRole(userData.role));
+    }
+    const path = getDashboardPathForRole(userData.role);
+    if (typeof window !== "undefined") {
+      window.location.replace(path);
+    }
+  }, []);
 
   const persistSession = (accessToken: string, userData: User, refreshToken?: string) => {
     if (typeof window !== "undefined") {
@@ -165,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginUser = (token: string, userData: User, refreshToken?: string) => {
     persistSession(token, userData, refreshToken);
+    redirectToDashboard(userData);
   };
 
   const logoutUser = async () => {
@@ -219,11 +235,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const skipCompleteProfile = () => {
+    const currentUser =
+      typeof window !== "undefined"
+        ? (() => {
+            try {
+              const cached = localStorage.getItem("user");
+              return cached ? (JSON.parse(cached) as User) : user;
+            } catch {
+              return user;
+            }
+          })()
+        : user;
+
     setIsCompleteProfileOpen(false);
     setTimeout(() => {
       setCompleteProfileRole(null);
       resetCompleteProfile();
     }, 300);
+
+    if (currentUser) {
+      redirectToDashboard(currentUser);
+    }
   };
 
   const sendOtpRequest = async (phone: string, countryCode: string) => {
