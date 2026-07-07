@@ -17,14 +17,13 @@ import CompleteProfileModal from "@/components/CompleteProfileModal";
 export default function PortalAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, loading, openAuthModal } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const { syncActiveRoleForUser } = useActiveRole();
 
   useEffect(() => {
     if (loading) return;
 
     if (!isAuthenticated || !user) {
-      openAuthModal("login");
       router.replace("/");
       return;
     }
@@ -39,7 +38,7 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
     if (portal === "seller" && !canAccessSellerPortal(user.role)) {
       router.replace(getHomePathForRole(user.role));
     }
-  }, [loading, isAuthenticated, user, pathname, router, openAuthModal, syncActiveRoleForUser]);
+  }, [loading, isAuthenticated, user, pathname, router, syncActiveRoleForUser]);
 
   if (loading || !isAuthenticated || !user) {
     return (

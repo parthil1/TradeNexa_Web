@@ -68,7 +68,7 @@ export default function FeaturedCategories() {
         {loading ? (
           <MarketplaceCategoryGridSkeleton count={9} />
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {categories.map((cat, i) => (
               <MarketplaceCategoryRow
                 key={cat.id}

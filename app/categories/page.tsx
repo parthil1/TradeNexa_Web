@@ -4,9 +4,9 @@ import React, { useCallback, useMemo, useState } from "react";
 import MarketplaceCategoryRow from "@/components/catalog/marketplace/MarketplaceCategoryRow";
 import MarketplaceSearchBar from "@/components/catalog/marketplace/MarketplaceSearchBar";
 import CTABanner from "@/components/CTABanner";
-import CatalogLoadMore from "@/components/catalog/CatalogLoadMore";
 import CatalogEmptyState from "@/components/catalog/CatalogEmptyState";
 import CatalogBreadcrumbs from "@/components/catalog/CatalogBreadcrumbs";
+import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
 import {
   MARKETPLACE_CONTAINER,
   MarketplaceCategoryGridSkeleton,
@@ -24,7 +24,7 @@ export default function CategoriesPage() {
     (page: number) =>
       fetchCategories({
         page,
-        limit: 12,
+        limit: 16,
         search: debouncedSearch || undefined,
         is_active: true,
         sort_by: "name",
@@ -33,7 +33,7 @@ export default function CategoriesPage() {
     [debouncedSearch]
   );
 
-  const { items: categories, pagination, loading, loadingMore, error, loadMore } =
+  const { items: categories, pagination, loading, loadingMore, error, loadMore, hasMore } =
     useLoadMoreList({
       fetchPage,
       resetDeps: [debouncedSearch],
@@ -114,7 +114,7 @@ export default function CategoriesPage() {
           <MarketplaceCategoryGridSkeleton count={9} />
         ) : categories.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {categories.map((cat, idx) => (
                 <MarketplaceCategoryRow
                   key={cat.id}
@@ -129,19 +129,11 @@ export default function CategoriesPage() {
               ))}
             </div>
 
-            {loadingMore && (
-              <div className="mt-6">
-                <MarketplaceCategoryGridSkeleton count={3} />
-              </div>
-            )}
-
-            <CatalogLoadMore
-              pagination={pagination}
+            <PortalInfiniteScroll
+              hasMore={hasMore}
               loading={loading}
               loadingMore={loadingMore}
               onLoadMore={loadMore}
-              autoLoad
-              itemLabel="categories"
             />
           </>
         ) : (

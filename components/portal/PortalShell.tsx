@@ -17,7 +17,7 @@ export default function PortalShell({ children, navItems, brand, topBar }: Porta
   return (
     <PortalAuthGuard>
       <div className="flex h-dvh overflow-hidden bg-[#F4F6F9] text-[#0D1B2A]">
-        <PortalSidebar items={navItems} brand={brand} />
+        <PortalSidebar items={navItems} brand={brand} accent={topBar.accent} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <PortalTopBar {...topBar} />
           <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-6">

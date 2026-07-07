@@ -23,7 +23,7 @@ export default function RoleSwitcher() {
         writeStoredActiveRole(switchTo);
         router.push(targetPath);
       }}
-      className="flex w-full items-center justify-between rounded-2xl border border-[#E0E6ED] bg-white p-4 text-left transition hover:border-[#1565C0]"
+      className="flex w-full items-center justify-between rounded-2xl border border-[#E8ECF0] bg-white p-4 text-left shadow-sm transition hover:border-[#1565C0]/30 hover:shadow-md sm:p-5"
     >
       <div>
         <p className="text-sm font-extrabold text-[#0D1B2A]">Switch Account Role</p>

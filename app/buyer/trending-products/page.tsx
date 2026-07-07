@@ -4,19 +4,18 @@ import React, { useCallback } from "react";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import PortalProductCard from "@/components/portal/PortalProductCard";
 import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
-import { fetchProducts } from "@/services/catalogService";
+import { fetchTrendingProducts } from "@/services/catalogService";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 import { Loader2 } from "lucide-react";
 
 export default function BuyerTrendingPage() {
   const fetchPage = useCallback(
     (page: number) =>
-      fetchProducts({
+      fetchTrendingProducts({
         page,
         limit: 12,
-        is_trending: true,
-        sort_by: "created_at",
-        sort_order: "desc",
+        sort_by: "name",
+        sort_order: "asc",
       }),
     []
   );

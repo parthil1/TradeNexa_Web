@@ -190,14 +190,28 @@ export async function fetchProducts(
   return unwrapPaginatedResult<ApiProductListItem>(data);
 }
 
-export async function fetchTrendingProducts(limit = 8): Promise<ApiProductListItem[]> {
-  const { results } = await fetchProducts({
-    page: 1,
-    limit,
-    is_trending: true,
-    sort_by: "created_at",
-    sort_order: "desc",
-  });
+export async function fetchTrendingProducts(
+  params?: CatalogListParams
+): Promise<PaginatedResult<ApiProductListItem>> {
+  const query: Record<string, string | number> = {
+    page: params?.page ?? 1,
+    limit: params?.limit ?? 10,
+    sort_by: params?.sort_by ?? "name",
+    sort_order: params?.sort_order ?? "asc",
+  };
+  if (params?.search?.trim()) query.search = params.search.trim();
+
+  const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/trending`, { params: query });
+  const data = unwrapApiPayload<unknown>(response.data);
+  const paginated = unwrapPaginatedResult<ApiProductListItem>(data);
+  return {
+    ...paginated,
+    results: paginated.results.map((item) => normalizeProductListItem(item)),
+  };
+}
+
+export async function fetchTrendingProductItems(limit = 8): Promise<ApiProductListItem[]> {
+  const { results } = await fetchTrendingProducts({ page: 1, limit });
   return results;
 }
 

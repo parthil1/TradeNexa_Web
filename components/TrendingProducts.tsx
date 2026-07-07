@@ -5,7 +5,7 @@ import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import ProductCard from "@/components/catalog/ProductCard";
 import { ProductGridSkeleton } from "@/components/catalog/CatalogSkeleton";
-import { fetchTrendingProducts } from "@/services/catalogService";
+import { fetchTrendingProductItems } from "@/services/catalogService";
 import type { ApiProductListItem } from "@/types/catalog";
 import { ArrowRight } from "lucide-react";
 
@@ -18,7 +18,7 @@ export default function TrendingProducts() {
 
     async function load() {
       try {
-        const data = await fetchTrendingProducts(8);
+        const data = await fetchTrendingProductItems(8);
         if (!cancelled) setProducts(data);
       } catch {
         if (!cancelled) setProducts([]);

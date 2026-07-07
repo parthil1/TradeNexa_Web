@@ -7,6 +7,7 @@ import { ArrowLeftRight, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/context/ActiveRoleContext";
 import { Logo } from "@/components/common/Logo";
+import PortalTooltip from "@/components/portal/PortalTooltip";
 
 interface PortalTopBarProps {
   title: string;
@@ -46,34 +47,42 @@ export default function PortalTopBar({ title, subtitle, accent = "buyer" }: Port
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {canSwitchRole ? (
-            <button
-              type="button"
-              onClick={switchRole}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E0E6ED] px-2.5 py-1.5 text-xs font-semibold text-[#546E7A] transition hover:border-[#1565C0] hover:text-[#1565C0] sm:px-3"
-            >
-              <ArrowLeftRight className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">
-                {activeRole === "buyer" ? "Seller Mode" : "Buyer Mode"}
-              </span>
-            </button>
+            <PortalTooltip label={activeRole === "buyer" ? "Switch to seller mode" : "Switch to buyer mode"}>
+              <button
+                type="button"
+                onClick={switchRole}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#E0E6ED] px-2.5 py-1.5 text-xs font-semibold text-[#546E7A] transition hover:border-[#1565C0] hover:text-[#1565C0] sm:px-3"
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {activeRole === "buyer" ? "Seller Mode" : "Buyer Mode"}
+                </span>
+              </button>
+            </PortalTooltip>
           ) : null}
 
-          <Link
-            href={activeRole === "seller" ? "/seller/leads" : "/buyer/notifications"}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#546E7A] transition hover:bg-[#F4F6F9]"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </Link>
+          <PortalTooltip label="Notifications">
+            <Link
+              href={activeRole === "seller" ? "/seller/leads" : "/buyer/notifications"}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-[#546E7A] transition hover:bg-[#F4F6F9]"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+            </Link>
+          </PortalTooltip>
 
-          <button
-            type="button"
-            onClick={() => logoutUser()}
-            className="hidden h-9 w-9 items-center justify-center rounded-xl text-[#546E7A] transition hover:bg-red-50 hover:text-red-600 sm:flex"
-            aria-label="Logout"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <PortalTooltip label="Sign out">
+            <button
+              type="button"
+              onClick={() => {
+                void logoutUser().then(() => router.replace("/"));
+              }}
+              className="hidden h-9 w-9 items-center justify-center rounded-xl text-[#546E7A] transition hover:bg-red-50 hover:text-red-600 sm:flex"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </PortalTooltip>
         </div>
       </div>
     </header>

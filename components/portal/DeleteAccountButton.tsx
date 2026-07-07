@@ -4,11 +4,17 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useWishlist } from "@/hooks/useWishlist";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 
-export default function DeleteAccountButton() {
+interface DeleteAccountButtonProps {
+  compact?: boolean;
+}
+
+export default function DeleteAccountButton({ compact = false }: DeleteAccountButtonProps) {
   const router = useRouter();
   const { deleteAccountAction } = useAuth();
+  const { clearWishlist } = useWishlist();
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -17,6 +23,7 @@ export default function DeleteAccountButton() {
     try {
       const ok = await deleteAccountAction();
       if (ok) {
+        clearWishlist();
         showSuccessToast("Account deleted successfully");
         router.replace("/");
       }
@@ -33,7 +40,9 @@ export default function DeleteAccountButton() {
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-bold text-red-600 transition hover:bg-red-100"
+        className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100 ${
+          compact ? "shrink-0" : "w-full py-3.5"
+        }`}
       >
         <Trash2 className="h-4 w-4" />
         Delete Account
@@ -42,7 +51,7 @@ export default function DeleteAccountButton() {
   }
 
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+    <div className={`rounded-2xl border border-red-200 bg-red-50 p-4 ${compact ? "w-full max-w-md" : ""}`}>
       <p className="text-sm font-extrabold text-red-700">Delete your account?</p>
       <p className="mt-1 text-xs text-red-600/80">
         This permanently removes your profile and cannot be undone.

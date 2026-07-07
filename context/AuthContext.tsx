@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import {
   User,
   UserRole,
@@ -186,12 +186,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updatedUser);
   };
 
-  const openAuthModal = (step: "login" | "register" | "role" = "login", role?: UserRole) => {
+  const openAuthModal = useCallback((step: "login" | "register" | "role" = "login", role?: UserRole) => {
     setAuthModalSession((session) => session + 1);
     setAuthModalStep(step);
     setAuthModalRole(role || null);
     setIsAuthModalOpen(true);
-  };
+  }, []);
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
@@ -386,9 +386,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await deleteProfile();
       clearSession();
+      setIsAuthModalOpen(false);
+      setIsCompleteProfileOpen(false);
+      setAuthModalStep("login");
+      setAuthModalRole(null);
+      setAuthModalPhone("");
+      setFirebaseVerificationId(null);
+      setSessionMobileNumber(null);
+      resetSendOtp();
+      resetVerifyOtp();
+      resetResendOtp();
+      resetRegister();
       return true;
-    } catch {
-      showErrorToast("Failed to delete account");
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to delete account";
+      showErrorToast(message);
       return false;
     }
   };

@@ -15,6 +15,7 @@ import {
 } from "@/components/catalog/marketplace/marketplaceLayout";
 import {
   fetchProducts,
+  fetchTrendingProducts,
   fetchCategoryById,
   findSubcategoryById,
 } from "@/services/catalogService";
@@ -71,16 +72,23 @@ function ProductsPageContent() {
 
   const fetchPage = useCallback(
     (page: number) =>
-      fetchProducts({
-        page,
-        limit: 12,
-        search: debouncedSearch || undefined,
-        category_id: categoryId ? Number(categoryId) : undefined,
-        subcategory_id: subcategoryId ? Number(subcategoryId) : undefined,
-        is_trending: trendingOnly ? true : undefined,
-        sort_by: trendingOnly ? "created_at" : "name",
-        sort_order: trendingOnly ? "desc" : "asc",
-      }),
+      trendingOnly
+        ? fetchTrendingProducts({
+            page,
+            limit: 12,
+            search: debouncedSearch || undefined,
+            sort_by: "name",
+            sort_order: "asc",
+          })
+        : fetchProducts({
+            page,
+            limit: 12,
+            search: debouncedSearch || undefined,
+            category_id: categoryId ? Number(categoryId) : undefined,
+            subcategory_id: subcategoryId ? Number(subcategoryId) : undefined,
+            sort_by: "name",
+            sort_order: "asc",
+          }),
     [debouncedSearch, categoryId, subcategoryId, trendingOnly]
   );
 

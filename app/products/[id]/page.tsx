@@ -1,41 +1,90 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { Loader2, Package } from "lucide-react";
 import CTABanner from "@/components/CTABanner";
-import CatalogEmptyState from "@/components/catalog/CatalogEmptyState";
-import ProductDetailView from "@/components/catalog/ProductDetailView";
-import { ProductDetailSkeleton } from "@/components/catalog/CatalogSkeleton";
-import { fetchProductById } from "@/services/catalogService";
-import type { ApiProductDetail } from "@/types/catalog";
+import PortalProductDetailView from "@/components/portal/PortalProductDetailView";
+import PortalEmptyState from "@/components/portal/PortalEmptyState";
+import {
+  fetchCategoryById,
+  fetchProductById,
+  fetchRelatedProducts,
+} from "@/services/catalogService";
+import type { ApiProductDetail, ApiProductListItem } from "@/types/catalog";
+import { useWishlist } from "@/hooks/useWishlist";
+import { websiteProductLinks } from "@/utils/productDetailLinks";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = Number(params.id);
+  const invalidId = !productId || Number.isNaN(productId);
 
   const [product, setProduct] = useState<ApiProductDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [categorySlug, setCategorySlug] = useState<string | undefined>();
+  const [similarProducts, setSimilarProducts] = useState<ApiProductListItem[]>([]);
+  const [loading, setLoading] = useState(!invalidId);
   const [error, setError] = useState<string | null>(null);
+  const { addToWishlist } = useWishlist();
 
   useEffect(() => {
+    if (invalidId) return;
+
     let cancelled = false;
 
     async function load() {
-      if (!productId || Number.isNaN(productId)) {
-        setError("Invalid product");
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       setError(null);
+
       try {
-        const detail = await fetchProductById(productId);
-        if (!detail) {
-          if (!cancelled) setError("Product not found");
+        const data = await fetchProductById(productId);
+        if (cancelled) return;
+
+        if (!data) {
+          setProduct(null);
+          setError("Product not found");
           return;
         }
-        if (!cancelled) setProduct(detail);
+
+        setProduct(data);
+
+        if (data.user_actions?.is_favourite) {
+          addToWishlist(data.id);
+        }
+
+        const categoryId = data.basic_details.category?.id;
+        if (categoryId) {
+          try {
+            const category = await fetchCategoryById(categoryId);
+            if (!cancelled && category?.slug) {
+              setCategorySlug(category.slug);
+            }
+          } catch {
+            // Category slug is optional for links
+          }
+        }
+
+        const subcategoryId = data.basic_details.subcategory?.id;
+        if (subcategoryId) {
+          try {
+            const { results } = await fetchRelatedProducts({
+              product_id: data.id,
+              subcategory_id: subcategoryId,
+              page: 1,
+              limit: 6,
+              sort_by: "name",
+              sort_order: "asc",
+            });
+            if (!cancelled) {
+              setSimilarProducts(results);
+            }
+          } catch {
+            if (!cancelled) {
+              setSimilarProducts([]);
+            }
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           const message =
@@ -43,6 +92,7 @@ export default function ProductDetailPage() {
               ? String((err as { message: string }).message)
               : "Failed to load product";
           setError(message);
+          setProduct(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -53,32 +103,70 @@ export default function ProductDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [productId, invalidId, addToWishlist]);
+
+  const links = useMemo(() => websiteProductLinks(categorySlug), [categorySlug]);
+
+  if (invalidId) {
+    return (
+      <div className="min-h-screen bg-[#F4F6F9]">
+        <div className="mx-auto max-w-xl px-4 py-12">
+          <PortalEmptyState
+            icon={Package}
+            title="Invalid product"
+            description="The product link is not valid."
+            action={
+              <Link
+                href="/products"
+                className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+              >
+                Browse Products
+              </Link>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <ProductDetailSkeleton />
+      <div className="flex min-h-screen items-center justify-center gap-2 bg-[#F4F6F9] py-20 text-sm text-[#546E7A]">
+        <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        Loading product...
       </div>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-20">
-        <CatalogEmptyState
-          title="Product not found"
-          description={error || "This product may have been removed."}
-          onReset={() => window.location.assign("/products")}
-          resetLabel="Browse all products"
-        />
+      <div className="min-h-screen bg-[#F4F6F9]">
+        <div className="mx-auto max-w-xl px-4 py-12">
+          <PortalEmptyState
+            icon={Package}
+            title="Product not found"
+            description={error || "This product may have been removed or is unavailable."}
+            action={
+              <Link
+                href="/products"
+                className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+              >
+                Browse Products
+              </Link>
+            }
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <ProductDetailView product={product} />
+    <div className="flex min-h-screen flex-col bg-[#F4F6F9]">
+      <PortalProductDetailView
+        product={product}
+        similarProducts={similarProducts}
+        links={links}
+      />
       <CTABanner />
     </div>
   );

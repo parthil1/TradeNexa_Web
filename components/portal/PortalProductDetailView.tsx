@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  ArrowRight,
   BadgeCheck,
   ChevronDown,
   Clock,
@@ -17,7 +16,6 @@ import {
   MessageCircle,
   Package,
   Phone,
-  Send,
   Share2,
   ShoppingBag,
   Sparkles,
@@ -47,6 +45,10 @@ import PortalSection from "@/components/portal/PortalSection";
 import PortalStatCard from "@/components/portal/PortalStatCard";
 import { useWishlist } from "@/hooks/useWishlist";
 import { showErrorToast } from "@/utils/toast";
+import {
+  PORTAL_PRODUCT_LINKS,
+  type ProductDetailLinks,
+} from "@/utils/productDetailLinks";
 
 interface PortalProductDetailViewProps {
   product: ApiProductDetail;
@@ -138,9 +140,11 @@ function ProductGallery({
 function SupplierCard({
   product,
   inquiryMessage,
+  supplierHref,
 }: {
   product: ApiProductDetail;
   inquiryMessage: string;
+  supplierHref: ((sellerId: number) => string) | null;
 }) {
   const { seller } = product;
   const location = formatSellerLocation(seller.location);
@@ -201,12 +205,14 @@ function SupplierCard({
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Link
-          href={`/buyer/supplier/${seller.id}`}
-          className="flex flex-1 items-center justify-center rounded-xl border border-[#E0E6ED] py-2.5 text-sm font-bold text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E8EFF9]"
-        >
-          View Profile
-        </Link>
+        {supplierHref ? (
+          <Link
+            href={supplierHref(seller.id)}
+            className="flex flex-1 items-center justify-center rounded-xl border border-[#E0E6ED] py-2.5 text-sm font-bold text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E8EFF9]"
+          >
+            View Profile
+          </Link>
+        ) : null}
         {contactPhone ? (
           <a
             href={whatsAppHref(contactPhone, inquiryMessage)}
@@ -241,9 +247,16 @@ function SupplierCard({
   );
 }
 
+interface PortalProductDetailViewProps {
+  product: ApiProductDetail;
+  similarProducts?: ApiProductListItem[];
+  links?: ProductDetailLinks;
+}
+
 export default function PortalProductDetailView({
   product,
   similarProducts = [],
+  links = PORTAL_PRODUCT_LINKS,
 }: PortalProductDetailViewProps) {
   const router = useRouter();
   const { isWishlisted, toggleWishlist } = useWishlist();
@@ -291,25 +304,34 @@ export default function PortalProductDetailView({
     }
   };
 
-  const inquiryBtnClass =
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-[#1565C0] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#003C8F]";
-
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+    <div
+      className={`mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:pb-8 ${links.pagePaddingClass}`}
+    >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-6 flex flex-wrap items-end justify-between gap-3"
       >
         <div>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] transition hover:text-[#1565C0]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to products
-          </button>
+          {links.back.href ? (
+            <Link
+              href={links.back.href}
+              className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] transition hover:text-[#1565C0]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {links.back.label}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] transition hover:text-[#1565C0]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {links.back.label}
+            </button>
+          )}
           <h2 className="text-xl font-extrabold text-[#0D1B2A] sm:text-2xl lg:text-3xl">{basic.name}</h2>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -360,13 +382,6 @@ export default function PortalProductDetailView({
           >
             <Heart className={`h-4 w-4 ${wishlisted ? "fill-red-500 text-red-500" : ""}`} />
           </IconAction>
-          <Link
-            href={`/buyer/send-inquiry?product=${product.id}`}
-            className={`${inquiryBtnClass} hidden sm:inline-flex`}
-          >
-            <Send className="h-4 w-4" />
-            Send Inquiry
-          </Link>
         </div>
       </motion.div>
 
@@ -424,13 +439,8 @@ export default function PortalProductDetailView({
             />
           </div>
 
-          <div className="hidden flex-wrap gap-3 lg:flex">
-            <Link href={`/buyer/send-inquiry?product=${product.id}`} className={inquiryBtnClass}>
-              <Send className="h-4 w-4" />
-              Send Inquiry
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            {contactPhone ? (
+          {contactPhone ? (
+            <div className="hidden lg:flex">
               <a
                 href={whatsAppHref(contactPhone, inquiryMessage)}
                 target="_blank"
@@ -440,8 +450,8 @@ export default function PortalProductDetailView({
                 <MessageCircle className="h-4 w-4" />
                 WhatsApp Seller
               </a>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {keySpecs.length > 0 ? (
             <div className={`${cardClass} hidden p-5 lg:block`}>
@@ -532,15 +542,18 @@ export default function PortalProductDetailView({
                     : "Related products"
               }
               action={
-                basic.category ? (
+                links.category || product.basic_details.category ? (
                   <Link
-                    href={`/buyer/category/${basic.category.id}`}
+                    href={
+                      links.category ??
+                      `/buyer/category/${product.basic_details.category!.id}`
+                    }
                     className="text-sm font-bold text-[#1565C0]"
                   >
                     View all
                   </Link>
                 ) : (
-                  <Link href="/buyer/search" className="text-sm font-bold text-[#1565C0]">
+                  <Link href={links.search} className="text-sm font-bold text-[#1565C0]">
                     View all
                   </Link>
                 )
@@ -551,6 +564,7 @@ export default function PortalProductDetailView({
                   <PortalProductCard
                     key={item.id}
                     product={item}
+                    href={links.product(item.id)}
                     subcategoryLabel={basic.subcategory?.name}
                   />
                 ))}
@@ -562,13 +576,19 @@ export default function PortalProductDetailView({
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-6">
             <PortalSection title="Supplier" subtitle={product.seller.company.name}>
-              <SupplierCard product={product} inquiryMessage={inquiryMessage} />
+              <SupplierCard
+                product={product}
+                inquiryMessage={inquiryMessage}
+                supplierHref={links.supplier}
+              />
             </PortalSection>
           </div>
         </div>
       </div>
 
-      <div className="fixed bottom-16 left-0 right-0 z-30 border-t border-[#E0E6ED] bg-white/95 px-4 py-3 backdrop-blur-md lg:hidden">
+      <div
+        className={`fixed left-0 right-0 z-30 border-t border-[#E0E6ED] bg-white/95 px-4 py-3 backdrop-blur-md lg:hidden ${links.mobileBarClass}`}
+      >
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <IconAction onClick={() => void handleShare()} label="Share">
             <Share2 className="h-4 w-4" />
@@ -581,13 +601,17 @@ export default function PortalProductDetailView({
           >
             <Heart className={`h-4 w-4 ${wishlisted ? "fill-red-500 text-red-500" : ""}`} />
           </IconAction>
-          <Link
-            href={`/buyer/send-inquiry?product=${product.id}`}
-            className={`${inquiryBtnClass} flex-1 py-3.5`}
-          >
-            <Send className="h-4 w-4" />
-            Send Inquiry
-          </Link>
+          {contactPhone ? (
+            <a
+              href={whatsAppHref(contactPhone, inquiryMessage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3.5 text-sm font-bold text-emerald-600 transition hover:border-emerald-300"
+            >
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp Seller
+            </a>
+          ) : null}
         </div>
       </div>
     </div>

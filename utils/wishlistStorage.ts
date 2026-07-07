@@ -20,3 +20,8 @@ export function writeWishlistIds(ids: number[]): void {
   const unique = Array.from(new Set(ids));
   localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(unique));
 }
+
+export function clearWishlistStorage(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(WISHLIST_STORAGE_KEY);
+}
