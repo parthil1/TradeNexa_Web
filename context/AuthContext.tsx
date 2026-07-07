@@ -24,6 +24,7 @@ import {
   type ApiUserProfile,
 } from "@/utils/authHelpers";
 import { buildProfileFormData } from "@/utils/buildProfileFormData";
+import { deleteProfile } from "@/services/profileService";
 import {
   AsyncOperationState,
   initialOpState,
@@ -36,6 +37,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthModalOpen: boolean;
+  authModalSession: number;
   authModalStep: "login" | "verify" | "role" | "register";
   authModalRole: UserRole | null;
   authModalPhone: string;
@@ -63,6 +65,7 @@ interface AuthContextType {
   openCompleteProfileModal: (role: UserRole) => void;
   skipCompleteProfile: () => void;
   completeProfileAction: (payload: CompleteProfileData) => Promise<boolean>;
+  deleteAccountAction: () => Promise<boolean>;
   resetSendOtp: () => void;
   resetVerifyOtp: () => void;
   resetResendOtp: () => void;
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalSession, setAuthModalSession] = useState(0);
   const [authModalStep, setAuthModalStep] = useState<"login" | "verify" | "role" | "register">("login");
   const [authModalRole, setAuthModalRole] = useState<UserRole | null>(null);
   const [authModalPhone, setAuthModalPhone] = useState("");
@@ -183,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const openAuthModal = (step: "login" | "register" | "role" = "login", role?: UserRole) => {
+    setAuthModalSession((session) => session + 1);
     setAuthModalStep(step);
     setAuthModalRole(role || null);
     setIsAuthModalOpen(true);
@@ -377,6 +382,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const deleteAccountAction = async (): Promise<boolean> => {
+    try {
+      await deleteProfile();
+      clearSession();
+      return true;
+    } catch {
+      showErrorToast("Failed to delete account");
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -384,6 +400,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         isAuthModalOpen,
+        authModalSession,
         authModalStep,
         authModalRole,
         authModalPhone,
@@ -411,6 +428,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         openCompleteProfileModal,
         skipCompleteProfile,
         completeProfileAction,
+        deleteAccountAction,
         resetSendOtp,
         resetVerifyOtp,
         resetResendOtp,

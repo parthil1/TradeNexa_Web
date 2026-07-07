@@ -27,7 +27,7 @@ export default function MarketplaceCategoryRow({
   index = 0,
 }: MarketplaceCategoryRowProps) {
   const theme = getMarketplaceTheme(index);
-  const FallbackIcon = getCategoryFallbackIcon(slug, title);
+  const fallbackIcon = getCategoryFallbackIcon(slug, title);
 
   return (
     <Link
@@ -40,12 +40,15 @@ export default function MarketplaceCategoryRow({
             <CatalogImage
               src={imageUrl}
               alt={title}
-              fallbackIcon={FallbackIcon}
+              fallbackIcon={fallbackIcon}
               fallbackClassName="bg-slate-200"
               className="h-full w-full object-cover"
             />
           ) : (
-            <FallbackIcon className="h-9 w-9 text-slate-500" strokeWidth={1.75} />
+            React.createElement(fallbackIcon, {
+              className: "h-9 w-9 text-slate-500",
+              strokeWidth: 1.75,
+            })
           )}
         </div>
 

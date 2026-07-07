@@ -66,7 +66,7 @@ export default function Testimonials() {
             
             {/* Feedback Content */}
             <p className="mb-6 text-sm italic leading-relaxed text-slate-600">
-              "{t.content}"
+              &ldquo;{t.content}&rdquo;
             </p>
           </div>
 

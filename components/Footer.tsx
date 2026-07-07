@@ -51,7 +51,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <Logo size="lg" className="mb-4" />
             <p className="text-sm leading-relaxed max-w-sm mb-6 text-slate-500">
-              India's digital B2B marketplace connecting buyers with verified sellers. Grow your business and expand your reach across the nation.
+              India&apos;s digital B2B marketplace connecting buyers with verified sellers. Grow your business and expand your reach across the nation.
             </p>
             {/* Newsletter Subscription */}
             <div>

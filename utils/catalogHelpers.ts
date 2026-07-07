@@ -1,4 +1,4 @@
-import type { PaginatedResult } from "@/types/catalog";
+import type { PaginatedResult, ApiProductListItem } from "@/types/catalog";
 import { API_BASE_URL, BACKEND_ORIGIN } from "@/config/api";
 
 function proxyBackendMediaUrl(url: URL): string | null {
@@ -50,10 +50,34 @@ export function unwrapPaginatedResult<T>(payload: unknown): PaginatedResult<T> {
   return { results: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } };
 }
 
-export function formatPrice(amount: number, currency = "INR"): string {
+export function normalizeProductListItem(
+  item: Partial<ApiProductListItem> & Pick<ApiProductListItem, "id" | "name" | "price">
+): ApiProductListItem {
+  return {
+    id: item.id,
+    name: item.name,
+    slug: item.slug ?? `product-${item.id}`,
+    thumbnail: item.thumbnail ?? null,
+    price: item.price,
+    currency: item.currency ?? "INR",
+    moq: item.moq ?? 1,
+    unit: item.unit ?? "unit",
+    supplier_name: item.supplier_name ?? "Supplier",
+    verified: item.verified ?? false,
+    rating: item.rating ?? 0,
+    city: item.city ?? null,
+    state: item.state ?? null,
+    is_trending: item.is_trending ?? false,
+    created_at: item.created_at ?? "",
+    subcategory_id: item.subcategory_id ?? null,
+    subcategory_name: item.subcategory_name ?? null,
+  };
+}
+
+export function formatPrice(amount: number, currency?: string | null): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency,
+    currency: currency ?? "INR",
     maximumFractionDigits: 0,
   }).format(amount);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import { useApp, UserRole } from "@/app/context/AppContext";
@@ -51,11 +51,9 @@ export default function RegistrationModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  useEffect(() => {
-    if (isRegisterModalOpen && registerModalRole) {
-      setFormData((prev) => ({ ...prev, role: registerModalRole }));
-    }
-  }, [isRegisterModalOpen, registerModalRole]);
+  const selectedRole = (isRegisterModalOpen && registerModalRole ? registerModalRole : formData.role) as
+    | UserRole
+    | "";
 
   const resetForm = () => {
     setFormData({ name: "", company: "", phone: "", email: "", category: "", role: "" });
@@ -71,13 +69,13 @@ export default function RegistrationModal() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.role) newErrors.role = "Please select how you want to use the platform.";
+    if (!selectedRole) newErrors.role = "Please select how you want to use the platform.";
     if (!formData.name.trim()) newErrors.name = "Full name is required.";
     if (!formData.company.trim()) newErrors.company = "Company name is required.";
     if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = "Enter a valid 10-digit phone number.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       newErrors.email = "Enter a valid email address.";
-    if (formData.role !== "buyer" && !formData.category)
+    if (selectedRole !== "buyer" && !formData.category)
       newErrors.category = "Select your primary industry category.";
     return newErrors;
   };
@@ -111,7 +109,7 @@ export default function RegistrationModal() {
         phone: formData.phone,
         email: formData.email,
         category: formData.category,
-        role: formData.role as UserRole,
+        role: selectedRole as UserRole,
       });
       setIsSubmitting(false);
       setIsSuccess(true);
@@ -123,7 +121,7 @@ export default function RegistrationModal() {
     if (errors[field]) setErrors({ ...errors, [field]: "" });
   };
 
-  const activeRole = formData.role as UserRole;
+  const activeRole = selectedRole as UserRole;
 
   return (
     <AnimatePresence>
@@ -183,7 +181,7 @@ export default function RegistrationModal() {
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                   <FormField label="I want to" htmlFor="role-seller" fieldKey="role" required error={errors.role}>
                     <RoleSelector
-                      value={formData.role}
+                      value={selectedRole}
                       onChange={(role) => {
                         setFormData({ ...formData, role });
                         clearError("role");
@@ -246,7 +244,7 @@ export default function RegistrationModal() {
                     </FormField>
                   </div>
 
-                  {formData.role !== "buyer" && (
+                  {selectedRole !== "buyer" && (
                     <FormField
                       label="Primary Industry"
                       htmlFor="reg-category"

@@ -21,7 +21,10 @@ export function useLoadMoreList<T>({
   const [error, setError] = useState<string | null>(null);
   const pageRef = useRef(1);
   const fetchRef = useRef(fetchPage);
-  fetchRef.current = fetchPage;
+
+  useEffect(() => {
+    fetchRef.current = fetchPage;
+  }, [fetchPage]);
 
   const loadPage = useCallback(async (page: number, append: boolean) => {
     if (append) setLoadingMore(true);
@@ -47,10 +50,36 @@ export function useLoadMoreList<T>({
 
   useEffect(() => {
     if (!enabled) return;
+
+    let cancelled = false;
     pageRef.current = 1;
-    void loadPage(1, false);
+
+    async function run() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await fetchRef.current(1);
+        if (cancelled) return;
+        setPagination(data.pagination);
+        pageRef.current = data.pagination.page;
+        setItems(data.results);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load data");
+        setItems([]);
+        setPagination(EMPTY_PAGINATION);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, loadPage, ...resetDeps]);
+  }, [enabled, ...resetDeps]);
 
   const loadMore = useCallback(() => {
     if (loading || loadingMore) return;

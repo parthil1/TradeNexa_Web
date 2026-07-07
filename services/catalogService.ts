@@ -1,7 +1,7 @@
 import apiClient from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { unwrapApiPayload } from "@/utils/authHelpers";
-import { unwrapPaginatedResult } from "@/utils/catalogHelpers";
+import { unwrapPaginatedResult, normalizeProductListItem } from "@/utils/catalogHelpers";
 import type {
   ApiCategory,
   ApiCategoryDetail,
@@ -11,6 +11,7 @@ import type {
   CatalogListParams,
   PaginatedResult,
   ProductListParams,
+  RelatedProductsParams,
 } from "@/types/catalog";
 
 function buildParams(params?: CatalogListParams | ProductListParams) {
@@ -204,4 +205,25 @@ export async function fetchProductById(id: number): Promise<ApiProductDetail | n
   const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/${id}`);
   const data = unwrapApiPayload<ApiProductDetail>(response.data);
   return data ?? null;
+}
+
+export async function fetchRelatedProducts(
+  params: RelatedProductsParams
+): Promise<PaginatedResult<ApiProductListItem>> {
+  const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/related`, {
+    params: {
+      product_id: params.product_id,
+      subcategory_id: params.subcategory_id,
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+      sort_by: params.sort_by ?? "name",
+      sort_order: params.sort_order ?? "asc",
+    },
+  });
+  const data = unwrapApiPayload<unknown>(response.data);
+  const paginated = unwrapPaginatedResult<ApiProductListItem>(data);
+  return {
+    ...paginated,
+    results: paginated.results.map((item) => normalizeProductListItem(item)),
+  };
 }

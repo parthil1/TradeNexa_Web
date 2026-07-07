@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Modal } from "@/components/common/Modal";
 import { FormField } from "@/components/common/FormField";
 import { Textarea } from "@/components/common/Textarea";
@@ -114,18 +114,17 @@ function UploadTile({
   error?: boolean;
   variant?: "square" | "banner";
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputId = React.useId();
-
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+  const previewUrl = React.useMemo(() => {
+    if (!file) return null;
+    return URL.createObjectURL(file);
   }, [file]);
+
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const borderClass = error
     ? "border-red-400"

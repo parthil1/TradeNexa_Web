@@ -168,7 +168,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
   useEffect(() => {
     if (!basic.category?.id) {
-      setCatalogPaths(null);
       return;
     }
 

@@ -3,8 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/app/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { ActiveRoleProvider } from "@/context/ActiveRoleContext";
+import { WishlistProvider } from "@/context/WishlistContext";
+import AppChrome from "@/components/layout/AppChrome";
 import { Toaster } from "react-hot-toast";
 import { TOAST_DURATION_MS } from "@/utils/toast";
 
@@ -36,11 +37,13 @@ export default function RootLayout({
     >
       <body className="flex min-h-dvh min-w-0 flex-col bg-background text-foreground">
         <AuthProvider>
-          <AppProvider>
-            <Navbar />
-            <main className="min-w-0 flex-1 pt-[var(--header-height)]">{children}</main>
-            <Footer />
-          </AppProvider>
+          <ActiveRoleProvider>
+            <WishlistProvider>
+              <AppProvider>
+                <AppChrome>{children}</AppChrome>
+              </AppProvider>
+            </WishlistProvider>
+          </ActiveRoleProvider>
           <Toaster position="top-center" toastOptions={{ duration: TOAST_DURATION_MS }} />
         </AuthProvider>
       </body>

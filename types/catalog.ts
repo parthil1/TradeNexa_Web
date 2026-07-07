@@ -55,6 +55,8 @@ export interface ApiProductListItem {
   state: string | null;
   is_trending: boolean;
   created_at: string;
+  subcategory_id?: number | null;
+  subcategory_name?: string | null;
 }
 
 export interface ApiProductDetail {
@@ -107,6 +109,8 @@ export interface ApiProductDetail {
       state: string | null;
       country: string | null;
       postal_code: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
     };
     social_links: { website: string | null; facebook: string | null };
   };
@@ -114,6 +118,7 @@ export interface ApiProductDetail {
     is_featured: boolean | null;
     is_trending: boolean | null;
     is_recommended: boolean | null;
+    is_related?: boolean | null;
     share_url: string | null;
   };
   user_actions?: {
@@ -145,4 +150,9 @@ export interface ProductListParams extends CatalogListParams {
   category_id?: number;
   subcategory_id?: number;
   is_trending?: boolean;
+}
+
+export interface RelatedProductsParams extends CatalogListParams {
+  product_id: number;
+  subcategory_id: number;
 }

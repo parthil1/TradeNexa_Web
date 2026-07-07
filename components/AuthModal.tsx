@@ -33,6 +33,14 @@ const countryCodes = [
 ];
 
 export default function AuthModal() {
+  const { isAuthModalOpen, authModalSession } = useAuth();
+
+  return (
+    <AuthModalFlow key={authModalSession} isOpen={isAuthModalOpen} />
+  );
+}
+
+function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
   const {
     isAuthModalOpen,
     authModalStep,
@@ -86,25 +94,6 @@ export default function AuthModal() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [agreedTerms, setAgreedTerms] = useState(false);
 
-  // Sync parameters when modal starts
-  useEffect(() => {
-    if (isAuthModalOpen) {
-      setPhone(authModalPhone);
-      setCountryCode(authModalCountryCode);
-      setRegForm({
-        name: "",
-        email: "",
-        role: authModalRole || "buyer",
-        businessTypeId: "",
-      });
-      setBusinessTypes([]);
-      setSelectedRoleId(null);
-      setErrors({});
-      setOtp(Array(6).fill(""));
-      setAgreedTerms(false);
-    }
-  }, [isAuthModalOpen, authModalPhone, authModalCountryCode, authModalRole]);
-
   useEffect(() => {
     const shouldLoad =
       (authModalStep === "role" || authModalStep === "register") && Boolean(regForm.role);
@@ -143,16 +132,20 @@ export default function AuthModal() {
 
   // Sync Timer for OTP
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (timerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setTimerActive(false);
-    }
+    if (!timerActive) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setTimerActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(interval);
-  }, [timerActive, timeLeft]);
+  }, [timerActive]);
 
   const startTimer = () => {
     setTimeLeft(90);
@@ -208,6 +201,10 @@ export default function AuthModal() {
     nextOtp[index] = value.slice(-1);
     setOtp(nextOtp);
 
+    if (nextOtp.every((digit) => digit)) {
+      void handleVerifyOtpSubmit(undefined, nextOtp);
+    }
+
     // Auto-focus next input
     if (index < 5 && otpRefs.current[index + 1]) {
       otpRefs.current[index + 1]?.focus();
@@ -236,12 +233,13 @@ export default function AuthModal() {
       const pasteOtp = pasteData.split("");
       setOtp(pasteOtp);
       otpRefs.current[5]?.focus();
+      void handleVerifyOtpSubmit(undefined, pasteOtp);
     }
   };
 
-  const handleVerifyOtpSubmit = async (e?: React.FormEvent) => {
+  const handleVerifyOtpSubmit = async (e?: React.FormEvent, otpOverride?: string[]) => {
     if (e) e.preventDefault();
-    const otpCode = otp.join("");
+    const otpCode = (otpOverride ?? otp).join("");
     if (otpCode.length < 6) {
       setErrors({ otp: "Please enter the complete 6-digit OTP code" });
       scrollToFirstFormError(
@@ -270,13 +268,6 @@ export default function AuthModal() {
       }
     }
   };
-
-  // Trigger verify automatically when 6 digits are input
-  useEffect(() => {
-    if (otp.join("").length === 6) {
-      handleVerifyOtpSubmit();
-    }
-  }, [otp]);
 
   // 3. RESEND OTP
   const handleResendOtp = async () => {
@@ -755,7 +746,7 @@ export default function AuthModal() {
 
   return (
     <Modal
-      isOpen={isAuthModalOpen}
+      isOpen={isOpen}
       onClose={handleClose}
       title={getModalTitle()}
       bodyClassName="px-6 py-6"
