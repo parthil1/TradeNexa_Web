@@ -18,7 +18,7 @@ export default function PortalShell({ children, navItems, brand, topBar }: Porta
 
   return (
     <PortalAuthGuard>
-      <div className="flex h-dvh overflow-hidden bg-portal-bg text-portal-fg">
+      <div className="flex min-h-dvh bg-portal-bg text-portal-fg">
         <PortalSidebar
           items={navItems}
           brand={brand}
@@ -26,12 +26,12 @@ export default function PortalShell({ children, navItems, brand, topBar }: Porta
           mobileOpen={mobileNavOpen}
           onMobileClose={() => setMobileNavOpen(false)}
         />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <PortalTopBar
             {...topBar}
             onMenuClick={() => setMobileNavOpen(true)}
           />
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-8">
+          <main className="flex-1 pb-24 lg:pb-8">
             {children}
           </main>
           <PortalBottomNav items={navItems} />

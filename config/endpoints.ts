@@ -9,4 +9,5 @@ export const API_ENDPOINTS = {
   BUSINESS_TYPES: "/business-types",
   CATEGORIES: "/categories",
   PRODUCTS: "/products",
+  BRANDS: "/brands",
 } as const;

@@ -30,7 +30,7 @@ export default function PortalTopBar({ title, subtitle, accent = "buyer", onMenu
   }
 
   return (
-    <header className="z-40 shrink-0 border-b border-portal-border bg-white/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 shrink-0 border-b border-portal-border bg-white/90 backdrop-blur-xl">
       <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6 lg:h-16">
         <div className="flex min-w-0 items-center gap-3">
           <button

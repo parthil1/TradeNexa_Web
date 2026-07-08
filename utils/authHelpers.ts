@@ -32,14 +32,52 @@ export interface ApiAddress {
 export interface ApiUserProfile {
   uuid?: string;
   id?: string | number;
+  user_id?: number | null;
   full_name?: string | null;
   company_name?: string | null;
   mobile_number?: string | null;
   email?: string | null;
   role?: string | null;
   role_id?: number | null;
+  is_completed_profile?: boolean | number | null;
   address?: ApiAddress | string | null;
   city?: string | null;
+  seller_id?: number | null;
+  seller?: { id?: number | null } | null;
+}
+
+function profileCanSell(profile: ApiUserProfile): boolean {
+  const role = typeof profile.role === "string" ? profile.role : "";
+  if (role === "seller" || role === "buyer_seller") return true;
+  if (profile.role_id === 2 || profile.role_id === 3) return true;
+  return false;
+}
+
+function parsePositiveId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return null;
+}
+
+export function getSellerIdFromProfile(profile: ApiUserProfile): number | null {
+  const direct = parsePositiveId(profile.seller_id);
+  if (direct) return direct;
+
+  const nested = parsePositiveId(profile.seller?.id);
+  if (nested) return nested;
+
+  // Backend profile often omits seller_id; for seller / buyer_seller roles user_id
+  // matches the seller record id (e.g. GET /sellers → id: 11 for user_id: 11).
+  if (profileCanSell(profile)) {
+    return parsePositiveId(profile.user_id) ?? parsePositiveId(profile.id);
+  }
+
+  return null;
 }
 
 export interface ApiAuthSession {

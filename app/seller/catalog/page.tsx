@@ -46,7 +46,7 @@ export default function SellerCatalogPage() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
-              <PortalProductCard key={p.id} product={p} href={`/buyer/product/${p.id}`} />
+              <PortalProductCard key={p.id} product={p} href={`/buyer/product/${p.id}?from=seller-catalog`} />
             ))}
           </div>
           <PortalInfiniteScroll

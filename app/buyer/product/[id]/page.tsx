@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Package } from "lucide-react";
 import PortalProductDetailView from "@/components/portal/PortalProductDetailView";
@@ -9,11 +9,23 @@ import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import { fetchProductById, fetchRelatedProducts } from "@/services/catalogService";
 import type { ApiProductDetail, ApiProductListItem } from "@/types/catalog";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useActiveRole } from "@/context/ActiveRoleContext";
+import { PORTAL_PRODUCT_LINKS, sellerCatalogProductLinks } from "@/utils/productDetailLinks";
 
 export default function BuyerProductPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const productId = Number(params.id);
   const invalidId = !productId || Number.isNaN(productId);
+  const { activeRole } = useActiveRole();
+
+  const productLinks = useMemo(() => {
+    const fromSellerCatalog = searchParams.get("from") === "seller-catalog";
+    if (fromSellerCatalog || activeRole === "seller") {
+      return sellerCatalogProductLinks();
+    }
+    return PORTAL_PRODUCT_LINKS;
+  }, [searchParams, activeRole]);
 
   const [product, setProduct] = useState<ApiProductDetail | null>(null);
   const [similarProducts, setSimilarProducts] = useState<ApiProductListItem[]>([]);
@@ -136,5 +148,11 @@ export default function BuyerProductPage() {
     );
   }
 
-  return <PortalProductDetailView product={product} similarProducts={similarProducts} />;
+  return (
+    <PortalProductDetailView
+      product={product}
+      similarProducts={similarProducts}
+      links={productLinks}
+    />
+  );
 }

@@ -18,6 +18,14 @@ export const PORTAL_PRODUCT_LINKS: ProductDetailLinks = {
   pagePaddingClass: "pb-28",
 };
 
+/** Seller catalog / add-product flows — back goes to catalog, not browser history */
+export function sellerCatalogProductLinks(): ProductDetailLinks {
+  return {
+    ...PORTAL_PRODUCT_LINKS,
+    back: { href: "/seller/catalog", label: "Back to Catalog" },
+  };
+}
+
 export function websiteProductLinks(categorySlug?: string): ProductDetailLinks {
   return {
     product: (id) => `/products/${id}`,

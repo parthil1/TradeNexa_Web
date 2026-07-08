@@ -41,12 +41,15 @@ export function FormField({
       {hint && !error && (
         <p className="text-xs text-slate-400">{hint}</p>
       )}
-      {error && (
-        <p className="flex items-center gap-1.5 text-xs font-medium text-red-500">
+      {error ? (
+        <p
+          role="alert"
+          className="flex items-center gap-1.5 text-xs font-medium text-red-600"
+        >
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           {error}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -71,7 +71,7 @@ function SidebarNav({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+    <nav className="flex-1 px-3 py-4">
       <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
         Menu
       </p>
@@ -146,6 +146,9 @@ function SidebarPanel({
 }
 
 const sidebarShell =
+  "relative flex w-[260px] shrink-0 flex-col bg-portal-sidebar lg:sticky lg:top-0 lg:h-dvh lg:self-start";
+
+const mobileSidebarShell =
   "relative flex h-dvh w-[260px] shrink-0 flex-col bg-portal-sidebar";
 
 export default function PortalSidebar({
@@ -183,7 +186,7 @@ export default function PortalSidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 400, damping: 36 }}
-              className={`fixed inset-y-0 left-0 z-50 border-r border-white/[0.08] shadow-xl shadow-portal-fg/20 lg:hidden ${sidebarShell}`}
+              className={`fixed inset-y-0 left-0 z-50 border-r border-white/[0.08] shadow-xl shadow-portal-fg/20 lg:hidden ${mobileSidebarShell}`}
             >
               <SidebarPanel
                 items={items}
