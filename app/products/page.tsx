@@ -6,11 +6,11 @@ import CTABanner from "@/components/CTABanner";
 import CatalogLoadMore from "@/components/catalog/CatalogLoadMore";
 import CatalogEmptyState from "@/components/catalog/CatalogEmptyState";
 import CatalogBreadcrumbs from "@/components/catalog/CatalogBreadcrumbs";
-import MarketplaceProductCard from "@/components/catalog/marketplace/MarketplaceProductCard";
+import PortalProductCard from "@/components/portal/PortalProductCard";
+import { portalProductGridClass } from "@/components/portal/portalLayout";
 import MarketplaceSearchBar from "@/components/catalog/marketplace/MarketplaceSearchBar";
 import {
   MARKETPLACE_CONTAINER,
-  MARKETPLACE_PRODUCT_GRID,
   MarketplaceProductGridSkeleton,
 } from "@/components/catalog/marketplace/marketplaceLayout";
 import {
@@ -181,9 +181,13 @@ function ProductsPageContent() {
             <MarketplaceProductGridSkeleton count={12} />
           ) : products.length > 0 ? (
             <>
-              <div className={MARKETPLACE_PRODUCT_GRID}>
+              <div className={`${portalProductGridClass} gap-4`}>
                 {products.map((product) => (
-                  <MarketplaceProductCard key={product.id} product={product} />
+                  <PortalProductCard
+                    key={product.id}
+                    product={product}
+                    href={`/products/${product.id}`}
+                  />
                 ))}
               </div>
 

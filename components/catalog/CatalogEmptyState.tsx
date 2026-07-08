@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { Package, RefreshCw } from "lucide-react";
+import { Button } from "@/components/common/Button";
 
 interface CatalogEmptyStateProps {
   title: string;
@@ -17,22 +19,25 @@ export default function CatalogEmptyState({
   resetLabel = "Reset filters",
 }: CatalogEmptyStateProps) {
   return (
-    <div className="mx-auto max-w-md py-16 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-        <Package className="h-7 w-7" />
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="mx-auto max-w-md py-20 text-center"
+    >
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/60">
+        <Package className="h-7 w-7 text-slate-400" />
       </div>
-      <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-      <p className="mt-1 text-sm text-slate-500">{description}</p>
+      <h3 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
       {onReset && (
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
-        >
-          <RefreshCw className="h-4 w-4" />
-          {resetLabel}
-        </button>
+        <div className="mt-6">
+          <Button variant="outline" onClick={onReset}>
+            <RefreshCw className="h-4 w-4" />
+            {resetLabel}
+          </Button>
+        </div>
       )}
-    </div>
+    </motion.div>
   );
 }

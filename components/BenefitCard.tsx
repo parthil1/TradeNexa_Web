@@ -23,40 +23,41 @@ export default function BenefitCard({
 }: BenefitCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      className={`rounded-2xl border p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${
+      transition={{ duration: 0.4, delay }}
+      whileHover={{ y: -4 }}
+      className={`rounded-xl p-6 transition-all duration-200 ${
         highlighted
-          ? "border-transparent bg-gradient-to-br from-[#1a3a5c] to-[#234a73] text-white hover:shadow-primary/10"
-          : "border-slate-100 bg-white text-slate-850 hover:border-slate-200"
+          ? "bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]"
+          : "surface-card-hover"
       }`}
     >
       <div
-        className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl ${
-          highlighted ? "bg-primary text-white" : "bg-primary/5 text-primary"
+        className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${
+          highlighted ? "bg-white/10 text-white" : "bg-primary/8 text-primary"
         }`}
       >
-        <Icon className="h-6 w-6" />
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
-      <h3 className={`mb-2 text-xl font-bold ${highlighted ? "text-white" : "text-[#1a2b4c]"}`}>
+      <h3 className={`mb-2 text-lg font-semibold tracking-tight ${highlighted ? "text-white" : "text-slate-900"}`}>
         {title}
       </h3>
-      <p className={`text-sm mb-4 leading-relaxed ${highlighted ? "text-slate-300" : "text-slate-500"}`}>
+      <p className={`mb-4 text-sm leading-relaxed ${highlighted ? "text-slate-300" : "text-slate-500"}`}>
         {description}
       </p>
 
       {points.length > 0 && (
-        <ul className="space-y-2 border-t pt-4 border-slate-200/10 mt-4">
+        <ul className={`mt-4 space-y-2 border-t pt-4 ${highlighted ? "border-white/10" : "border-slate-100"}`}>
           {points.map((point, index) => (
             <li key={index} className="flex items-start gap-2 text-sm">
               <span
-                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
                   highlighted ? "bg-primary text-white" : "bg-primary/10 text-primary"
                 }`}
               >
-                <Check className="h-3 w-3" />
+                <Check className="h-2.5 w-2.5" />
               </span>
               <span className={highlighted ? "text-slate-200" : "text-slate-600"}>{point}</span>
             </li>

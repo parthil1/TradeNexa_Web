@@ -23,17 +23,17 @@ export default function RoleSwitcher() {
         writeStoredActiveRole(switchTo);
         router.push(targetPath);
       }}
-      className="flex w-full items-center justify-between rounded-2xl border border-[#E8ECF0] bg-white p-4 text-left shadow-sm transition hover:border-[#1565C0]/30 hover:shadow-md sm:p-5"
+      className="flex w-full items-center justify-between rounded-xl border border-portal-border bg-white p-4 text-left shadow-sm transition hover:border-portal-buyer/30 hover:shadow-[0_4px_16px_-4px_rgba(15,23,42,0.08)] sm:p-5"
     >
       <div>
-        <p className="text-sm font-extrabold text-[#0D1B2A]">Switch Account Role</p>
-        <p className="mt-0.5 text-xs text-[#546E7A]">
+        <p className="text-sm font-extrabold text-portal-fg">Switch Account Role</p>
+        <p className="mt-0.5 text-xs text-portal-muted">
           Currently in <span className="font-semibold capitalize">{activeRole}</span> mode
         </p>
       </div>
-      <div className="flex items-center gap-2 rounded-xl bg-[#E8EFF9] px-3 py-2 text-xs font-bold text-[#1565C0]">
+      <div className="flex items-center gap-2 rounded-xl bg-portal-buyer-light px-3 py-2 text-xs font-bold text-portal-buyer">
         <ArrowLeftRight className="h-4 w-4" />
-        {switchTo === "seller" ? "Seller" : "Buyer"}
+        {switchTo === "seller" ? "Switch to Seller" : "Switch to Buyer"}
       </div>
     </button>
   );

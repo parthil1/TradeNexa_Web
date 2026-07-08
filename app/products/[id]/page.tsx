@@ -166,6 +166,7 @@ export default function ProductDetailPage() {
         product={product}
         similarProducts={similarProducts}
         links={links}
+        compact
       />
       <CTABanner />
     </div>

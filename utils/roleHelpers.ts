@@ -14,10 +14,42 @@ const FALLBACK_ROLE_IDS: Record<UserRole, number> = {
   both: 3,
 };
 
+/** Static roles used for registration / account type selection. */
+export const STATIC_API_ROLES: ApiRole[] = [
+  {
+    id: 3,
+    code: "buyer_seller",
+    name: "Buyer + Seller",
+    description: "User who buys and sells products",
+    is_active: 1,
+    created_at: "2026-07-01T17:47:10.000Z",
+    updated_at: "2026-07-01T17:47:10.000Z",
+  },
+  {
+    id: 2,
+    code: "seller",
+    name: "Seller",
+    description: "User who sells products",
+    is_active: 1,
+    created_at: "2026-07-01T17:47:10.000Z",
+    updated_at: "2026-07-01T17:47:10.000Z",
+  },
+  {
+    id: 1,
+    code: "buyer",
+    name: "Buyer",
+    description: "User who purchases products",
+    is_active: 1,
+    created_at: "2026-07-01T17:47:10.000Z",
+    updated_at: "2026-07-01T17:47:10.000Z",
+  },
+];
+
 let roleIdByUserRole: Partial<Record<UserRole, number>> = {};
 let userRoleById: Record<number, UserRole> = {};
 let cachedApiRoles: ApiRole[] = [];
 let loadPromise: Promise<void> | null = null;
+let rolesInitialized = false;
 
 const REGISTERABLE_ROLE_ORDER: UserRole[] = ["seller", "buyer", "both"];
 
@@ -35,7 +67,7 @@ export function userRoleToApiCode(role: UserRole): string {
 export function setRolesFromApi(roles: ApiRole[]): void {
   roleIdByUserRole = {};
   userRoleById = {};
-  cachedApiRoles = roles.filter((role) => role.is_active);
+  cachedApiRoles = roles.filter((role) => Boolean(role.is_active));
 
   for (const role of cachedApiRoles) {
     const userRole = apiCodeToUserRole(role.code);
@@ -43,6 +75,14 @@ export function setRolesFromApi(roles: ApiRole[]): void {
       roleIdByUserRole[userRole] = role.id;
       userRoleById[role.id] = userRole;
     }
+  }
+
+  rolesInitialized = Object.keys(roleIdByUserRole).length >= 3;
+}
+
+function ensureStaticRoles(): void {
+  if (!rolesInitialized) {
+    setRolesFromApi(STATIC_API_ROLES);
   }
 }
 
@@ -55,6 +95,8 @@ export interface RegisterableRoleOption {
 }
 
 export function getRegisterableRoles(): RegisterableRoleOption[] {
+  ensureStaticRoles();
+
   return cachedApiRoles
     .map((role) => {
       const userRole = apiCodeToUserRole(role.code);
@@ -76,14 +118,17 @@ export function getRegisterableRoles(): RegisterableRoleOption[] {
 }
 
 export function getAllRolesFromCache(): ApiRole[] {
+  ensureStaticRoles();
   return cachedApiRoles;
 }
 
 export function userRoleToRoleId(role: UserRole): number {
+  ensureStaticRoles();
   return roleIdByUserRole[role] ?? FALLBACK_ROLE_IDS[role];
 }
 
 export function roleIdToUserRole(roleId: number): UserRole | null {
+  ensureStaticRoles();
   return userRoleById[roleId] ?? null;
 }
 
@@ -92,24 +137,40 @@ export function areRolesLoaded(): boolean {
 }
 
 export async function ensureRolesLoaded(): Promise<RegisterableRoleOption[]> {
-  if (!areRolesLoaded()) {
-    if (!loadPromise) {
-      loadPromise = fetchRoles()
-        .then((roles) => {
-          setRolesFromApi(roles);
-        })
-        .catch(() => {
-          loadPromise = null;
-        });
-    }
+  ensureStaticRoles();
 
+  if (!loadPromise) {
+    loadPromise = fetchRoles()
+      .then((roles) => {
+        const activeRegisterable = roles.filter((role) => {
+          if (!role.is_active) return false;
+          return apiCodeToUserRole(role.code) !== null;
+        });
+
+        if (activeRegisterable.length >= 3) {
+          setRolesFromApi(activeRegisterable);
+        } else {
+          setRolesFromApi(STATIC_API_ROLES);
+        }
+      })
+      .catch(() => {
+        setRolesFromApi(STATIC_API_ROLES);
+        loadPromise = null;
+      });
+  }
+
+  try {
     await loadPromise;
+  } catch {
+    setRolesFromApi(STATIC_API_ROLES);
   }
 
   return getRegisterableRoles();
 }
 
 export function parseUserRole(role: unknown, roleId?: number | null): UserRole {
+  ensureStaticRoles();
+
   if (roleId != null) {
     const fromId = roleIdToUserRole(roleId);
     if (fromId) return fromId;

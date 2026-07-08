@@ -32,15 +32,15 @@ function Pill({
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
         active
-          ? "bg-[#1565C0] text-white shadow-sm"
-          : "bg-[#E8EFF9] text-[#1565C0] hover:bg-[#d6e4f5]"
+          ? "bg-portal-buyer text-white shadow-sm"
+          : "bg-portal-buyer-light text-portal-buyer hover:bg-portal-buyer-light/80"
       }`}
     >
       <span>{label}</span>
       {count !== undefined ? (
         <span
           className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-            active ? "bg-white/20 text-white" : "bg-white/80 text-[#1565C0]"
+            active ? "bg-white/20 text-white" : "bg-white/80 text-portal-buyer"
           }`}
         >
           {count}
@@ -66,8 +66,8 @@ export default function PortalSubcategoryPills({
 
   if (loadingSubs && subcategories.length === 0) {
     return (
-      <div className="mt-4 flex items-center gap-2 text-xs text-[#546E7A]">
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1565C0]" />
+      <div className="mt-4 flex items-center gap-2 text-xs text-portal-muted">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-portal-buyer" />
         Loading subcategories...
       </div>
     );
@@ -94,7 +94,7 @@ export default function PortalSubcategoryPills({
               type="button"
               onClick={onLoadMoreSubs}
               disabled={loadingSubs || loadingMoreSubs}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#E0E6ED] bg-white px-3 py-1.5 text-xs font-semibold text-[#546E7A] transition hover:border-[#1565C0] hover:text-[#1565C0] disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-portal-border bg-white px-3 py-1.5 text-xs font-semibold text-portal-muted shadow-sm transition hover:border-portal-buyer hover:text-portal-buyer disabled:opacity-50"
             >
               {loadingMoreSubs ? (
                 <>

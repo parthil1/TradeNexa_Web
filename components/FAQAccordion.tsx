@@ -21,21 +21,23 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="mx-auto max-w-3xl space-y-3">
       {items.map((item, index) => {
         const isOpen = openIndex === index;
         return (
           <div
             key={index}
-            className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all hover:border-slate-200"
+            className={`overflow-hidden rounded-xl border bg-white transition-all duration-200 ${
+              isOpen ? "border-primary/20 shadow-sm" : "border-slate-200 hover:border-slate-300"
+            }`}
           >
             <button
               onClick={() => toggleItem(index)}
-              className="flex w-full items-center justify-between p-5 text-left font-semibold text-slate-900 outline-none hover:text-primary transition-colors"
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-slate-900 outline-none transition-colors hover:text-primary"
             >
               <span>{item.question}</span>
               <ChevronDown
-                className={`h-5 w-5 text-slate-400 transition-transform duration-300 ${
+                className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
                   isOpen ? "rotate-180 text-primary" : ""
                 }`}
               />
@@ -46,9 +48,9 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                 >
-                  <div className="border-t border-slate-50 p-5 text-sm text-slate-500 leading-relaxed bg-slate-50/50">
+                  <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-sm leading-relaxed text-slate-500">
                     {item.answer}
                   </div>
                 </motion.div>

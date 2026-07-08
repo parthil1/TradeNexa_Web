@@ -6,12 +6,12 @@ import {
   SubcategoryFilterSidebar,
 } from "@/components/catalog/marketplace/SubcategoryPillFilter";
 import MarketplaceSearchBar from "@/components/catalog/marketplace/MarketplaceSearchBar";
-import MarketplaceProductCard from "@/components/catalog/marketplace/MarketplaceProductCard";
+import PortalProductCard from "@/components/portal/PortalProductCard";
+import { portalProductGridClass } from "@/components/portal/portalLayout";
 import CatalogLoadMore from "@/components/catalog/CatalogLoadMore";
 import CatalogEmptyState from "@/components/catalog/CatalogEmptyState";
 import {
   MARKETPLACE_CONTAINER,
-  MARKETPLACE_PRODUCT_GRID,
   MarketplaceProductGridSkeleton,
 } from "@/components/catalog/marketplace/marketplaceLayout";
 import type { ApiPagination, ApiProductListItem, ApiSubcategory } from "@/types/catalog";
@@ -107,13 +107,13 @@ export default function CategoryProductsLayout({
             <MarketplaceProductGridSkeleton count={8} />
           ) : products.length > 0 ? (
             <>
-              <div className={MARKETPLACE_PRODUCT_GRID}>
+              <div className={`${portalProductGridClass} gap-4`}>
                 {products.map((product) => (
-                  <MarketplaceProductCard
+                  <PortalProductCard
                     key={product.id}
                     product={product}
+                    href={`/products/${product.id}`}
                     subcategoryLabel={subcategoryLabel}
-                    themeSeed={product.id}
                   />
                 ))}
               </div>

@@ -61,6 +61,8 @@ interface PortalProductDetailViewProps {
   product: ApiProductDetail;
   similarProducts?: ApiProductListItem[];
   links?: ProductDetailLinks;
+  /** Tighter layout for public website product pages */
+  compact?: boolean;
 }
 
 const cardClass = "rounded-2xl border border-[#E8ECF0] bg-white shadow-sm";
@@ -98,12 +100,14 @@ function ProductGallery({
   activeId,
   onSelect,
   fallbackPoster,
+  compact = false,
 }: {
   name: string;
   media: GalleryMediaItem[];
   activeId: string | null;
   onSelect: (id: string) => void;
   fallbackPoster?: string | null;
+  compact?: boolean;
 }) {
   const active = media.find((item) => item.id === activeId) ?? media[0] ?? null;
   const displayName = name || "Product";
@@ -156,8 +160,8 @@ function ProductGallery({
   }
 
   return (
-    <div className={`${cardClass} p-4 lg:p-5`}>
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-[#F4F6F9]">
+    <div className={`${cardClass} ${compact ? "p-3" : "p-4 lg:p-5"}`}>
+      <div className={`relative overflow-hidden rounded-xl bg-[#F4F6F9] ${compact ? "aspect-[5/4]" : "aspect-square"}`}>
         {active?.kind === "video" ? (
           <div className="absolute inset-0 bg-black">
             {renderVideoPlayer(active.video, "h-full w-full object-contain")}
@@ -167,20 +171,22 @@ function ProductGallery({
             src={active.src}
             alt={displayName}
             fill
-            className="object-contain p-6 lg:p-10"
+            className={`object-contain ${compact ? "p-4 lg:p-6" : "p-6 lg:p-10"}`}
             unoptimized
             priority
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[#B0BEC5]">
-            <Package className="h-16 w-16 opacity-40" strokeWidth={1.25} />
-            <span className="text-3xl font-black opacity-30">{getInitials(displayName)}</span>
+            <Package className={`opacity-40 ${compact ? "h-12 w-12" : "h-16 w-16"}`} strokeWidth={1.25} />
+            <span className={`font-black opacity-30 ${compact ? "text-2xl" : "text-3xl"}`}>
+              {getInitials(displayName)}
+            </span>
             <span className="text-xs font-medium text-[#90A4AE]">No image available</span>
           </div>
         )}
       </div>
       {media.length > 1 ? (
-        <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-5">
+        <div className={`grid grid-cols-4 gap-2 ${compact ? "mt-3 sm:grid-cols-5" : "mt-4 sm:grid-cols-5 lg:grid-cols-5"}`}>
           {media.map((item) => {
             const isActive = active?.id === item.id;
             return (
@@ -212,10 +218,12 @@ function SupplierCard({
   product,
   inquiryMessage,
   supplierHref,
+  compact = false,
 }: {
   product: ApiProductDetail;
   inquiryMessage: string;
   supplierHref: ((sellerId: number) => string) | null;
+  compact?: boolean;
 }) {
   const { seller } = product;
   const location = formatSellerLocation(seller.location);
@@ -226,9 +234,13 @@ function SupplierCard({
   const locationLine = [location, role].filter(Boolean).join(" • ");
 
   return (
-    <div className={`${cardClass} p-5 lg:p-6`}>
+    <div className={`${cardClass} ${compact ? "p-4" : "p-5 lg:p-6"}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#E8EFF9] text-base font-extrabold text-[#1565C0]">
+        <div
+          className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#E8EFF9] font-extrabold text-[#1565C0] ${
+            compact ? "h-10 w-10 text-sm" : "h-12 w-12 text-base"
+          }`}
+        >
           {logoUrl ? (
             <Image
               src={logoUrl}
@@ -245,7 +257,9 @@ function SupplierCard({
         <BadgeCheck className="h-5 w-5 shrink-0 text-[#1565C0]" />
       </div>
 
-      <p className="mt-4 text-base font-extrabold text-[#0D1B2A] lg:text-lg">{seller.company.name}</p>
+      <p className={`mt-3 font-extrabold text-[#0D1B2A] ${compact ? "text-sm" : "mt-4 text-base lg:text-lg"}`}>
+        {seller.company.name}
+      </p>
       {locationLine ? (
         <p className="mt-1 flex items-start gap-1 text-sm text-[#546E7A]">
           <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -253,20 +267,22 @@ function SupplierCard({
         </p>
       ) : null}
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-[#F4F6F9] p-3 text-center">
-          <p className="text-sm font-extrabold text-[#0D1B2A]">{experienceLabel}</p>
+      <div className={`grid grid-cols-3 gap-2 ${compact ? "mt-3" : "mt-5"}`}>
+        <div className={`rounded-xl bg-[#F4F6F9] text-center ${compact ? "p-2" : "p-3"}`}>
+          <p className={`font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
+            {experienceLabel}
+          </p>
           <p className="mt-0.5 text-[10px] font-semibold text-[#546E7A]">Experience</p>
         </div>
-        <div className="rounded-xl bg-[#F4F6F9] p-3 text-center">
-          <p className="text-sm font-extrabold text-[#0D1B2A]">
+        <div className={`rounded-xl bg-[#F4F6F9] text-center ${compact ? "p-2" : "p-3"}`}>
+          <p className={`font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
             {formatRating(seller.rating.average)}{" "}
             <Star className="inline h-3 w-3 fill-amber-400 text-amber-400" />
           </p>
           <p className="mt-0.5 text-[10px] font-semibold text-[#546E7A]">Seller Rating</p>
         </div>
-        <div className="rounded-xl bg-[#F4F6F9] p-3 text-center">
-          <p className="text-sm font-extrabold text-[#0D1B2A]">
+        <div className={`rounded-xl bg-[#F4F6F9] text-center ${compact ? "p-2" : "p-3"}`}>
+          <p className={`font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
             {seller.rating.total_reviews != null && seller.rating.total_reviews > 0
               ? seller.rating.total_reviews
               : "—"}
@@ -275,11 +291,13 @@ function SupplierCard({
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className={`flex flex-wrap gap-2 ${compact ? "mt-3" : "mt-5"}`}>
         {supplierHref ? (
           <Link
             href={supplierHref(seller.id)}
-            className="flex flex-1 items-center justify-center rounded-xl border border-[#E0E6ED] py-2.5 text-sm font-bold text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E8EFF9]"
+            className={`flex flex-1 items-center justify-center rounded-xl border border-[#E0E6ED] font-bold text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E8EFF9] ${
+              compact ? "py-2 text-xs" : "py-2.5 text-sm"
+            }`}
           >
             View Profile
           </Link>
@@ -322,6 +340,7 @@ export default function PortalProductDetailView({
   product,
   similarProducts = [],
   links = PORTAL_PRODUCT_LINKS,
+  compact = false,
 }: PortalProductDetailViewProps) {
   const router = useRouter();
   const { isWishlisted, toggleWishlist } = useWishlist();
@@ -373,7 +392,7 @@ export default function PortalProductDetailView({
 
   const isPremium = marketplace.is_featured || marketplace.is_recommended;
   const contactPhone = getSellerContactPhone(product);
-  const inquiryMessage = `Hi, I'm interested in "${basic.name}" (Product ID: ${product.id}) listed on TradeNexa. Please share more details.`;
+  const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
 
   const thirdStatTitle = basic.brand ? "Brand" : basic.subcategory ? "Type" : "Quality";
   const thirdStatValue = basic.brand?.name ?? basic.subcategory?.name ?? "Standard";
@@ -395,35 +414,47 @@ export default function PortalProductDetailView({
 
   return (
     <div
-      className={`mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:pb-8 ${links.pagePaddingClass}`}
+      className={`mx-auto px-4 sm:px-6 lg:px-8 lg:pb-6 ${links.pagePaddingClass} ${
+        compact ? "max-w-6xl py-3" : "max-w-7xl py-5 lg:pb-8"
+      }`}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 flex flex-wrap items-end justify-between gap-3"
+        className={`flex flex-wrap items-end justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}
       >
         <div>
           {links.back.href ? (
             <Link
               href={links.back.href}
-              className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] transition hover:text-[#1565C0]"
+              className={`mb-2 inline-flex items-center gap-1.5 font-semibold text-[#546E7A] transition hover:text-[#1565C0] ${
+                compact ? "text-xs" : "mb-3 text-sm"
+              }`}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
               {links.back.label}
             </Link>
           ) : (
             <button
               type="button"
               onClick={() => router.back()}
-              className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] transition hover:text-[#1565C0]"
+              className={`mb-2 inline-flex items-center gap-1.5 font-semibold text-[#546E7A] transition hover:text-[#1565C0] ${
+                compact ? "text-xs" : "mb-3 text-sm"
+              }`}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
               {links.back.label}
             </button>
           )}
-          <h2 className="text-xl font-extrabold text-[#0D1B2A] sm:text-2xl lg:text-3xl">{basic.name}</h2>
+          <h2
+            className={`font-extrabold text-[#0D1B2A] ${
+              compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl lg:text-3xl"
+            }`}
+          >
+            {basic.name}
+          </h2>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className={`flex flex-wrap items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"}`}>
             {ratings.average > 0 ? (
               <span className="inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -474,25 +505,34 @@ export default function PortalProductDetailView({
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+      <div className={`grid grid-cols-1 lg:grid-cols-12 ${compact ? "gap-4 lg:gap-5" : "gap-6 lg:gap-8"}`}>
         <div className="lg:col-span-5">
-          <div className="lg:sticky lg:top-6">
+          <div className="lg:sticky lg:top-4">
             <ProductGallery
               name={basic.name ?? ""}
               media={galleryMedia}
               activeId={activeMedia?.id ?? null}
               onSelect={setActiveMediaId}
               fallbackPoster={gallery[0] ?? null}
+              compact={compact}
             />
           </div>
         </div>
 
-        <div className="space-y-6 lg:col-span-7">
-          <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#1565C0] to-[#5E92F3] p-6 text-white shadow-lg shadow-[#1565C0]/20">
-            <p className="text-sm text-white/80">Wholesale B2B Price</p>
-            <p className="mt-1 text-3xl font-extrabold sm:text-4xl">
+        <div className={`lg:col-span-7 ${compact ? "space-y-4" : "space-y-6"}`}>
+          <div
+            className={`overflow-hidden rounded-2xl bg-gradient-to-br from-[#1565C0] to-[#5E92F3] text-white shadow-lg shadow-[#1565C0]/20 ${
+              compact ? "p-4" : "p-6"
+            }`}
+          >
+            <p className={`text-white/80 ${compact ? "text-xs" : "text-sm"}`}>Wholesale B2B Price</p>
+            <p className={`mt-1 font-extrabold ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"}`}>
               {formatPrice(pricing.price)}
-              <span className="ml-2 text-base font-semibold text-white/80">/ {pricing.unit}</span>
+              <span
+                className={`ml-2 font-semibold text-white/80 ${compact ? "text-sm" : "text-base"}`}
+              >
+                / {pricing.unit}
+              </span>
             </p>
             {pricing.gst_percentage != null ? (
               <p className="mt-2 text-xs text-white/70">
@@ -505,13 +545,14 @@ export default function PortalProductDetailView({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${compact ? "gap-2" : "gap-3"}`}>
             <PortalStatCard
               title="Min. Order"
               value={`${pricing.minimum_order_quantity} ${pricing.unit}`}
               icon={ShoppingBag}
               color="text-[#1565C0]"
               bg="bg-blue-50"
+              compact={compact}
             />
             <PortalStatCard
               title="Listed"
@@ -519,6 +560,7 @@ export default function PortalProductDetailView({
               icon={Clock}
               color="text-[#2E7D32]"
               bg="bg-emerald-50"
+              compact={compact}
             />
             <PortalStatCard
               title={thirdStatTitle}
@@ -526,6 +568,7 @@ export default function PortalProductDetailView({
               icon={BadgeCheck}
               color="text-[#FF6D00]"
               bg="bg-orange-50"
+              compact={compact}
             />
           </div>
 
@@ -544,13 +587,19 @@ export default function PortalProductDetailView({
           ) : null}
 
           {keySpecs.length > 0 ? (
-            <div className={`${cardClass} hidden p-5 lg:block`}>
-              <h3 className="mb-4 text-base font-extrabold text-[#0D1B2A]">Key Specifications</h3>
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+            <div className={`${cardClass} hidden lg:block ${compact ? "p-4" : "p-5"}`}>
+              <h3 className={`mb-3 font-extrabold text-[#0D1B2A] ${compact ? "text-sm" : "mb-4 text-base"}`}>
+                Key Specifications
+              </h3>
+              <div className={`grid grid-cols-2 gap-2 xl:grid-cols-3 ${compact ? "gap-2" : "gap-3"}`}>
                 {keySpecs.map((spec) => (
-                  <div key={spec.label} className="rounded-xl bg-[#F4F6F9] px-4 py-3">
-                    <p className="text-xs font-semibold text-[#546E7A]">{spec.label}</p>
-                    <p className="mt-0.5 text-sm font-extrabold text-[#0D1B2A]">{spec.value}</p>
+                  <div key={spec.label} className={`rounded-xl bg-[#F4F6F9] ${compact ? "px-3 py-2" : "px-4 py-3"}`}>
+                    <p className={`font-semibold text-[#546E7A] ${compact ? "text-[10px]" : "text-xs"}`}>
+                      {spec.label}
+                    </p>
+                    <p className={`mt-0.5 font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
+                      {spec.value}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -559,10 +608,10 @@ export default function PortalProductDetailView({
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="space-y-8 lg:col-span-8">
+      <div className={`grid grid-cols-1 lg:grid-cols-12 ${compact ? "mt-5 gap-5" : "mt-8 gap-8"}`}>
+        <div className={`lg:col-span-8 ${compact ? "space-y-5" : "space-y-8"}`}>
           {keySpecs.length > 0 ? (
-            <PortalSection title="Key Specifications" subtitle="From product details">
+            <PortalSection title="Key Specifications" subtitle="From product details" compact={compact}>
               <div className="flex gap-3 overflow-x-auto pb-1 lg:hidden">
                 {keySpecs.map((spec) => (
                   <div key={spec.label} className={`${cardClass} shrink-0 px-4 py-3`}>
@@ -574,11 +623,11 @@ export default function PortalProductDetailView({
             </PortalSection>
           ) : null}
 
-          <PortalSection title="About this Product">
-            <div className={`${cardClass} p-5 lg:p-6`}>
+          <PortalSection title="About this Product" compact={compact}>
+            <div className={`${cardClass} ${compact ? "p-4" : "p-5 lg:p-6"}`}>
               {description ? (
                 <>
-                  <p className="text-sm leading-relaxed text-[#546E7A] lg:text-base">
+                  <p className={`leading-relaxed text-[#546E7A] ${compact ? "text-xs" : "text-sm lg:text-base"}`}>
                     {displayDesc}
                     {!descExpanded && showReadMore ? "…" : ""}
                   </p>
@@ -604,12 +653,14 @@ export default function PortalProductDetailView({
           </PortalSection>
 
           {fullSpecs.length > 0 ? (
-            <PortalSection title="Product Specifications">
+            <PortalSection title="Product Specifications" compact={compact}>
               <div className={`${cardClass} overflow-hidden`}>
                 {fullSpecs.map((spec, i) => (
                   <div
                     key={`${spec.label}-${i}`}
-                    className={`grid grid-cols-2 gap-4 px-5 py-3.5 ${
+                    className={`grid grid-cols-2 gap-3 ${
+                      compact ? "px-4 py-2.5" : "gap-4 px-5 py-3.5"
+                    } ${
                       i < fullSpecs.length - 1 ? "border-b border-[#E8ECF0]" : ""
                     } ${i % 2 === 0 ? "bg-white" : "bg-[#FAFBFC]"}`}
                   >
@@ -631,6 +682,7 @@ export default function PortalProductDetailView({
                     ? `More in ${basic.category.name}`
                     : "Related products"
               }
+              compact={compact}
               action={
                 links.category || product.basic_details.category ? (
                   <Link
@@ -664,12 +716,13 @@ export default function PortalProductDetailView({
         </div>
 
         <div className="lg:col-span-4">
-          <div className="lg:sticky lg:top-6">
-            <PortalSection title="Supplier" subtitle={product.seller.company.name}>
+          <div className="lg:sticky lg:top-4">
+            <PortalSection title="Supplier" subtitle={product.seller.company.name} compact={compact}>
               <SupplierCard
                 product={product}
                 inquiryMessage={inquiryMessage}
                 supplierHref={links.supplier}
+                compact={compact}
               />
             </PortalSection>
           </div>

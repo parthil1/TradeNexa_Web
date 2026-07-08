@@ -3,17 +3,38 @@ interface PortalSectionProps {
   subtitle?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
+  compact?: boolean;
 }
 
-export default function PortalSection({ title, subtitle, action, children }: PortalSectionProps) {
+export default function PortalSection({
+  title,
+  subtitle,
+  action,
+  children,
+  compact = false,
+}: PortalSectionProps) {
   return (
-    <section className="mb-6 sm:mb-8">
-      <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4 sm:items-end">
+    <section className={compact ? "mb-6" : "mb-8"}>
+      <div
+        className={`flex items-start justify-between gap-4 sm:items-end ${
+          compact ? "mb-3" : "mb-4"
+        }`}
+      >
         <div className="min-w-0">
-          <h3 className="text-base font-extrabold text-[#0D1B2A] sm:text-lg">{title}</h3>
-          {subtitle ? <p className="mt-0.5 text-xs text-[#546E7A] sm:text-sm">{subtitle}</p> : null}
+          <h3
+            className={`font-semibold tracking-tight text-portal-fg ${
+              compact ? "text-sm sm:text-base" : "text-base sm:text-lg"
+            }`}
+          >
+            {title}
+          </h3>
+          {subtitle ? (
+            <p className={`mt-1 text-portal-muted ${compact ? "text-xs" : "text-sm"}`}>
+              {subtitle}
+            </p>
+          ) : null}
         </div>
-        {action ? <div className="shrink-0 pt-0.5">{action}</div> : null}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
     </section>

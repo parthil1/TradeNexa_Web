@@ -1,16 +1,21 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import PortalProductCard from "@/components/portal/PortalProductCard";
 import PortalSubcategoryPills from "@/components/portal/PortalSubcategoryPills";
+import PortalSearchBar from "@/components/portal/PortalSearchBar";
 import PortalEmptyState from "@/components/portal/PortalEmptyState";
+import PortalProductGrid from "@/components/portal/PortalProductGrid";
 import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
 import { fetchCategoryById, fetchProducts, fetchSubcategories } from "@/services/catalogService";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
+import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
+import { resolveImageUrl } from "@/utils/catalogHelpers";
 import type { ApiCategoryDetail } from "@/types/catalog";
 
 export default function BuyerCategoryPage() {
@@ -21,13 +26,11 @@ export default function BuyerCategoryPage() {
 }
 
 function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
-
   const [category, setCategory] = useState<ApiCategoryDetail | null>(null);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
   const [selectedSubId, setSelectedSubId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
-  const [subcategoryByProductId, setSubcategoryByProductId] = useState<Record<number, string>>({});
   const debouncedSearch = useDebouncedValue(search);
 
   useEffect(() => {
@@ -46,7 +49,13 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
         if (!cancelled) setCategory(detail);
       } catch (err) {
         if (!cancelled) {
-          setMetaError(err instanceof Error ? err.message : "Failed to load category");
+          const message =
+            err instanceof Error
+              ? err.message
+              : err && typeof err === "object" && "message" in err
+                ? String((err as { message: string }).message)
+                : "Failed to load category";
+          setMetaError(message);
         }
       } finally {
         if (!cancelled) setMetaLoading(false);
@@ -95,34 +104,6 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
     [subcategories, selectedSubId]
   );
 
-  useEffect(() => {
-    if (!categoryId || subcategories.length === 0) return;
-    let cancelled = false;
-
-    void Promise.all(
-      subcategories.map(async (sub) => {
-        const { results } = await fetchProducts({
-          category_id: categoryId,
-          subcategory_id: sub.id,
-          page: 1,
-          limit: 100,
-        });
-        return results.map((p) => [p.id, sub.name] as const);
-      })
-    ).then((groups) => {
-      if (cancelled) return;
-      const map: Record<number, string> = {};
-      for (const pairs of groups) {
-        for (const [id, name] of pairs) map[id] = name;
-      }
-      setSubcategoryByProductId(map);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId, subcategories]);
-
   const fetchProductPage = useCallback(
     (page: number) => {
       if (!categoryId) {
@@ -163,6 +144,9 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
       ? `${pagination.total.toLocaleString()} products`
       : `${(selectedSub?.product_count ?? pagination.total).toLocaleString()} products`;
 
+  const FallbackIcon = getCategoryFallbackIcon(category?.slug, category?.name);
+  const logoUrl = resolveImageUrl(category?.icon || category?.image);
+
   if (metaError && !metaLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -183,9 +167,27 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
         </div>
       ) : (
         <>
-          <div>
-            <h2 className="text-2xl font-extrabold text-[#0D1B2A]">{category?.name}</h2>
-            <p className="mt-1 text-sm text-[#546E7A]">{productCountLabel}</p>
+          <div className="mb-5 flex items-center gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#E8EFF9] sm:h-14 sm:w-14">
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  alt={category?.name ?? "Category"}
+                  width={56}
+                  height={56}
+                  className="h-full w-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <FallbackIcon className="h-6 w-6 text-[#1565C0]" strokeWidth={1.75} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-extrabold text-[#0D1B2A] sm:text-2xl">
+                {category?.name}
+              </h2>
+              <p className="mt-0.5 text-sm text-[#546E7A]">{productCountLabel}</p>
+            </div>
           </div>
 
           <PortalSubcategoryPills
@@ -199,19 +201,38 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
             onLoadMoreSubs={loadMoreSubs}
           />
 
-          <div className="relative mt-5">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#546E7A]" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={`Search in ${selectedSub?.name ?? category?.name ?? "category"}...`}
-              className="w-full rounded-2xl border border-[#E0E6ED] bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20"
-            />
-          </div>
+          <PortalSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search in ${selectedSub?.name ?? category?.name ?? "category"}...`}
+            className="mt-4"
+          />
 
           {productError ? (
-            <p className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               {productError}
+            </p>
+          ) : null}
+
+          {!loadingProducts && products.length > 0 ? (
+            <p className="mt-4 text-sm text-[#546E7A]">
+              Showing <span className="font-semibold text-[#0D1B2A]">{products.length}</span>
+              {pagination.total > products.length ? (
+                <>
+                  {" "}
+                  of{" "}
+                  <span className="font-semibold text-[#0D1B2A]">
+                    {pagination.total.toLocaleString()}
+                  </span>
+                </>
+              ) : null}{" "}
+              products
+              {selectedSub ? (
+                <>
+                  {" "}
+                  in <span className="font-semibold text-[#1565C0]">{selectedSub.name}</span>
+                </>
+              ) : null}
             </p>
           ) : null}
 
@@ -234,17 +255,15 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
             </div>
           ) : (
             <>
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <PortalProductGrid className="mt-4">
                 {products.map((p) => (
                   <PortalProductCard
                     key={p.id}
                     product={p}
-                    subcategoryLabel={
-                      selectedSub?.name ?? subcategoryByProductId[p.id]
-                    }
+                    subcategoryLabel={selectedSub?.name}
                   />
                 ))}
-              </div>
+              </PortalProductGrid>
               <PortalInfiniteScroll
                 hasMore={hasMoreProducts}
                 loading={loadingProducts}

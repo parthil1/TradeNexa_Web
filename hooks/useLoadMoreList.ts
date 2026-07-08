@@ -3,6 +3,15 @@ import type { ApiPagination, PaginatedResult } from "@/types/catalog";
 
 const EMPTY_PAGINATION: ApiPagination = { total: 0, page: 1, limit: 12, totalPages: 0 };
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (err && typeof err === "object" && "message" in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return "Failed to load data";
+}
+
 interface UseLoadMoreListOptions<T> {
   fetchPage: (page: number) => Promise<PaginatedResult<T>>;
   resetDeps?: unknown[];
@@ -37,7 +46,7 @@ export function useLoadMoreList<T>({
       pageRef.current = data.pagination.page;
       setItems((prev) => (append ? [...prev, ...data.results] : data.results));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      setError(getErrorMessage(err));
       if (!append) {
         setItems([]);
         setPagination(EMPTY_PAGINATION);
@@ -66,7 +75,7 @@ export function useLoadMoreList<T>({
         setItems(data.results);
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(getErrorMessage(err));
         setItems([]);
         setPagination(EMPTY_PAGINATION);
       } finally {

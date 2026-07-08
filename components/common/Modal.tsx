@@ -30,7 +30,6 @@ export function Modal({
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Lock page scroll while modal is open (no position restore — avoids jump on close)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -42,18 +41,16 @@ export function Modal({
     };
   }, [isOpen]);
 
-  // Monitor body scroll offset to toggle sticky header shadow
   useEffect(() => {
     const handleScroll = () => {
       if (bodyRef.current) {
-        setIsScrolled(bodyRef.current.scrollTop > 10);
+        setIsScrolled(bodyRef.current.scrollTop > 8);
       }
     };
 
     const bodyEl = bodyRef.current;
     if (bodyEl) {
       bodyEl.addEventListener("scroll", handleScroll);
-      // Trigger once on mount/open just in case
       handleScroll();
     }
     return () => {
@@ -73,59 +70,54 @@ export function Modal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
-          {/* Backdrop blur overlay */}
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 md:p-8">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
           />
 
-          {/* Modal Container */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 15 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 15 }}
-            transition={{ type: "spring", duration: 0.4 }}
-            className={`relative flex max-h-[85vh] w-full ${maxWidthClasses[maxWidth]} flex-col overflow-hidden rounded-2xl border border-slate-100/50 bg-white shadow-2xl`}
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            className={`relative flex max-h-[92dvh] w-full sm:max-h-[88dvh] ${maxWidthClasses[maxWidth]} flex-col overflow-hidden rounded-t-2xl border border-slate-200/80 bg-white shadow-[0_24px_64px_-12px_rgba(15,23,42,0.18)] sm:rounded-2xl`}
           >
-            {/* Fixed custom header (e.g. register gradient) */}
             {headerSlot && <div className="shrink-0">{headerSlot}</div>}
 
-            {/* Sticky Header */}
             {!hideHeader && (
-            <div
-              className={`shrink-0 flex items-center justify-between px-6 py-4.5 transition-all duration-300 border-b border-slate-100 ${
-                isScrolled
-                  ? "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)] bg-white/95 backdrop-blur-md z-10"
-                  : "bg-white"
-              }`}
-            >
-              <div className="flex-1 mr-4">{title}</div>
-              <button
-                onClick={onClose}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
-                aria-label="Close modal"
+              <div
+                className={`flex shrink-0 items-center justify-between border-b px-6 py-4 transition-all duration-200 ${
+                  isScrolled
+                    ? "z-10 border-slate-100 bg-white/95 shadow-sm backdrop-blur-md"
+                    : "border-transparent bg-white"
+                }`}
               >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+                <div className="mr-4 min-w-0 flex-1">{title}</div>
+                <button
+                  onClick={onClose}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-primary/20"
+                  aria-label="Close modal"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             )}
 
-            {/* Scrollable Body */}
             <div
               ref={bodyRef}
               data-form-scroll-container
-              className={`min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent ${bodyClassName}`}
+              className={`min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-area ${bodyClassName}`}
             >
               {children}
             </div>
 
-            {/* Fixed footer — does not scroll with body */}
             {footer && (
-              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.08)]">
+              <div className="shrink-0 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
                 {footer}
               </div>
             )}

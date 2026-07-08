@@ -202,7 +202,7 @@ export default function BuyerHomePage() {
       </PortalSection>
 
       <PortalSection
-        title="Trending Products"
+        title="Trending"
         subtitle="Most popular items this week"
         action={
           <Link href="/buyer/trending-products" className="text-sm font-bold text-[#1565C0]">

@@ -26,7 +26,7 @@ export default function BuyerTrendingPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-      <PortalPageHeader title="Trending Products" subtitle="Most popular B2B listings this week" />
+      <PortalPageHeader title="Trending" subtitle="Most popular B2B listings this week" />
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
           <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />

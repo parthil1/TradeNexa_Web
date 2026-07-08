@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
-import ProductCard from "@/components/catalog/ProductCard";
+import PortalProductCard from "@/components/portal/PortalProductCard";
+import { portalProductGridClass } from "@/components/portal/portalLayout";
 import { ProductGridSkeleton } from "@/components/catalog/CatalogSkeleton";
 import { fetchTrendingProductItems } from "@/services/catalogService";
 import type { ApiProductListItem } from "@/types/catalog";
@@ -57,9 +58,13 @@ export default function TrendingProducts() {
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {products.map((product, i) => (
-              <ProductCard key={product.id} product={product} delay={i * 0.05} />
+          <div className={`${portalProductGridClass} gap-4`}>
+            {products.map((product) => (
+              <PortalProductCard
+                key={product.id}
+                product={product}
+                href={`/products/${product.id}`}
+              />
             ))}
           </div>
         ) : (

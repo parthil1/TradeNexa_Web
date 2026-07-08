@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { Modal } from "@/components/common/Modal";
 import { FormField } from "@/components/common/FormField";
 import { Select } from "@/components/common/Select";
 import { IndianFlag } from "@/components/common/IndianFlag";
 import { RoleSelector } from "@/components/common/RoleSelector";
-import { fetchBusinessTypes } from "@/services/businessTypesService";
+import { fetchBusinessTypesPage } from "@/services/businessTypesService";
 import { ensureRolesLoaded, userRoleToRoleId } from "@/utils/authHelpers";
 import type { ApiBusinessType } from "@/types/businessType";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
@@ -21,6 +22,8 @@ import {
   Mail,
   User,
   Shapes,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 // List of B2B trading country codes
@@ -31,6 +34,248 @@ const countryCodes = [
   { code: "+971", country: "UAE", flag: "🇦🇪" },
   { code: "+65", country: "Singapore", flag: "🇸🇬" },
 ];
+
+const stepVariants = {
+  initial: { opacity: 0, x: 16 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -16 },
+};
+
+const stepTransition = { duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as const };
+
+type AuthStep = "login" | "verify" | "role" | "register";
+
+function StepHeader({
+  icon: Icon,
+  title,
+  description,
+  accent = "primary",
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: React.ReactNode;
+  accent?: "primary" | "emerald";
+}) {
+  const accentClasses =
+    accent === "emerald"
+      ? "bg-emerald-50 text-emerald-600 ring-emerald-100"
+      : "bg-primary/10 text-primary ring-primary/10";
+
+  return (
+    <div className="mb-8 text-center">
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ring-1 ${accentClasses}`}
+      >
+        <Icon className="h-6 w-6" strokeWidth={1.75} />
+      </motion.div>
+      <h4 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h4>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">{description}</p>
+    </div>
+  );
+}
+
+function ErrorBanner({ message, centered }: { message: string; centered?: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex items-start gap-2.5 rounded-xl border border-red-100 bg-red-50/80 px-4 py-3 ${
+        centered ? "justify-center text-center" : ""
+      }`}
+    >
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+      <p className="text-sm font-medium text-red-600">{message}</p>
+    </motion.div>
+  );
+}
+
+function FieldError({ message, centered }: { message: string; centered?: boolean }) {
+  return (
+    <motion.p
+      initial={{ opacity: 0, y: -2 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex items-center gap-1.5 text-xs font-medium text-red-500 ${
+        centered ? "justify-center" : ""
+      }`}
+    >
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </motion.p>
+  );
+}
+
+function PrimaryButton({
+  children,
+  loading,
+  loadingText,
+  disabled,
+  type = "button",
+  form,
+  onClick,
+}: {
+  children: React.ReactNode;
+  loading?: boolean;
+  loadingText?: string;
+  disabled?: boolean;
+  type?: "button" | "submit";
+  form?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <motion.button
+      type={type}
+      form={form}
+      onClick={onClick}
+      disabled={disabled || loading}
+      whileHover={!disabled && !loading ? { scale: 1.01 } : undefined}
+      whileTap={!disabled && !loading ? { scale: 0.98 } : undefined}
+      transition={{ duration: 0.15 }}
+      className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_1px_2px_rgba(29,78,216,0.2),0_8px_20px_-4px_rgba(29,78,216,0.35)] transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+    >
+      {loading ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {loadingText}
+        </>
+      ) : (
+        children
+      )}
+    </motion.button>
+  );
+}
+
+function GhostButton({
+  children,
+  onClick,
+  disabled,
+  loading,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/5 hover:text-primary-hover disabled:cursor-not-allowed disabled:text-slate-400"
+    >
+      {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+      {children}
+    </button>
+  );
+}
+
+function TextLinkButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-800"
+    >
+      {children}
+    </button>
+  );
+}
+
+function FloatingInput({
+  id,
+  type = "text",
+  value,
+  onChange,
+  label,
+  icon: Icon,
+  error,
+  readOnly,
+  maxLength,
+  inputMode,
+  className = "",
+}: {
+  id: string;
+  type?: string;
+  value: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label: string;
+  icon?: React.ElementType;
+  error?: boolean;
+  readOnly?: boolean;
+  maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  className?: string;
+}) {
+  const hasValue = value.length > 0;
+
+  return (
+    <div className={`relative ${className}`}>
+      {Icon && (
+        <Icon className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      )}
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        readOnly={readOnly}
+        maxLength={maxLength}
+        inputMode={inputMode}
+        placeholder=" "
+        className={`peer h-12 w-full rounded-xl border bg-white text-sm text-slate-900 outline-none transition-all duration-200 ${
+          Icon ? "pl-11 pr-4" : "px-4"
+        } ${
+          readOnly
+            ? "cursor-not-allowed border-slate-200 bg-slate-50/80 text-slate-600"
+            : error
+              ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+              : "border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
+        }`}
+      />
+      <label
+        htmlFor={id}
+        className={`pointer-events-none absolute z-10 origin-left transition-all duration-200 ${
+          Icon ? "left-11" : "left-4"
+        } ${
+          hasValue
+            ? "top-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500"
+            : "top-1/2 -translate-y-1/2 text-sm text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider peer-focus:text-primary"
+        }`}
+      >
+        {label}
+      </label>
+    </div>
+  );
+}
+
+function BusinessTypeSkeleton() {
+  return (
+    <div className="space-y-2" aria-hidden>
+      <div className="h-3 w-24 animate-pulse rounded bg-slate-200" />
+      <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4">
+        <div className="h-4 w-4 animate-pulse rounded bg-slate-200" />
+        <div className="h-3 flex-1 animate-pulse rounded bg-slate-200" />
+      </div>
+    </div>
+  );
+}
+
+function EmptyBusinessTypes({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3">
+      <Shapes className="h-4 w-4 shrink-0 text-slate-400" />
+      <p className="text-sm text-slate-500">{message}</p>
+    </div>
+  );
+}
 
 export default function AuthModal() {
   const { isAuthModalOpen, authModalSession } = useAuth();
@@ -91,6 +336,9 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
   });
   const [businessTypes, setBusinessTypes] = useState<ApiBusinessType[]>([]);
   const [businessTypesLoading, setBusinessTypesLoading] = useState(false);
+  const [businessTypesLoadingMore, setBusinessTypesLoadingMore] = useState(false);
+  const [businessTypesPage, setBusinessTypesPage] = useState(1);
+  const [businessTypesHasMore, setBusinessTypesHasMore] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [agreedTerms, setAgreedTerms] = useState(false);
 
@@ -103,19 +351,25 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
 
     const loadBusinessTypesForRole = async () => {
       setBusinessTypesLoading(true);
+      setBusinessTypes([]);
+      setBusinessTypesPage(1);
+      setBusinessTypesHasMore(false);
       try {
         await ensureRolesLoaded();
         const roleId = userRoleToRoleId(regForm.role);
-        const types = await fetchBusinessTypes(roleId);
+        const { results, pagination } = await fetchBusinessTypesPage(roleId, 1, 10);
 
         if (cancelled) return;
 
         setSelectedRoleId(roleId);
-        setBusinessTypes(types);
+        setBusinessTypes(results);
+        setBusinessTypesPage(pagination.page || 1);
+        setBusinessTypesHasMore(pagination.page < pagination.totalPages);
         setRegForm((prev) => ({ ...prev, businessTypeId: "" }));
       } catch {
         if (!cancelled) {
           setBusinessTypes([]);
+          setBusinessTypesHasMore(false);
           setSelectedRoleId(null);
         }
       } finally {
@@ -129,6 +383,27 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
       cancelled = true;
     };
   }, [authModalStep, regForm.role]);
+
+  const loadMoreBusinessTypes = useCallback(async () => {
+    if (!selectedRoleId || businessTypesLoadingMore || !businessTypesHasMore) return;
+
+    setBusinessTypesLoadingMore(true);
+    try {
+      const nextPage = businessTypesPage + 1;
+      const { results, pagination } = await fetchBusinessTypesPage(selectedRoleId, nextPage, 10);
+
+      setBusinessTypes((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        return [...prev, ...results.filter((item) => !seen.has(item.id))];
+      });
+      setBusinessTypesPage(pagination.page || nextPage);
+      setBusinessTypesHasMore(pagination.page < pagination.totalPages);
+    } catch {
+      // Keep current list; user can scroll again to retry
+    } finally {
+      setBusinessTypesLoadingMore(false);
+    }
+  }, [selectedRoleId, businessTypesLoadingMore, businessTypesHasMore, businessTypesPage]);
 
   // Sync Timer for OTP
   useEffect(() => {
@@ -339,44 +614,49 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
     closeAuthModal();
   };
 
+  const phoneDisplay =
+    sessionMobileNumber || `${authModalCountryCode} ${authModalPhone}`;
+
   // Render correct steps
   const renderStep = () => {
     switch (authModalStep) {
       case "login":
         return (
-          <form onSubmit={handleSendOtpSubmit} className="space-y-6">
-            <div className="text-center mb-6">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Smartphone className="h-6 w-6" />
-              </div>
-              <h4 className="text-lg font-bold text-slate-900">Verify Your Identity</h4>
-              <p className="text-sm text-slate-500 mt-1">
-                Enter your phone number to receive a one-time verification password.
-              </p>
-            </div>
+          <motion.form
+            key="login"
+            variants={stepVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={stepTransition}
+            onSubmit={handleSendOtpSubmit}
+            className="space-y-6"
+          >
+            <StepHeader
+              icon={Smartphone}
+              title="Verify your identity"
+              description="Enter your phone number to receive a one-time verification code."
+            />
 
-            <div className="space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                Phone Number <span className="text-red-500">*</span>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Phone number <span className="text-red-500">*</span>
               </label>
 
-              <div className="relative flex gap-2">
-                {/* Country Code Selector */}
-                {/* Country Code Selector - Fixed to India */}
-                <div className="relative">
+              <div className="flex gap-2">
+                <div className="relative shrink-0">
                   <button
                     type="button"
                     disabled
-                    className="flex h-11 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm font-semibold text-slate-700 cursor-not-allowed"
+                    className="flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-medium text-slate-700 shadow-sm cursor-not-allowed"
                   >
                     <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
                     <span>+91</span>
-                    <ChevronDown className="h-4 w-4 text-slate-400 opacity-30" />
+                    <ChevronDown className="h-4 w-4 text-slate-300" />
                   </button>
                 </div>
 
-                {/* Phone Input Field */}
-                <div className="relative flex-1">
+                <div className="relative min-w-0 flex-1">
                   <input
                     id="auth-phone"
                     type="tel"
@@ -387,70 +667,64 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                       if (errors.phone) setErrors({});
                     }}
                     maxLength={10}
-                    placeholder="Enter 10-digit mobile number"
-                    className={`h-11 w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.phone
-                      ? "border-red-400 focus:border-red-500 focus:ring-red-100"
-                      : "border-slate-200 focus:border-primary"
-                      }`}
+                    placeholder="10-digit mobile number"
+                    className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 outline-none transition-all duration-200 ${
+                      errors.phone
+                        ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                        : "border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    }`}
                   />
                 </div>
               </div>
-              {errors.phone && (
-                <p className="text-xs font-semibold text-red-500">{errors.phone}</p>
-              )}
+
+              {errors.phone && <FieldError message={errors.phone} />}
             </div>
 
-            {sendOtpState.error && (
-              <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
-                {sendOtpState.error}
-              </div>
-            )}
+            {sendOtpState.error && <ErrorBanner message={sendOtpState.error} />}
 
-            <button
+            <PrimaryButton
               type="submit"
-              disabled={sendOtpState.loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover disabled:bg-slate-300"
+              loading={sendOtpState.loading}
+              loadingText="Sending verification code..."
             >
-              {sendOtpState.loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sending Verification Code...
-                </>
-              ) : (
-                <>
-                  Send OTP Code
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </form>
+              Send OTP code
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </PrimaryButton>
+          </motion.form>
         );
 
       case "verify":
         return (
-          <form onSubmit={handleVerifyOtpSubmit} className="space-y-6">
-            <div className="text-center mb-6">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <ShieldCheck className="h-6 w-6" />
-              </div>
-              <h4 className="text-lg font-bold text-slate-900">Verify Code</h4>
-              <p className="text-sm text-slate-500 mt-1">
-                We&apos;ve sent a 6-digit OTP code to{" "}
-                <span className="font-semibold text-slate-800">
-                  {sessionMobileNumber || `${authModalCountryCode} ${authModalPhone}`}
-                </span>
-                .
-              </p>
-            </div>
+          <motion.form
+            key="verify"
+            variants={stepVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={stepTransition}
+            onSubmit={handleVerifyOtpSubmit}
+            className="space-y-6"
+          >
+            <StepHeader
+              icon={ShieldCheck}
+              accent="emerald"
+              title="Enter verification code"
+              description={
+                <>
+                  We sent a 6-digit code to{" "}
+                  <span className="font-semibold text-slate-700">{phoneDisplay}</span>
+                </>
+              }
+            />
 
             <div className="space-y-4">
-              <label className="block text-center text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
-                Enter Security Code
+              <label className="block text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Security code
               </label>
 
-              <div className="flex justify-center gap-2.5 sm:gap-3.5">
+              <div className="flex justify-center gap-2 sm:gap-3">
                 {otp.map((digit, idx) => (
-                  <input
+                  <motion.input
                     key={idx}
                     id={idx === 0 ? "auth-otp-0" : undefined}
                     type="text"
@@ -464,186 +738,196 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                     onChange={(e) => handleOtpChange(e.target, idx)}
                     onKeyDown={(e) => handleKeyDown(e, idx)}
                     onPaste={handlePaste}
-                    className={`h-12 w-10 sm:h-13 sm:w-11 text-center text-lg font-bold rounded-xl border bg-white shadow-sm transition-all outline-none focus:ring-2 focus:ring-primary/20 ${errors.otp || verifyOtpState.error
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-slate-200 focus:border-primary"
-                      }`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04, duration: 0.2 }}
+                    className={`h-12 w-10 sm:h-14 sm:w-12 rounded-xl border bg-white text-center text-lg font-semibold text-slate-900 shadow-sm outline-none transition-all duration-200 ${
+                      errors.otp || verifyOtpState.error
+                        ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                        : digit
+                          ? "border-primary/40 bg-primary/[0.03] focus:border-primary focus:ring-4 focus:ring-primary/10"
+                          : "border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    }`}
                   />
                 ))}
               </div>
 
-              {errors.otp && (
-                <p className="text-center text-xs font-semibold text-red-500">{errors.otp}</p>
-              )}
+              {errors.otp && <FieldError message={errors.otp} centered />}
             </div>
 
             {verifyOtpState.error && (
-              <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 text-center">
-                {verifyOtpState.error}
-              </div>
+              <ErrorBanner message={verifyOtpState.error} centered />
             )}
 
-            <div className="flex flex-col items-center justify-center gap-3 py-2">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-4">
               {timerActive ? (
-                <p className="text-sm font-medium text-slate-500">
-                  Resend OTP in <span className="font-semibold text-primary">{formatTime(timeLeft)}</span>
+                <p className="text-sm text-slate-500">
+                  Resend code in{" "}
+                  <span className="font-mono font-semibold tabular-nums text-primary">
+                    {formatTime(timeLeft)}
+                  </span>
                 </p>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={resendOtpState.loading}
-                  className="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1.5 transition-colors disabled:text-slate-400"
-                >
-                  {resendOtpState.loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Resending...
-                    </>
-                  ) : (
-                    "Resend Verification OTP"
-                  )}
-                </button>
+                <GhostButton onClick={handleResendOtp} loading={resendOtpState.loading}>
+                  Resend verification code
+                </GhostButton>
               )}
 
-              <button
-                type="button"
-                onClick={() => setAuthModalStep("login")}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1 transition-colors mt-1"
-              >
+              <TextLinkButton onClick={() => setAuthModalStep("login")}>
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Change Phone Number
-              </button>
+                Change phone number
+              </TextLinkButton>
             </div>
 
-            <button
+            <PrimaryButton
               type="submit"
-              disabled={verifyOtpState.loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover disabled:bg-slate-300"
+              loading={verifyOtpState.loading}
+              loadingText="Verifying code..."
             >
-              {verifyOtpState.loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Verifying Code...
-                </>
-              ) : (
-                "Verify & Continue"
-              )}
-            </button>
-          </form>
+              Verify & continue
+            </PrimaryButton>
+          </motion.form>
         );
 
       case "role":
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-2">
-              <h4 className="text-lg font-bold text-slate-900">Choose your account type</h4>
-              <p className="text-sm text-slate-500 mt-1">
-                Select how you want to use TradeNexa. You can update details later.
-              </p>
+          <motion.div
+            key="role"
+            variants={stepVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={stepTransition}
+            className="space-y-8"
+          >
+            <StepHeader
+              icon={User}
+              title="Choose your account type"
+              description="Select how you want to use TradeNexa. You can update details later."
+            />
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/40 p-4 shadow-sm sm:p-5">
+              <FormField
+                label="Account type"
+                htmlFor="role-select"
+                fieldKey="role-select"
+                required
+                error={errors.role}
+              >
+                <RoleSelector
+                  value={regForm.role}
+                  onChange={(role) => {
+                    setRegForm((prev) => ({ ...prev, role, businessTypeId: "" }));
+                    if (errors.role) setErrors({ ...errors, role: "" });
+                  }}
+                />
+              </FormField>
             </div>
 
-            <FormField label="Account Type" htmlFor="role-select" fieldKey="role-select" required error={errors.role}>
-              <RoleSelector
-                value={regForm.role}
-                onChange={(role) => {
-                  setRegForm((prev) => ({ ...prev, role, businessTypeId: "" }));
-                  if (errors.role) setErrors({ ...errors, role: "" });
-                }}
-              />
-            </FormField>
+            <div className="space-y-3">
+              <PrimaryButton type="button" onClick={handleRoleContinue}>
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </PrimaryButton>
 
-            <button
-              type="button"
-              onClick={handleRoleContinue}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover"
-            >
-              Continue
-              <ArrowRight className="h-4 w-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAuthModalStep("verify")}
-              className="flex w-full items-center justify-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to verification
-            </button>
-          </div>
+              <div className="flex justify-center">
+                <TextLinkButton onClick={() => setAuthModalStep("verify")}>
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Back to verification
+                </TextLinkButton>
+              </div>
+            </div>
+          </motion.div>
         );
 
       case "register":
         return (
-          <form id="register-form" onSubmit={handleRegisterSubmit} className="space-y-4">
-            <FormField label="Full Name" htmlFor="reg-name" required error={errors.name}>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    id="reg-name"
-                    type="text"
-                    value={regForm.name}
-                    onChange={(e) => {
-                      setRegForm({ ...regForm, name: e.target.value });
-                      if (errors.name) setErrors({ ...errors, name: "" });
-                    }}
-                    placeholder="Enter your full name"
-                    className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:ring-2 focus:ring-primary/20 ${errors.name ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"}`}
-                  />
-                </div>
-              </FormField>
+          <motion.form
+            key="register"
+            id="register-form"
+            variants={stepVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={stepTransition}
+            onSubmit={handleRegisterSubmit}
+            className="space-y-5"
+          >
+            <div className="mb-2">
+              <p className="text-sm text-slate-500">
+                Complete your profile to get started on TradeNexa.
+              </p>
+            </div>
 
-              <FormField label="Mobile Number" htmlFor="reg-mobile" required>
-                <div className="flex gap-2">
-                  <div className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
-                    <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
-                    <span>+91</span>
-                  </div>
-                  <input
-                    id="reg-mobile"
-                    type="text"
-                    readOnly
-                    value={
-                      sessionMobileNumber
-                        ? sessionMobileNumber.replace(/^\+91/, "")
-                        : authModalPhone
+            <FormField label="Full name" htmlFor="reg-name" required error={errors.name}>
+              <FloatingInput
+                id="reg-name"
+                value={regForm.name}
+                onChange={(e) => {
+                  setRegForm({ ...regForm, name: e.target.value });
+                  if (errors.name) setErrors({ ...errors, name: "" });
+                }}
+                label="Your full name"
+                icon={User}
+                error={!!errors.name}
+              />
+            </FormField>
+
+            <FormField label="Mobile number" htmlFor="reg-mobile" required>
+              <div className="flex gap-2">
+                <div className="flex h-12 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-medium text-slate-700 shadow-sm">
+                  <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
+                  <span>+91</span>
+                </div>
+                <input
+                  id="reg-mobile"
+                  type="text"
+                  readOnly
+                  value={
+                    sessionMobileNumber
+                      ? sessionMobileNumber.replace(/^\+91/, "")
+                      : authModalPhone
+                  }
+                  className="h-12 min-w-0 flex-1 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50/80 px-4 text-sm font-medium text-slate-600 shadow-sm"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Email address" htmlFor="reg-email" required error={errors.email}>
+              <FloatingInput
+                id="reg-email"
+                type="email"
+                value={regForm.email}
+                onChange={(e) => {
+                  setRegForm({ ...regForm, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: "" });
+                }}
+                label="you@company.com"
+                icon={Mail}
+                error={!!errors.email}
+              />
+            </FormField>
+
+            <FormField
+              label="Business type"
+              htmlFor="reg-business-type"
+              required
+              error={errors.businessTypeId}
+            >
+              <div className="relative">
+                {businessTypesLoading ? (
+                  <BusinessTypeSkeleton />
+                ) : !businessTypes.length ? (
+                  <EmptyBusinessTypes
+                    message={
+                      selectedRoleId
+                        ? "No business types available for this role"
+                        : "Select an account type first"
                     }
-                    className="h-11 min-w-0 flex-1 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700"
                   />
-                </div>
-              </FormField>
-
-              <FormField label="Email Address" htmlFor="reg-email" required error={errors.email}>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    id="reg-email"
-                    type="email"
-                    value={regForm.email}
-                    onChange={(e) => {
-                      setRegForm({ ...regForm, email: e.target.value });
-                      if (errors.email) setErrors({ ...errors, email: "" });
-                    }}
-                    placeholder="you@example.com"
-                    className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:ring-2 focus:ring-primary/20 ${errors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"}`}
-                  />
-                </div>
-              </FormField>
-
-              <FormField
-                label="Business Type"
-                htmlFor="reg-business-type"
-                required
-                error={errors.businessTypeId}
-              >
-                <div className="relative">
-                  <Shapes className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  {businessTypesLoading ? (
-                    <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-500">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      Loading business types...
-                    </div>
-                  ) : (
+                ) : (
+                  <>
+                    <Shapes className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Select
                       id="reg-business-type"
                       value={regForm.businessTypeId}
@@ -655,27 +939,21 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                         value: String(type.id),
                         label: type.name,
                       }))}
-                      placeholder={
-                        businessTypes.length
-                          ? "Select business type"
-                          : selectedRoleId
-                            ? "No business types for this role"
-                            : "Select account type first"
-                      }
+                      placeholder="Select business type"
                       error={!!errors.businessTypeId}
-                      disabled={!businessTypes.length}
-                      className="pl-10"
+                      disabled={!businessTypes.length && !businessTypesLoading}
+                      className="h-12 pl-11 shadow-sm"
+                      hasMore={businessTypesHasMore}
+                      loadingMore={businessTypesLoadingMore}
+                      onLoadMore={loadMoreBusinessTypes}
                     />
-                  )}
-                </div>
-              </FormField>
+                  </>
+                )}
+              </div>
+            </FormField>
 
-              {registerState.error && (
-                <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
-                  {registerState.error}
-                </div>
-              )}
-          </form>
+            {registerState.error && <ErrorBanner message={registerState.error} />}
+          </motion.form>
         );
 
       default:
@@ -684,63 +962,85 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
   };
 
   const getModalTitle = () => {
-    switch (authModalStep) {
-      case "login":
-        return <span className="font-bold text-slate-950">Authenticate</span>;
-      case "verify":
-        return <span className="font-bold text-slate-950">Secure verification</span>;
-      case "role":
-        return <span className="font-bold text-slate-950">Account type</span>;
-      case "register":
-        return <span className="font-bold text-slate-950">Register</span>;
-      default:
-        return "TradeNexa Portal";
-    }
+    const subtitles: Record<AuthStep, string> = {
+      login: "Sign in securely",
+      verify: "Two-factor check",
+      role: "Set up account",
+      register: "Create profile",
+    };
+
+    const titles: Record<AuthStep, string> = {
+      login: "Authenticate",
+      verify: "Secure verification",
+      role: "Account type",
+      register: "Register",
+    };
+
+    const step = authModalStep as AuthStep;
+
+    return (
+      <div className="space-y-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+          {subtitles[step] ?? "TradeNexa"}
+        </p>
+        <span className="text-base font-semibold tracking-tight text-slate-900">
+          {titles[step] ?? "TradeNexa Portal"}
+        </span>
+      </div>
+    );
   };
 
   const isRegisterStep = authModalStep === "register";
 
   const registerFooter = (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <label
         data-form-field="auth-terms"
-        className="flex items-start gap-2.5 text-sm text-slate-600"
+        className={`group flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all duration-200 ${
+          agreedTerms
+            ? "border-primary/20 bg-primary/[0.03] shadow-sm"
+            : errors.terms
+              ? "border-red-200 bg-red-50/40"
+              : "border-slate-100 bg-slate-50/50 hover:border-slate-200"
+        }`}
       >
-        <input
-          type="checkbox"
-          id="auth-terms"
-          checked={agreedTerms}
-          onChange={(e) => {
-            setAgreedTerms(e.target.checked);
-            if (errors.terms) setErrors({ ...errors, terms: "" });
-          }}
-          className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-primary focus:ring-primary/20"
-        />
-        <span className="leading-snug">
+        <div className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
+          <input
+            type="checkbox"
+            id="auth-terms"
+            checked={agreedTerms}
+            onChange={(e) => {
+              setAgreedTerms(e.target.checked);
+              if (errors.terms) setErrors({ ...errors, terms: "" });
+            }}
+            className="peer sr-only"
+          />
+          <div
+            className={`flex h-5 w-5 items-center justify-center rounded-md border bg-white transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 ${
+              agreedTerms ? "border-primary bg-primary" : "border-slate-300"
+            }`}
+          >
+            {agreedTerms && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+          </div>
+        </div>
+        <span className="text-sm leading-relaxed text-slate-600">
           I agree to the{" "}
           <span className="font-semibold text-primary">Terms of Service</span> and{" "}
           <span className="font-semibold text-primary">Privacy Policy</span>
         </span>
       </label>
-      {errors.terms && <p className="text-xs font-semibold text-red-500">{errors.terms}</p>}
-      <button
+
+      {errors.terms && <FieldError message={errors.terms} />}
+
+      <PrimaryButton
         type="submit"
         form="register-form"
-        disabled={registerState.loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary h-11 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover disabled:bg-slate-300"
+        loading={registerState.loading}
+        loadingText="Creating account..."
       >
-        {registerState.loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Creating Account...
-          </>
-        ) : (
-          <>
-            Continue
-            <ArrowRight className="h-4 w-4" />
-          </>
-        )}
-      </button>
+        Continue
+        <ArrowRight className="h-4 w-4" />
+      </PrimaryButton>
     </div>
   );
 
@@ -749,11 +1049,11 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
       isOpen={isOpen}
       onClose={handleClose}
       title={getModalTitle()}
-      bodyClassName="px-6 py-6"
+      bodyClassName="px-6 py-8 sm:px-8"
       footer={isRegisterStep ? registerFooter : undefined}
       maxWidth="sm"
     >
-      {renderStep()}
+      <AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
     </Modal>
   );
 }

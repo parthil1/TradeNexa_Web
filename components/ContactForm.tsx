@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useApp, UserRole } from "@/app/context/AppContext";
-import { Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Send, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/common/Button";
 import { FormField } from "@/components/common/FormField";
 import { Input } from "@/components/common/Input";
 import { Textarea } from "@/components/common/Textarea";
@@ -81,7 +82,7 @@ export default function ContactForm() {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:p-8">
+    <div className="surface-card rounded-xl p-6 md:p-8">
       {submitted ? (
         <div className="py-12 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -95,7 +96,7 @@ export default function ContactForm() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
-          <h3 className="text-lg font-bold text-[#1a2b4c]">Send a Direct Message</h3>
+          <h3 className="text-lg font-semibold tracking-tight text-slate-900">Send a direct message</h3>
             <p className="mt-1 text-sm text-slate-500">
               Tell us about your business and how we can help you connect.
             </p>
@@ -181,23 +182,10 @@ export default function ContactForm() {
             />
           </FormField>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white shadow-md shadow-primary/10 transition-all hover:bg-primary-hover disabled:bg-slate-400"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Sending Message...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                Send Inquiry
-              </>
-            )}
-          </button>
+          <Button type="submit" fullWidth loading={isSubmitting} loadingText="Sending message...">
+            <Send className="h-4 w-4" />
+            Send Inquiry
+          </Button>
         </form>
       )}
     </div>

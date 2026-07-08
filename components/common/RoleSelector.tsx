@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Store, ShoppingCart, ArrowLeftRight, Loader2 } from "lucide-react";
 import type { UserRole } from "@/types/auth";
 import { ensureRolesLoaded, type RegisterableRoleOption } from "@/utils/roleHelpers";
@@ -46,17 +47,26 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
 
   if (loading) {
     return (
-      <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 text-sm text-slate-500">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-        Loading account types...
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col items-center rounded-xl border border-slate-100 bg-slate-50/80 p-4"
+          >
+            <div className="skeleton mb-3 h-10 w-10 rounded-xl" />
+            <div className="skeleton h-3 w-16 rounded" />
+            <div className="skeleton mt-2 h-2 w-24 rounded" />
+          </div>
+        ))}
       </div>
     );
   }
 
   if (!roles.length) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
-        Unable to load account types. Please try again.
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center">
+        <p className="text-sm font-medium text-slate-600">Unable to load account types</p>
+        <p className="mt-1 text-xs text-slate-400">Please refresh and try again</p>
       </div>
     );
   }
@@ -64,35 +74,40 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
   return (
     <div className="space-y-2">
       <div className={`grid gap-3 ${compact ? "grid-cols-3" : "grid-cols-1 sm:grid-cols-3"}`}>
-        {roles.map((role) => {
+        {roles.map((role, index) => {
           const Icon = ROLE_ICONS[role.userRole];
           const isSelected = value === role.userRole;
           return (
-            <button
+            <motion.button
               key={role.id}
               type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05, duration: 0.25 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onChange(role.userRole)}
-              className={`group relative flex flex-col items-center rounded-xl border-2 text-center transition-all ${
-                compact ? "p-2.5" : "p-4"
+              className={`group relative flex flex-col items-center rounded-xl border text-center transition-all duration-200 ${
+                compact ? "p-3" : "p-4"
               } ${
                 isSelected
-                  ? "border-primary bg-primary/5 shadow-sm shadow-primary/10"
-                  : "border-slate-200 bg-white hover:border-primary/30 hover:bg-slate-50"
-              } ${error && !value ? "border-red-300" : ""}`}
+                  ? "border-primary bg-primary/[0.04] shadow-[0_0_0_1px_rgba(37,99,235,0.15),0_4px_16px_-4px_rgba(37,99,235,0.15)]"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+              } ${error && !value ? "border-red-200" : ""}`}
             >
               <div
-                className={`flex items-center justify-center rounded-lg transition-colors ${
-                  compact ? "mb-1 h-8 w-8" : "mb-2 h-10 w-10"
+                className={`flex items-center justify-center rounded-xl transition-all duration-200 ${
+                  compact ? "mb-2 h-9 w-9" : "mb-3 h-10 w-10"
                 } ${
                   isSelected
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-white shadow-sm"
                     : "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
                 }`}
               >
                 <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
               </div>
               <span
-                className={`font-bold ${compact ? "text-[11px] leading-tight" : "text-sm"} ${
+                className={`font-semibold ${compact ? "text-[11px] leading-tight" : "text-sm"} ${
                   isSelected ? "text-primary" : "text-slate-900"
                 }`}
               >
@@ -103,7 +118,7 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
                   {role.description}
                 </span>
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>
