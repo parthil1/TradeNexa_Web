@@ -4,15 +4,19 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Pencil, Star } from "lucide-react";
 import type { ApiProductListItem } from "@/types/catalog";
 import { formatLocation, formatPrice, getInitials, productGradient, resolveImageUrl } from "@/utils/catalogHelpers";
 import PortalWishlistButton from "@/components/portal/PortalWishlistButton";
+import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import { useWishlist } from "@/hooks/useWishlist";
 
 interface PortalProductCardProps {
   product: ApiProductListItem;
   href?: string;
+  editHref?: string;
+  showDelete?: boolean;
+  onDeleted?: () => void;
   subcategoryLabel?: string;
   showWishlist?: boolean;
   onWishlistToggle?: (product: ApiProductListItem) => void;
@@ -21,6 +25,9 @@ interface PortalProductCardProps {
 export default function PortalProductCard({
   product,
   href,
+  editHref,
+  showDelete = false,
+  onDeleted,
   subcategoryLabel,
   showWishlist = true,
   onWishlistToggle,
@@ -33,11 +40,9 @@ export default function PortalProductCard({
 
   return (
     <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="h-full">
-      <Link
-        href={link}
-        className="group flex h-full flex-col overflow-hidden rounded-xl border border-portal-border bg-white shadow-sm transition-all duration-200 hover:border-portal-buyer/25 hover:shadow-[0_8px_24px_-8px_rgba(37,99,235,0.12)]"
-      >
-        <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow duration-200 hover:border-slate-300 hover:shadow-sm">
+        <Link href={link} className="flex flex-1 flex-col hover:cursor-pointer">
+          <div className="relative aspect-[4/3] overflow-hidden">
           <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
           {product.thumbnail ? (
             <Image
@@ -71,15 +76,15 @@ export default function PortalProductCard({
           ) : null}
         </div>
         <div className="flex flex-1 flex-col p-4">
-          <h4 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-portal-fg transition-colors group-hover:text-portal-buyer">
+          <h4 className="line-clamp-2 min-h-[2.5rem] truncate text-sm font-medium text-slate-900 transition-colors group-hover:text-blue-600">
             {product.name}
           </h4>
-          <p className="mt-2 text-lg font-bold text-portal-buyer">
+          <p className="mt-2 text-sm font-semibold text-blue-600">
             {formatPrice(product.price, product.currency)}
-            <span className="text-[10px] font-medium text-portal-muted"> / {product.unit}</span>
+            <span className="text-xs font-normal text-slate-400"> / {product.unit}</span>
           </p>
-          <div className="mt-auto space-y-1 pt-3 text-[11px] text-portal-muted">
-            <p className="truncate font-medium text-portal-fg">{product.supplier_name}</p>
+          <div className="mt-auto space-y-1 pt-3 text-xs text-slate-400">
+            <p className="truncate font-medium text-slate-600">{product.supplier_name}</p>
             <p className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {formatLocation(product.city, product.state)}
@@ -90,7 +95,33 @@ export default function PortalProductCard({
             </p>
           </div>
         </div>
-      </Link>
+        </Link>
+        {editHref || showDelete ? (
+          <div
+            className={`grid border-t border-slate-100 ${editHref && showDelete ? "grid-cols-2" : "grid-cols-1"}`}
+          >
+            {editHref ? (
+              <Link
+                href={editHref}
+                className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-600 ${
+                  showDelete ? "border-r border-slate-100" : ""
+                }`}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Link>
+            ) : null}
+            {showDelete ? (
+              <DeleteProductButton
+                productId={product.id}
+                productName={product.name}
+                onDeleted={onDeleted}
+                className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </motion.div>
   );
 }

@@ -11,6 +11,7 @@ interface BenefitCardProps {
   points?: string[];
   delay?: number;
   highlighted?: boolean;
+  badge?: string;
 }
 
 export default function BenefitCard({
@@ -20,6 +21,7 @@ export default function BenefitCard({
   points = [],
   delay = 0,
   highlighted = false,
+  badge,
 }: BenefitCardProps) {
   return (
     <motion.div
@@ -27,39 +29,32 @@ export default function BenefitCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay }}
-      whileHover={{ y: -4 }}
-      className={`rounded-xl p-6 transition-all duration-200 ${
+      whileHover={{ y: -2 }}
+      className={`relative rounded-xl border p-5 transition-shadow duration-200 hover:shadow-sm hover:border-slate-300 ${
         highlighted
-          ? "bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]"
-          : "surface-card-hover"
+          ? "border-blue-500 bg-white shadow-sm"
+          : "border-slate-200 bg-white hover:cursor-pointer"
       }`}
     >
-      <div
-        className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${
-          highlighted ? "bg-white/10 text-white" : "bg-primary/8 text-primary"
-        }`}
-      >
+      {badge ? (
+        <span className="absolute right-4 top-4 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+          {badge}
+        </span>
+      ) : null}
+      <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
         <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
-      <h3 className={`mb-2 text-lg font-semibold tracking-tight ${highlighted ? "text-white" : "text-slate-900"}`}>
-        {title}
-      </h3>
-      <p className={`mb-4 text-sm leading-relaxed ${highlighted ? "text-slate-300" : "text-slate-500"}`}>
-        {description}
-      </p>
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">{title}</h3>
+      <p className="mb-4 text-sm leading-relaxed text-slate-600">{description}</p>
 
       {points.length > 0 && (
-        <ul className={`mt-4 space-y-2 border-t pt-4 ${highlighted ? "border-white/10" : "border-slate-100"}`}>
+        <ul className="mt-4 space-y-2 border-t border-slate-100 pt-4">
           {points.map((point, index) => (
             <li key={index} className="flex items-start gap-2 text-sm">
-              <span
-                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
-                  highlighted ? "bg-primary text-white" : "bg-primary/10 text-primary"
-                }`}
-              >
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-500">
                 <Check className="h-2.5 w-2.5" />
               </span>
-              <span className={highlighted ? "text-slate-200" : "text-slate-600"}>{point}</span>
+              <span className="text-slate-600">{point}</span>
             </li>
           ))}
         </ul>

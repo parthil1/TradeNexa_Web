@@ -36,12 +36,19 @@ export function buildProductSpecs(product: ApiProductDetail): {
   keySpecs: ProductSpecRow[];
   fullSpecs: ProductSpecRow[];
 } {
-  const { basic_details: basic, pricing, seller } = product;
+  const { basic_details: basic, pricing, seller, inventory } = product;
+  const material = basic.material ?? product.material;
+  const productCondition =
+    basic.product_condition ?? product.product_condition;
+  const stockStatus = inventory?.stock_status ?? product.stock_status;
+  const stockQuantity = inventory?.stock_quantity ?? product.stock_quantity;
 
   const keySpecs: ProductSpecRow[] = [
     basic.brand && { label: "Brand", value: basic.brand.name },
     basic.subcategory && { label: "Subcategory", value: basic.subcategory.name },
     basic.category && { label: "Category", value: basic.category.name },
+    material && { label: "Material", value: material },
+    productCondition && { label: "Condition", value: productCondition },
     basic.country_of_origin && { label: "Origin", value: basic.country_of_origin },
     pricing.hsn_code && { label: "HSN Code", value: pricing.hsn_code },
     pricing.price_type && { label: "Price Type", value: pricing.price_type },
@@ -55,6 +62,12 @@ export function buildProductSpecs(product: ApiProductDetail): {
     ...keySpecs,
     { label: "Min. Order", value: `${pricing.minimum_order_quantity} ${pricing.unit}` },
     { label: "Unit", value: pricing.unit },
+    stockStatus && { label: "Stock Status", value: stockStatus },
+    stockQuantity != null && {
+      label: "Stock Quantity",
+      value: String(stockQuantity),
+    },
+    product.warranty && { label: "Warranty", value: product.warranty },
     { label: "Listed", value: formatListedAgo(product.created_at) },
     { label: "Last Updated", value: formatListedAgo(product.updated_at) },
     seller.company.name && { label: "Supplier", value: seller.company.name },

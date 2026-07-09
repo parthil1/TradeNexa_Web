@@ -100,14 +100,14 @@ export default function BuyerCategoriesPage() {
                 <Link
                   key={cat.id}
                   href={`/buyer/category/${cat.id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-[#E8ECF0] bg-white p-4 transition hover:border-[#1565C0]/30 hover:shadow-md"
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:cursor-pointer hover:border-slate-300 hover:shadow-sm"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8EFF9]">
-                    <Icon className="h-5 w-5 text-[#1565C0]" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                    <Icon className="h-5 w-5 text-blue-500" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-[#0D1B2A]">{cat.name}</p>
-                    <p className="text-xs text-[#546E7A]">{cat.product_count ?? 0} products</p>
+                    <p className="truncate text-sm font-medium text-slate-900">{cat.name}</p>
+                    <p className="text-xs text-slate-400">{cat.product_count ?? 0} products</p>
                   </div>
                 </Link>
               );

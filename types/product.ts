@@ -44,3 +44,30 @@ export interface ApiCreatedProduct {
   name: string;
   slug?: string;
 }
+
+export interface ExistingMediaItem {
+  id: number;
+  url: string;
+}
+
+export interface ExistingProductMedia {
+  thumbnail: ExistingMediaItem | null;
+  galleryImages: ExistingMediaItem[];
+  videos: ExistingMediaItem[];
+}
+
+export interface RemovedProductMediaIds {
+  imageIds: number[];
+  videoIds: number[];
+}
+
+export const EMPTY_EXISTING_PRODUCT_MEDIA: ExistingProductMedia = {
+  thumbnail: null,
+  galleryImages: [],
+  videos: [],
+};
+
+export const EMPTY_REMOVED_PRODUCT_MEDIA_IDS: RemovedProductMediaIds = {
+  imageIds: [],
+  videoIds: [],
+};

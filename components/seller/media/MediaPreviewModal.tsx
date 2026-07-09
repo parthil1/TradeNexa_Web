@@ -20,6 +20,7 @@ export interface MediaPreviewItem {
   name: string;
   index?: number;
   file?: File;
+  source?: "existing" | "new";
 }
 
 interface MediaPreviewModalProps {

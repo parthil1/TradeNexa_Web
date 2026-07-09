@@ -4,6 +4,7 @@ export interface ProductDetailLinks {
   search: string;
   supplier: ((sellerId: number) => string) | null;
   back: { href: string | null; label: string };
+  editProduct?: (id: number) => string;
   mobileBarClass: string;
   pagePaddingClass: string;
 }
@@ -22,6 +23,8 @@ export const PORTAL_PRODUCT_LINKS: ProductDetailLinks = {
 export function sellerCatalogProductLinks(): ProductDetailLinks {
   return {
     ...PORTAL_PRODUCT_LINKS,
+    product: (id) => `/seller/product/${id}`,
+    editProduct: (id) => `/seller/edit-product/${id}`,
     back: { href: "/seller/catalog", label: "Back to Catalog" },
   };
 }

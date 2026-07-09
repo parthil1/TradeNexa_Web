@@ -48,6 +48,10 @@ export interface CompleteProfileFormData {
   profileImageFile: File | null;
   companyLogoFile: File | null;
   companyBannerFile: File | null;
+  /** Existing image URLs from GET /auth/profile (for edit-mode preview) */
+  profileImageUrl?: string;
+  companyLogoUrl?: string;
+  companyBannerUrl?: string;
 }
 
 export type CompleteProfileData = {

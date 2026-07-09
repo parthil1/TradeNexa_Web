@@ -93,7 +93,7 @@ export default function SellerBenefits() {
         {!isAuthenticated && (
         <button
           onClick={() => openRegisterModal("seller")}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/10 transition hover:bg-primary-hover"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
         >
           Get Started as a Seller
         </button>
@@ -116,6 +116,7 @@ export default function SellerBenefits() {
                 description={b.description}
                 points={b.points}
                 highlighted={b.highlighted}
+                badge={b.highlighted ? "Most listed" : undefined}
                 delay={idx * 0.05}
               />
             ))}

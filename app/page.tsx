@@ -25,9 +25,7 @@ import {
 } from "lucide-react";
 
 import SectionHeading from "@/components/SectionHeading";
-import FeatureCard from "@/components/FeatureCard";
 import ProcessStep from "@/components/ProcessStep";
-import Counter from "@/components/Counter";
 import CTABanner from "@/components/CTABanner";
 import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
@@ -113,14 +111,14 @@ export default function Home() {
                   <>
                     <button
                       onClick={() => openRegisterModal("seller")}
-                      className="flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary-hover"
+                      className="flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
                     >
                       Join as Seller
                       <ArrowRight className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => openRegisterModal("buyer")}
-                      className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+                      className="flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-white/90"
                     >
                       Join as Buyer
                       <Search className="h-4 w-4" />
@@ -129,7 +127,7 @@ export default function Home() {
                 )}
                 <Link
                   href="/categories"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-white/20 px-8 py-4 text-sm font-semibold text-blue-100/90 transition hover:bg-white/10 hover:text-white"
+                  className="flex items-center justify-center gap-2 rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-blue-100/90 transition hover:bg-white/10 hover:text-white"
                 >
                   Browse Categories
                 </Link>
@@ -169,58 +167,58 @@ export default function Home() {
             title="Our Platform Core Solutions"
             subtitle="Explore how our system facilitates B2B trade across industrial categories."
           />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <motion.div
-              whileHover={{ y: -4 }}
-              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition hover:border-slate-200 hover:shadow-lg"
+              whileHover={{ y: -2 }}
+              className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-8 transition-shadow hover:border-slate-300 hover:shadow-sm lg:row-span-2"
             >
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
                   <Search className="h-6 w-6" />
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">Find Products</h3>
-                <p className="text-sm text-slate-500 leading-relaxed mb-6">
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">Find Products</h3>
+                <p className="mb-6 text-sm leading-relaxed text-slate-600">
                   Browse thousands of certified products and raw supplies across industrial, agricultural, and retail categories.
                 </p>
               </div>
-              <Link href="/categories" className="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1">
+              <Link href="/categories" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
                 Explore Categories <ArrowRight className="h-4 w-4" />
               </Link>
             </motion.div>
 
             <motion.div
-              whileHover={{ y: -4 }}
-              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition hover:border-slate-200 hover:shadow-lg"
+              whileHover={{ y: -2 }}
+              className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
             >
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <CheckCircle className="h-6 w-6" />
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                  <CheckCircle className="h-5 w-5" />
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">Verified Sellers</h3>
-                <p className="text-sm text-slate-500 leading-relaxed mb-6">
+                <h3 className="mb-2 text-sm font-semibold text-slate-900">Verified Sellers</h3>
+                <p className="mb-4 text-sm leading-relaxed text-slate-600">
                   Partner with trusted, verified business partners with complete credentials and verified profiles.
                 </p>
               </div>
-              <Link href="/buyer-benefits" className="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1">
+              <Link href="/buyer-benefits" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
                 Buyer Protection Guide <ArrowRight className="h-4 w-4" />
               </Link>
             </motion.div>
 
             <motion.div
-              whileHover={{ y: -4 }}
-              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition hover:border-slate-200 hover:shadow-lg"
+              whileHover={{ y: -2 }}
+              className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
             >
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <TrendingUp className="h-6 w-6" />
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                  <TrendingUp className="h-5 w-5" />
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">Grow Your Business</h3>
-                <p className="text-sm text-slate-500 leading-relaxed mb-6">
+                <h3 className="mb-2 text-sm font-semibold text-slate-900">Grow Your Business</h3>
+                <p className="mb-4 text-sm leading-relaxed text-slate-600">
                   List your company catalog, expand digital market reach, and receive genuine buyer inquiries daily.
                 </p>
               </div>
               {!isAuthenticated && (
-                <button onClick={() => openRegisterModal("seller")} className="text-sm font-semibold text-primary hover:text-primary-hover text-left flex items-center gap-1">
+                <button onClick={() => openRegisterModal("seller")} className="inline-flex items-center gap-1 text-left text-sm font-medium text-blue-600 hover:text-blue-700">
                   Become a Seller <ArrowRight className="h-4 w-4" />
                 </button>
               )}
@@ -268,7 +266,7 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08 }}
                   onClick={() => openRegisterModal(item.role)}
-                  className="group rounded-2xl border border-slate-100 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg"
+                  className="group rounded-xl border border-slate-200 bg-white p-5 text-left transition-shadow hover:cursor-pointer hover:border-slate-300 hover:shadow-sm"
                 >
                   <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white">
                     <Icon className="h-5 w-5" />
@@ -299,43 +297,74 @@ export default function Home() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="border-t border-slate-100 bg-white py-16 lg:py-20">
+      <section className="border-t border-slate-200 bg-white py-16 lg:py-20">
         <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Benefits"
             title="Why Choose Our B2B Platform?"
             subtitle="We provide a streamlined experience designed for small business owners and bulk procurers."
           />
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f, i) => (
-              <FeatureCard
-                key={i}
-                icon={f.icon}
-                title={f.title}
-                description={f.description}
-                delay={i * 0.05}
-              />
-            ))}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-8 transition-shadow hover:border-slate-300 hover:shadow-sm lg:row-span-2"
+            >
+              <div>
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">{features[0].title}</h3>
+                <p className="text-sm leading-relaxed text-slate-600">{features[0].description}</p>
+              </div>
+            </motion.div>
+
+            {features.slice(1, 3).map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <motion.div
+                  key={f.title}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
+                >
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">{f.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600">{f.description}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {features.slice(3).map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <motion.div
+                  key={f.title}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
+                >
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">{f.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600">{f.description}</p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Statistics */}
-      <section className="py-16 lg:py-20">
-        <div className={MARKETPLACE_CONTAINER}>
-          <SectionHeading
-            badge="Scale"
-            title="Our Platform in Numbers"
-            subtitle="Empowering B2B marketplace interactions across the Indian subcontinent."
-          />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Counter value={10000} title="Products" suffix="+" />
-            <Counter value={5000} title="Verified Sellers" suffix="+" />
-            <Counter value={25} title="Categories" suffix="+" />
-            <Counter value={50} title="Cities Active" suffix="+" />
-          </div>
-        </div>
-      </section>
       {/* 8. Call To Action */}
       <CTABanner />
     </div>

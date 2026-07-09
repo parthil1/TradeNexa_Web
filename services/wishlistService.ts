@@ -1,12 +1,13 @@
 import { fetchProductById } from "@/services/catalogService";
 import type { ApiProductDetail, ApiProductListItem } from "@/types/catalog";
+import { resolveImageUrl } from "@/utils/catalogHelpers";
 
 export function mapProductDetailToListItem(product: ApiProductDetail): ApiProductListItem {
   return {
     id: product.id,
     name: product.basic_details.name,
     slug: product.slug,
-    thumbnail: product.images.thumbnail,
+    thumbnail: resolveImageUrl(product.images.thumbnail),
     price: product.pricing.price,
     currency: "INR",
     moq: product.pricing.minimum_order_quantity,

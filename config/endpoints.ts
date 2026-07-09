@@ -10,4 +10,5 @@ export const API_ENDPOINTS = {
   CATEGORIES: "/categories",
   PRODUCTS: "/products",
   BRANDS: "/brands",
+  BANNERS: "/banners",
 } as const;

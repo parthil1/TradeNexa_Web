@@ -10,9 +10,10 @@ import { Select } from "@/components/common/Select";
 import { Button } from "@/components/common/Button";
 import MediaUploadSection from "@/components/seller/media/MediaUploadSection";
 import ProductWizardStepper from "@/components/seller/ProductWizardStepper";
-import { fetchCategories, fetchSubcategories } from "@/services/catalogService";
+import DeleteProductButton from "@/components/seller/DeleteProductButton";
+import { fetchCategories, fetchSubcategories, fetchProductById } from "@/services/catalogService";
 import { fetchBrandsPage } from "@/services/brandsService";
-import { createProduct } from "@/services/productService";
+import { createProduct, deleteProductMedia, updateProduct } from "@/services/productService";
 import { fetchSellerId } from "@/services/profileService";
 import { useAuth } from "@/hooks/useAuth";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
@@ -20,10 +21,24 @@ import type { ApiCategory, ApiSubcategory } from "@/types/catalog";
 import type { ApiBrand } from "@/types/brand";
 import type {
   CreateProductFormData,
+  ExistingProductMedia,
   ProductCondition,
   ProductSpecificationRow,
+  RemovedProductMediaIds,
   StockStatus,
 } from "@/types/product";
+import {
+  EMPTY_EXISTING_PRODUCT_MEDIA,
+  EMPTY_REMOVED_PRODUCT_MEDIA_IDS,
+} from "@/types/product";
+import {
+  existingGalleryUrls,
+  existingThumbnailUrl,
+  existingVideoUrls,
+  extractExistingProductMedia,
+  mapProductDetailToFormData,
+} from "@/utils/mapProductToFormData";
+import { toFormString } from "@/utils/buildProductFormData";
 
 const PRODUCT_CONDITIONS: { value: ProductCondition; label: string }[] = [
   { value: "NEW", label: "New" },
@@ -59,12 +74,29 @@ function galleryMediaRoom(images: File[], videos: File[]) {
   return MAX_GALLERY_MEDIA - galleryMediaCount(images, videos);
 }
 
+function totalGalleryCount(
+  images: File[],
+  videos: File[],
+  existing: ExistingProductMedia
+) {
+  return galleryMediaCount(images, videos) + existing.galleryImages.length + existing.videos.length;
+}
+
+function galleryMediaRoomWithExisting(
+  images: File[],
+  videos: File[],
+  existing: ExistingProductMedia
+) {
+  return MAX_GALLERY_MEDIA - totalGalleryCount(images, videos, existing);
+}
+
 function appendGalleryMedia(
   prev: CreateProductFormData,
   incoming: File[],
-  kind: "images" | "videos"
+  kind: "images" | "videos",
+  existing: ExistingProductMedia
 ): { next: CreateProductFormData; message?: string } {
-  const room = galleryMediaRoom(prev.images, prev.videos);
+  const room = galleryMediaRoomWithExisting(prev.images, prev.videos, existing);
   if (room <= 0) {
     return {
       next: prev,
@@ -212,29 +244,36 @@ type ProductFormErrorKey =
 
 function getFormErrors(
   form: CreateProductFormData,
-  sellerId: number | null
+  sellerId: number | null,
+  existingMedia: ExistingProductMedia,
+  isUpdate: boolean
 ): Partial<Record<ProductFormErrorKey, string>> {
   const errors: Partial<Record<ProductFormErrorKey, string>> = {};
 
-  if (!form.thumbnail) errors.thumbnail = "Thumbnail image is required.";
-  if (!form.name.trim()) errors.name = "Product name is required.";
+  const hasThumbnail = Boolean(
+    form.thumbnail || (isUpdate && existingMedia.thumbnail)
+  );
+  if (!hasThumbnail) errors.thumbnail = "Thumbnail image is required.";
+  if (!toFormString(form.name).trim()) errors.name = "Product name is required.";
   if (!form.categoryId) errors.category = "Please select a category.";
   if (!form.subcategoryId) errors.subcategory = "Please select a subcategory.";
   if (!form.brandId) errors.brand = "Please select a brand.";
 
-  const shortLen = form.shortDescription.trim().length;
+  const shortLen = toFormString(form.shortDescription).trim().length;
   if (shortLen < 10 || shortLen > 500) {
     errors.shortDescription = "Short description must be between 10 and 500 characters.";
   }
 
-  if (!form.price.trim()) errors.price = "Price is required.";
-  if (!form.currency.trim()) errors.currency = "Currency is required.";
-  if (!form.moq.trim()) errors.moq = "MOQ is required.";
-  if (!form.unit.trim()) errors.unit = "Unit is required.";
-  if (!form.material.trim()) errors.material = "Material is required.";
-  if (!form.countryOfOrigin.trim()) errors.countryOfOrigin = "Country of origin is required.";
+  if (!toFormString(form.price).trim()) errors.price = "Price is required.";
+  if (!toFormString(form.currency).trim()) errors.currency = "Currency is required.";
+  if (!toFormString(form.moq).trim()) errors.moq = "MOQ is required.";
+  if (!toFormString(form.unit).trim()) errors.unit = "Unit is required.";
+  if (!toFormString(form.material).trim()) errors.material = "Material is required.";
+  if (!toFormString(form.countryOfOrigin).trim()) {
+    errors.countryOfOrigin = "Country of origin is required.";
+  }
 
-  if (galleryMediaCount(form.images, form.videos) > MAX_GALLERY_MEDIA) {
+  if (totalGalleryCount(form.images, form.videos, existingMedia) > MAX_GALLERY_MEDIA) {
     errors.gallery = `Maximum ${MAX_GALLERY_MEDIA} gallery items allowed (photos + videos).`;
   }
 
@@ -281,6 +320,26 @@ const ERROR_KEYS_BY_STEP: Record<WizardStepKey, ProductFormErrorKey[]> = {
   additional: ["seller"],
 };
 
+function getFurthestValidStepIndex(
+  form: CreateProductFormData,
+  sellerId: number | null,
+  existingMedia: ExistingProductMedia,
+  isEditMode: boolean
+): number {
+  const fieldErrors = getFormErrors(form, sellerId, existingMedia, isEditMode);
+  let furthest = 0;
+
+  for (let stepIndex = 0; stepIndex < WIZARD_STEPS.length; stepIndex++) {
+    const stepKey = WIZARD_STEPS[stepIndex].key;
+    const relevantKeys = ERROR_KEYS_BY_STEP[stepKey];
+    const hasError = relevantKeys.some((key) => fieldErrors[key]);
+    if (hasError) break;
+    furthest = stepIndex;
+  }
+
+  return furthest;
+}
+
 const STEP_INDEX_BY_ERROR: Partial<Record<ProductFormErrorKey, number>> = {
   seller: 0,
   thumbnail: 0,
@@ -315,13 +374,21 @@ const ERROR_KEY_BY_FORM_FIELD: Partial<Record<keyof CreateProductFormData, Produ
   countryOfOrigin: "countryOfOrigin",
 };
 
-export default function AddProductForm() {
+export default function AddProductForm({ productId }: { productId?: number } = {}) {
+  const isEditMode = Boolean(productId && productId > 0);
   const router = useRouter();
   const { user, openCompleteProfileModal, isCompleteProfileOpen } = useAuth();
   const [sellerId, setSellerId] = useState<number | null>(null);
   const [sellerLoading, setSellerLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [productLoading, setProductLoading] = useState(isEditMode);
   const [form, setForm] = useState<CreateProductFormData>(() => emptyForm());
+  const [existingMedia, setExistingMedia] = useState<ExistingProductMedia>(
+    EMPTY_EXISTING_PRODUCT_MEDIA
+  );
+  const [removedMediaIds, setRemovedMediaIds] = useState<RemovedProductMediaIds>(
+    EMPTY_REMOVED_PRODUCT_MEDIA_IDS
+  );
   const [errors, setErrors] = useState<Partial<Record<ProductFormErrorKey, string>>>({});
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [maxReachedStepIndex, setMaxReachedStepIndex] = useState(0);
@@ -344,7 +411,9 @@ export default function AddProductForm() {
   const [brandsHasMore, setBrandsHasMore] = useState(false);
   const [brandsLoadingMore, setBrandsLoadingMore] = useState(false);
 
-  const thumbnailPreview = useObjectUrl(form.thumbnail);
+  const thumbnailPreview =
+    useObjectUrl(form.thumbnail) ??
+    (form.thumbnail ? null : existingThumbnailUrl(existingMedia));
   const galleryPreviews = useObjectUrls(form.images);
   const videoPreviews = useObjectUrls(form.videos);
 
@@ -393,6 +462,56 @@ export default function AddProductForm() {
     if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
   }
 
+  function queueRemovedImageId(id: number) {
+    if (id <= 0) return;
+    setRemovedMediaIds((prev) =>
+      prev.imageIds.includes(id) ? prev : { ...prev, imageIds: [...prev.imageIds, id] }
+    );
+  }
+
+  function queueRemovedVideoId(id: number) {
+    if (id <= 0) return;
+    setRemovedMediaIds((prev) =>
+      prev.videoIds.includes(id) ? prev : { ...prev, videoIds: [...prev.videoIds, id] }
+    );
+  }
+
+  function handleThumbnailRemove() {
+    if (form.thumbnail) {
+      removeThumbnail();
+    } else if (existingMedia.thumbnail) {
+      removeExistingThumbnail();
+    }
+  }
+
+  function removeExistingThumbnail() {
+    if (existingMedia.thumbnail?.id) {
+      queueRemovedImageId(existingMedia.thumbnail.id);
+    }
+    setExistingMedia((prev) => ({ ...prev, thumbnail: null }));
+    clearFieldError("thumbnail");
+  }
+
+  function removeExistingGalleryImage(index: number) {
+    const item = existingMedia.galleryImages[index];
+    if (item?.id) queueRemovedImageId(item.id);
+    setExistingMedia((prev) => ({
+      ...prev,
+      galleryImages: prev.galleryImages.filter((_, i) => i !== index),
+    }));
+    clearFieldError("gallery");
+  }
+
+  function removeExistingGalleryVideo(index: number) {
+    const item = existingMedia.videos[index];
+    if (item?.id) queueRemovedVideoId(item.id);
+    setExistingMedia((prev) => ({
+      ...prev,
+      videos: prev.videos.filter((_, i) => i !== index),
+    }));
+    clearFieldError("gallery");
+  }
+
   function removeGalleryImage(index: number) {
     setForm((prev) => ({
       ...prev,
@@ -415,7 +534,7 @@ export default function AddProductForm() {
     if (!files?.length) return;
     const incoming = Array.from(files);
     setForm((prev) => {
-      const { next, message } = appendGalleryMedia(prev, incoming, "images");
+      const { next, message } = appendGalleryMedia(prev, incoming, "images", existingMedia);
       if (message) queueMicrotask(() => showErrorToast(message));
       return next;
     });
@@ -426,7 +545,7 @@ export default function AddProductForm() {
     if (!files?.length) return;
     const incoming = Array.from(files);
     setForm((prev) => {
-      const { next, message } = appendGalleryMedia(prev, incoming, "videos");
+      const { next, message } = appendGalleryMedia(prev, incoming, "videos", existingMedia);
       if (message) queueMicrotask(() => showErrorToast(message));
       return next;
     });
@@ -455,6 +574,45 @@ export default function AddProductForm() {
     }
     wasCompleteProfileOpen.current = isCompleteProfileOpen;
   }, [isCompleteProfileOpen, loadSeller]);
+
+  useEffect(() => {
+    if (!isEditMode || !productId || sellerLoading) return;
+
+    const editProductId = productId;
+    let cancelled = false;
+
+    async function loadProduct() {
+      setProductLoading(true);
+      try {
+        const product = await fetchProductById(editProductId);
+        if (cancelled || !product) return;
+
+        const resolvedSellerId = sellerId ?? product.seller?.id ?? 0;
+        const mappedForm = mapProductDetailToFormData(product, resolvedSellerId);
+        const media = extractExistingProductMedia(product);
+        const furthestStep = getFurthestValidStepIndex(
+          mappedForm,
+          resolvedSellerId || sellerId,
+          media,
+          true
+        );
+
+        setForm(mappedForm);
+        setExistingMedia(media);
+        setActiveStepIndex(0);
+        setMaxReachedStepIndex(furthestStep);
+      } catch {
+        if (!cancelled) showErrorToast("Failed to load product for editing");
+      } finally {
+        if (!cancelled) setProductLoading(false);
+      }
+    }
+
+    void loadProduct();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, productId, sellerId, sellerLoading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -640,7 +798,7 @@ export default function AddProductForm() {
     const stepKey = WIZARD_STEPS[stepIndex]?.key;
     if (!stepKey) return true;
 
-    const fieldErrors = getFormErrors(form, sellerId);
+    const fieldErrors = getFormErrors(form, sellerId, existingMedia, isEditMode);
     const relevantKeys = ERROR_KEYS_BY_STEP[stepKey];
     const errorKeys = FIELD_ERROR_ORDER.filter(
       (key) => relevantKeys.includes(key) && fieldErrors[key]
@@ -677,21 +835,15 @@ export default function AddProductForm() {
     setActiveStepIndex(prevIndex);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function goToStep(stepIndex: number) {
+    if (submitting) return;
+    if (stepIndex < 0 || stepIndex > maxReachedStepIndex) return;
+    setActiveStepIndex(stepIndex);
+    setErrors({});
+  }
 
-    // If user tries to submit early (Enter key), behave like Next.
-    if (activeStepIndex !== lastStepIndex) {
-      const ok = validateStep(activeStepIndex);
-      if (!ok) return;
-      const nextIndex = activeStepIndex + 1;
-      setErrors({});
-      setActiveStepIndex(nextIndex);
-      setMaxReachedStepIndex((prev) => Math.max(prev, nextIndex));
-      return;
-    }
-
-    const fieldErrors = getFormErrors(form, sellerId);
+  async function submitProduct() {
+    const fieldErrors = getFormErrors(form, sellerId, existingMedia, isEditMode);
     const errorKeys = FIELD_ERROR_ORDER.filter((key) => fieldErrors[key]);
 
     if (errorKeys.length > 0) {
@@ -708,28 +860,68 @@ export default function AddProductForm() {
     }
 
     setErrors({});
-
     setSubmitting(true);
     try {
-      const product = await createProduct({ ...form, sellerId: sellerId as number });
-      showSuccessToast("Product created successfully!");
+      const payload = { ...form, sellerId: sellerId as number };
+
+      if (isEditMode && productId) {
+        const imageIds = [...new Set(removedMediaIds.imageIds)];
+        const videoIds = [...new Set(removedMediaIds.videoIds)];
+        if (imageIds.length || videoIds.length) {
+          await deleteProductMedia(productId, {
+            ...(imageIds.length ? { image_ids: imageIds } : {}),
+            ...(videoIds.length ? { video_ids: videoIds } : {}),
+          });
+        }
+      }
+
+      const product =
+        isEditMode && productId
+          ? await updateProduct(productId, payload)
+          : await createProduct(payload);
+
+      showSuccessToast(isEditMode ? "Product updated successfully!" : "Product created successfully!");
       router.push(
         product?.id
-          ? `/buyer/product/${product.id}?from=seller-catalog`
+          ? `/seller/product/${product.id}`
           : "/seller/catalog"
       );
     } catch (err) {
       const message =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: string }).message)
-          : "Failed to create product";
+          : isEditMode
+            ? "Failed to update product"
+            : "Failed to create product";
       showErrorToast(message);
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (sellerLoading) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (isEditMode) {
+      await submitProduct();
+      return;
+    }
+
+    // Create mode: advance step-by-step until the final submit.
+    if (activeStepIndex !== lastStepIndex) {
+      const ok = validateStep(activeStepIndex);
+      if (!ok) return;
+      const nextIndex = activeStepIndex + 1;
+      setErrors({});
+      setActiveStepIndex(nextIndex);
+      setMaxReachedStepIndex((prev) => Math.max(prev, nextIndex));
+      return;
+    }
+
+    await submitProduct();
+  }
+
+  if (sellerLoading || productLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -763,7 +955,7 @@ export default function AddProductForm() {
         steps={WIZARD_STEPS}
         activeIndex={activeStepIndex}
         maxReachedIndex={maxReachedStepIndex}
-        onStepClick={setActiveStepIndex}
+        onStepClick={goToStep}
       />
 
       <AnimatePresence mode="wait">
@@ -782,15 +974,19 @@ export default function AddProductForm() {
           imageUrls={galleryPreviews}
           videos={form.videos}
           videoUrls={videoPreviews}
+          existingImageUrls={existingGalleryUrls(existingMedia)}
+          existingVideoUrls={existingVideoUrls(existingMedia)}
           thumbnailInputRef={thumbnailInputRef}
           imageInputRef={galleryInputRef}
           videoInputRef={videoInputRef}
           onThumbnailSelect={(file) => updateForm("thumbnail", file)}
-          onThumbnailRemove={removeThumbnail}
+          onThumbnailRemove={handleThumbnailRemove}
           onAddImages={addGalleryImages}
           onAddVideos={addGalleryVideos}
           onRemoveImage={removeGalleryImage}
           onRemoveVideo={removeGalleryVideo}
+          onRemoveExistingImage={removeExistingGalleryImage}
+          onRemoveExistingVideo={removeExistingGalleryVideo}
           onReorderImages={reorderGalleryImages}
           onReplaceImage={replaceGalleryImage}
           thumbnailError={errors.thumbnail}
@@ -1148,26 +1344,72 @@ export default function AddProductForm() {
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex flex-col items-stretch justify-between gap-3 pt-2 sm:flex-row sm:items-center">
-        <div className="flex-1">
+      {isEditMode && productId ? (
+        <div className="rounded-2xl border border-red-100 bg-red-50/50 p-4">
+          <p className="text-sm font-semibold text-red-700">Danger zone</p>
+          <p className="mt-1 text-xs text-red-600/80">
+            Permanently remove this listing from your catalog.
+          </p>
+          <div className="mt-3">
+            <DeleteProductButton
+              productId={productId}
+              productName={form.name || "this product"}
+              label="Delete Product"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-50"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 gap-3">
           {activeStepIndex > 0 ? (
-            <Button type="button" variant="secondary" fullWidth size="md" onClick={goToPrevStep}>
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              size="md"
+              onClick={goToPrevStep}
+              disabled={submitting}
+            >
               Back
             </Button>
-          ) : (
-            <span />
-          )}
+          ) : null}
         </div>
-        <div className="flex-1">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:justify-end">
           {activeStepIndex < lastStepIndex ? (
-            <Button type="button" fullWidth size="md" onClick={goToNextStep}>
+            <Button
+              type="button"
+              variant={isEditMode ? "secondary" : "primary"}
+              fullWidth
+              size="md"
+              onClick={goToNextStep}
+              disabled={submitting}
+            >
               Next
             </Button>
-          ) : (
-            <Button type="submit" fullWidth loading={submitting} loadingText="Submitting...">
+          ) : null}
+          {isEditMode ? (
+            <Button
+              type="button"
+              fullWidth
+              size="md"
+              loading={submitting}
+              loadingText="Updating..."
+              onClick={() => void submitProduct()}
+            >
+              Update Product
+            </Button>
+          ) : activeStepIndex >= lastStepIndex ? (
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              loadingText="Submitting..."
+            >
               Submit Product
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
     </form>

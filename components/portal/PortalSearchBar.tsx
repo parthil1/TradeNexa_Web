@@ -20,7 +20,8 @@ export default function PortalSearchBar({
     <div className={`relative ${className}`}>
       <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-portal-muted" />
       <input
-        type="search"
+        type="text"
+        role="searchbox"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

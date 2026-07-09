@@ -13,13 +13,15 @@ import {
   MessageSquare,
   Search,
   Star,
-  TrendingUp,
 } from "lucide-react";
 import PortalSection from "@/components/portal/PortalSection";
 import PortalProductCard from "@/components/portal/PortalProductCard";
+import BuyerHomeBanner from "@/components/portal/BuyerHomeBanner";
 import { useAuth } from "@/hooks/useAuth";
-import { demoBanners, demoSuppliers } from "@/data/portalDemo";
+import { demoSuppliers } from "@/data/portalDemo";
+import { fetchActiveBanners } from "@/services/bannerService";
 import { fetchCategories, fetchProducts, fetchTrendingProductItems } from "@/services/catalogService";
+import type { ApiBanner } from "@/types/banner";
 import type { ApiCategory, ApiProductListItem } from "@/types/catalog";
 import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
 
@@ -35,7 +37,8 @@ export default function BuyerHomePage() {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [trending, setTrending] = useState<ApiProductListItem[]>([]);
   const [recent, setRecent] = useState<ApiProductListItem[]>([]);
-  const [bannerIndex, setBannerIndex] = useState(0);
+  const [banners, setBanners] = useState<ApiBanner[]>([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
 
   const displayName = user?.name || user?.company || "Buyer";
   const initial = displayName.charAt(0).toUpperCase();
@@ -46,14 +49,11 @@ export default function BuyerHomePage() {
     fetchProducts({ page: 1, limit: 8, sort_by: "created_at", sort_order: "desc" }).then((r) =>
       setRecent(r.results)
     );
+    fetchActiveBanners(10)
+      .then(setBanners)
+      .catch(() => setBanners([]))
+      .finally(() => setBannersLoading(false));
   }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => setBannerIndex((i) => (i + 1) % demoBanners.length), 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const banner = demoBanners[bannerIndex];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5 md:px-8 lg:px-8">
@@ -90,7 +90,7 @@ export default function BuyerHomePage() {
             <Link
               key={link.href}
               href={link.href}
-              className="flex min-w-[88px] shrink-0 snap-start flex-col items-center gap-2 rounded-2xl border border-[#E8ECF0] bg-white p-3 shadow-sm transition active:scale-[0.98] hover:border-[#1565C0]/25 sm:min-w-0 sm:p-4"
+              className="flex min-w-[88px] shrink-0 snap-start flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 transition-shadow active:scale-[0.98] hover:cursor-pointer hover:border-slate-300 hover:shadow-sm sm:min-w-0 sm:p-4"
             >
               <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${link.bg}`}>
                 <Icon className={`h-5 w-5 ${link.color}`} />
@@ -101,41 +101,28 @@ export default function BuyerHomePage() {
         })}
       </div>
 
-      <motion.div
-        key={banner.id}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={`mb-6 overflow-hidden rounded-2xl bg-gradient-to-br sm:mb-8 sm:rounded-3xl ${banner.gradient} p-5 text-white shadow-lg sm:p-8`}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 sm:text-xs">TradeNexa B2B</p>
-            <h3 className="mt-1.5 text-xl font-extrabold leading-tight sm:mt-2 sm:text-2xl md:text-3xl">
-              {banner.title}
-            </h3>
-            <p className="mt-2 max-w-md text-xs text-white/80 sm:text-sm">{banner.subtitle}</p>
-          </div>
-          <TrendingUp className="hidden h-8 w-8 shrink-0 text-white/30 sm:block" />
-        </div>
+      {bannersLoading ? (
+        <div className="mb-5 h-[148px] animate-pulse rounded-xl bg-slate-200 sm:mb-6 sm:h-[168px] sm:rounded-2xl md:h-[188px]" />
+      ) : banners.length > 0 ? (
+        <BuyerHomeBanner banners={banners} />
+      ) : (
         <Link
-          href={banner.href}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#1565C0] transition hover:bg-white/90 sm:mt-5"
+          href="/buyer/post-requirement"
+          className="mb-5 block overflow-hidden rounded-xl border border-orange-200/50 bg-gradient-to-r from-[#E65100] to-[#FF6D00] p-4 text-white shadow-sm sm:mb-6 sm:rounded-2xl sm:p-5"
         >
-          {banner.cta}
-          <ArrowRight className="h-4 w-4" />
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/75 sm:text-[10px]">
+            TradeNexa B2B
+          </p>
+          <h3 className="mt-0.5 text-base font-bold sm:text-lg">Post Your Requirement</h3>
+          <p className="mt-1 max-w-md text-xs text-white/85 sm:text-sm">
+            Get quotes from multiple sellers in 24 hours
+          </p>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-primary sm:text-sm">
+            Post RFQ
+            <ArrowRight className="h-3.5 w-3.5" />
+          </span>
         </Link>
-        <div className="mt-4 flex gap-1.5">
-          {demoBanners.map((b, i) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => setBannerIndex(i)}
-              className={`h-1.5 rounded-full transition-all ${i === bannerIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"}`}
-              aria-label={`Banner ${i + 1}`}
-            />
-          ))}
-        </div>
-      </motion.div>
+      )}
 
       <PortalSection
         title="Top Categories"
@@ -153,12 +140,12 @@ export default function BuyerHomePage() {
               <Link
                 key={cat.id}
                 href={`/buyer/category/${cat.id}`}
-                className="flex min-w-[120px] shrink-0 snap-start flex-col items-center rounded-2xl border border-[#E8ECF0] bg-white p-3.5 text-center shadow-sm transition active:scale-[0.98] hover:border-[#1565C0]/30 hover:shadow-md sm:min-w-[140px] sm:p-4 md:min-w-0"
+                className="flex min-w-[120px] shrink-0 snap-start flex-col items-center rounded-xl border border-slate-200 bg-white p-3.5 text-center transition-shadow active:scale-[0.98] hover:cursor-pointer hover:border-slate-300 hover:shadow-sm sm:min-w-[140px] sm:p-4 md:min-w-0"
               >
-                <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-[#E8EFF9] sm:h-12 sm:w-12">
-                  <Icon className="h-5 w-5 text-[#1565C0] sm:h-6 sm:w-6" />
+                <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 sm:h-12 sm:w-12">
+                  <Icon className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
                 </div>
-                <p className="line-clamp-2 text-[11px] font-bold text-[#0D1B2A] sm:text-xs">{cat.name}</p>
+                <p className="line-clamp-2 text-xs font-medium text-slate-900 sm:text-sm">{cat.name}</p>
               </Link>
             );
           })}

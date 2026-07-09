@@ -27,13 +27,13 @@ export default function ProductWizardStepper({
   const safeMaxReached = Math.min(Math.max(0, maxReachedIndex), Math.max(0, steps.length - 1));
   const progressPct =
     steps.length > 1
-      ? Math.min(100, (safeActiveIndex / (steps.length - 1)) * 100)
-      : safeActiveIndex >= 0
+      ? Math.min(100, (safeMaxReached / (steps.length - 1)) * 100)
+      : safeMaxReached >= 0
         ? 100
         : 0;
   const percentComplete = Math.min(
     100,
-    Math.round(((safeActiveIndex + 1) / steps.length) * 100)
+    Math.round(((safeMaxReached + 1) / steps.length) * 100)
   );
   const current = steps[safeActiveIndex];
 
@@ -64,7 +64,7 @@ export default function ProductWizardStepper({
         <ol className="flex min-w-max items-start gap-0 sm:min-w-0 sm:justify-between">
           {steps.map((step, idx) => {
             const isActive = idx === safeActiveIndex;
-            const isCompleted = idx < safeMaxReached;
+            const isCompleted = idx <= safeMaxReached && !isActive;
             const isUpcoming = idx > safeMaxReached;
             const isLast = idx === steps.length - 1;
             const canClick = !isUpcoming;
@@ -127,7 +127,7 @@ export default function ProductWizardStepper({
                   >
                     <div
                       className={`h-full rounded-full transition-colors duration-300 ${
-                        idx < safeActiveIndex ? "bg-primary" : "bg-slate-200"
+                        idx < safeMaxReached ? "bg-primary" : "bg-slate-200"
                       }`}
                     />
                   </div>

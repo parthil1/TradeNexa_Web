@@ -5,12 +5,17 @@ export type ActiveRole = "buyer" | "seller";
 export const ACTIVE_ROLE_STORAGE_KEY = "tradenexa_active_role";
 
 export function isPortalPath(pathname: string): boolean {
-  return pathname.startsWith("/buyer") || pathname.startsWith("/seller");
+  return (
+    pathname === "/buyer" ||
+    pathname.startsWith("/buyer/") ||
+    pathname === "/seller" ||
+    pathname.startsWith("/seller/")
+  );
 }
 
 export function getPortalForPath(pathname: string): ActiveRole | null {
-  if (pathname.startsWith("/buyer")) return "buyer";
-  if (pathname.startsWith("/seller")) return "seller";
+  if (pathname === "/buyer" || pathname.startsWith("/buyer/")) return "buyer";
+  if (pathname === "/seller" || pathname.startsWith("/seller/")) return "seller";
   return null;
 }
 

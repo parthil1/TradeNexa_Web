@@ -32,6 +32,10 @@ export interface MediaUploadSectionProps {
   thumbnailError?: string;
   galleryError?: string;
   maxGalleryMedia?: number;
+  existingImageUrls?: string[];
+  existingVideoUrls?: string[];
+  onRemoveExistingImage?: (index: number) => void;
+  onRemoveExistingVideo?: (index: number) => void;
 }
 
 export default function MediaUploadSection({
@@ -55,11 +59,17 @@ export default function MediaUploadSection({
   thumbnailError,
   galleryError,
   maxGalleryMedia = DEFAULT_MAX_GALLERY_MEDIA,
+  existingImageUrls = [],
+  existingVideoUrls = [],
+  onRemoveExistingImage,
+  onRemoveExistingVideo,
 }: MediaUploadSectionProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const replaceImageIndexRef = useRef<number | null>(null);
 
-  const remaining = galleryMediaRoom(images, videos, maxGalleryMedia);
+  const existingGalleryCount = existingImageUrls.length + existingVideoUrls.length;
+  const remaining =
+    maxGalleryMedia - images.length - videos.length - existingGalleryCount;
   const canAddMore = remaining > 0;
 
   const previewItems = useMemo((): MediaPreviewItem[] => {
@@ -72,6 +82,15 @@ export default function MediaUploadSection({
         file: thumbnail,
       });
     }
+    existingImageUrls.forEach((url, index) => {
+      items.push({
+        kind: "image",
+        index,
+        url,
+        name: `Existing photo ${index + 1}`,
+        source: "existing",
+      });
+    });
     images.forEach((file, index) => {
       if (imageUrls[index]) {
         items.push({
@@ -80,8 +99,18 @@ export default function MediaUploadSection({
           url: imageUrls[index],
           name: file.name,
           file,
+          source: "new",
         });
       }
+    });
+    existingVideoUrls.forEach((url, index) => {
+      items.push({
+        kind: "video",
+        index,
+        url,
+        name: `Existing video ${index + 1}`,
+        source: "existing",
+      });
     });
     videos.forEach((file, index) => {
       if (videoUrls[index]) {
@@ -91,11 +120,12 @@ export default function MediaUploadSection({
           url: videoUrls[index],
           name: file.name,
           file,
+          source: "new",
         });
       }
     });
     return items;
-  }, [thumbnail, thumbnailPreview, images, imageUrls, videos, videoUrls]);
+  }, [thumbnail, thumbnailPreview, images, imageUrls, videos, videoUrls, existingImageUrls, existingVideoUrls]);
 
   const openPreview = useCallback(
     (item: MediaPreviewItem) => {
@@ -114,13 +144,19 @@ export default function MediaUploadSection({
       if (item.kind === "thumbnail") {
         onThumbnailRemove();
       } else if (item.kind === "image") {
-        onRemoveImage(item.index!);
+        if (item.source === "existing") {
+          onRemoveExistingImage?.(item.index!);
+        } else {
+          onRemoveImage(item.index!);
+        }
+      } else if (item.source === "existing") {
+        onRemoveExistingVideo?.(item.index!);
       } else {
         onRemoveVideo(item.index!);
       }
       setPreviewIndex(null);
     },
-    [onThumbnailRemove, onRemoveImage, onRemoveVideo]
+    [onThumbnailRemove, onRemoveImage, onRemoveVideo, onRemoveExistingImage, onRemoveExistingVideo]
   );
 
   const handleImageInputChange = useCallback(
@@ -165,6 +201,8 @@ export default function MediaUploadSection({
             onPreview={() => {
               if (thumbnail && thumbnailPreview) {
                 openPreview({ kind: "thumbnail", url: thumbnailPreview, name: thumbnail.name });
+              } else if (thumbnailPreview) {
+                openPreview({ kind: "thumbnail", url: thumbnailPreview, name: "Thumbnail" });
               }
             }}
             error={thumbnailError}
@@ -175,6 +213,8 @@ export default function MediaUploadSection({
             imageUrls={imageUrls}
             videos={videos}
             videoUrls={videoUrls}
+            existingImageUrls={existingImageUrls}
+            existingVideoUrls={existingVideoUrls}
             canAddMore={canAddMore}
             imageInputRef={imageInputRef}
             videoInputRef={videoInputRef}
@@ -182,10 +222,20 @@ export default function MediaUploadSection({
             onAddVideos={onAddVideos}
             onRemoveImage={onRemoveImage}
             onRemoveVideo={onRemoveVideo}
+            onRemoveExistingImage={onRemoveExistingImage}
+            onRemoveExistingVideo={onRemoveExistingVideo}
             onReorderImages={onReorderImages}
             onReplaceImage={(index) => {
               replaceImageIndexRef.current = index;
               imageInputRef.current?.click();
+            }}
+            onPreviewExistingImage={(index) => {
+              const url = existingImageUrls[index];
+              if (url) openPreview({ kind: "image", index, url, name: `Photo ${index + 1}` });
+            }}
+            onPreviewExistingVideo={(index) => {
+              const url = existingVideoUrls[index];
+              if (url) openPreview({ kind: "video", index, url, name: `Video ${index + 1}` });
             }}
             onPreviewImage={(index) => {
               const file = images[index];
@@ -203,8 +253,8 @@ export default function MediaUploadSection({
 
         <div className="mt-6">
           <MediaStatusBar
-            imageCount={images.length}
-            videoCount={videos.length}
+            imageCount={images.length + existingImageUrls.length}
+            videoCount={videos.length + existingVideoUrls.length}
             maxTotal={maxGalleryMedia}
             remaining={remaining}
           />

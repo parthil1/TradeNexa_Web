@@ -11,10 +11,11 @@ import type {
   CatalogListParams,
   PaginatedResult,
   ProductListParams,
+  MyProductListParams,
   RelatedProductsParams,
 } from "@/types/catalog";
 
-function buildParams(params?: CatalogListParams | ProductListParams) {
+function buildParams(params?: CatalogListParams | ProductListParams | MyProductListParams) {
   const query: Record<string, string | number | boolean> = {
     page: params?.page ?? 1,
     limit: params?.limit ?? 12,
@@ -32,6 +33,8 @@ function buildParams(params?: CatalogListParams | ProductListParams) {
   if (params && "is_trending" in params && params.is_trending !== undefined) {
     query.is_trending = params.is_trending;
   }
+  const brandId = (params as MyProductListParams | undefined)?.brand_id;
+  if (brandId) query.brand_id = brandId;
   return query;
 }
 
@@ -187,7 +190,26 @@ export async function fetchProducts(
     params: buildParams(params),
   });
   const data = unwrapApiPayload<unknown>(response.data);
-  return unwrapPaginatedResult<ApiProductListItem>(data);
+  const paginated = unwrapPaginatedResult<ApiProductListItem>(data);
+  return {
+    ...paginated,
+    results: paginated.results.map((item) => normalizeProductListItem(item)),
+  };
+}
+
+/** GET /api/v1/products/my — seller's own catalog (requires auth). */
+export async function fetchMyProducts(
+  params?: MyProductListParams
+): Promise<PaginatedResult<ApiProductListItem>> {
+  const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/my`, {
+    params: buildParams(params),
+  });
+  const data = unwrapApiPayload<unknown>(response.data);
+  const paginated = unwrapPaginatedResult<ApiProductListItem>(data);
+  return {
+    ...paginated,
+    results: paginated.results.map((item) => normalizeProductListItem(item)),
+  };
 }
 
 export async function fetchTrendingProducts(

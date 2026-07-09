@@ -59,9 +59,23 @@ export interface ApiProductListItem {
   subcategory_name?: string | null;
 }
 
+export interface ApiProductMediaItem {
+  id?: number;
+  url?: string | null;
+  image_url?: string | null;
+  file?: string | null;
+  path?: string | null;
+  video_url?: string | null;
+  video?: string | null;
+  thumbnail?: string | null;
+  is_primary?: boolean | null;
+}
+
 export interface ApiProductDetail {
   id: number;
   slug: string;
+  category_id?: number;
+  subcategory_id?: number;
   basic_details: {
     name: string;
     short_description: string | null;
@@ -70,23 +84,32 @@ export interface ApiProductDetail {
     category: { id: number; name: string } | null;
     subcategory: { id: number; name: string } | null;
     country_of_origin: string | null;
+    material?: string | null;
+    product_condition?: string | null;
   };
   pricing: {
     price: number;
+    currency?: string | null;
     price_type: string | null;
     minimum_order_quantity: number;
     unit: string;
     gst_percentage: number | null;
     gst_included: boolean | null;
     hsn_code: string | null;
+    show_price?: boolean | null;
+  };
+  inventory?: {
+    stock_status?: string | null;
+    stock_quantity?: number | null;
   };
   images: {
-    thumbnail: string | null;
-    gallery: string[];
+    thumbnail: string | ApiProductMediaItem | null;
+    gallery: Array<string | ApiProductMediaItem>;
   };
-  videos: string[];
+  videos: Array<string | ApiProductMediaItem>;
   seller: {
     id: number;
+    user_id?: number;
     company: {
       name: string;
       logo: string | null;
@@ -117,9 +140,11 @@ export interface ApiProductDetail {
   marketplace: {
     is_featured: boolean | null;
     is_trending: boolean | null;
-    is_recommended: boolean | null;
+    is_recommended?: boolean | null;
     is_related?: boolean | null;
     share_url: string | null;
+    accept_inquiry?: boolean | null;
+    is_active?: boolean | null;
   };
   user_actions?: {
     is_favourite: boolean | null;
@@ -135,6 +160,19 @@ export interface ApiProductDetail {
   reviews?: unknown;
   created_at: string;
   updated_at: string;
+  warranty?: string | null;
+  search_tags?: string | string[] | null;
+  specifications?: Record<string, string> | string | null;
+  /** @deprecated Legacy flat fields — prefer nested API shapes above */
+  material?: string | null;
+  product_condition?: string | null;
+  stock_status?: string | null;
+  show_price?: boolean | null;
+  accept_inquiry?: boolean | null;
+  is_active?: boolean | null;
+  currency?: string | null;
+  stock_quantity?: number | null;
+  rating?: number | null;
 }
 
 export interface CatalogListParams {
@@ -150,6 +188,11 @@ export interface ProductListParams extends CatalogListParams {
   category_id?: number;
   subcategory_id?: number;
   is_trending?: boolean;
+}
+
+/** GET /api/v1/products/my — authenticated seller's own listings */
+export interface MyProductListParams extends ProductListParams {
+  brand_id?: number;
 }
 
 export interface RelatedProductsParams extends CatalogListParams {

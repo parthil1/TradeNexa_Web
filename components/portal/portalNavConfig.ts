@@ -48,7 +48,11 @@ export const sellerNavItems: PortalNavItem[] = [
     label: "Catalog",
     href: "/seller/catalog",
     icon: Package,
-    match: (p) => p.startsWith("/seller/catalog") || p.startsWith("/seller/add-product"),
+    match: (p) =>
+      p.startsWith("/seller/catalog") ||
+      p.startsWith("/seller/add-product") ||
+      p.startsWith("/seller/edit-product") ||
+      p.startsWith("/seller/product"),
   },
   {
     label: "Leads",

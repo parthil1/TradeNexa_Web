@@ -1,5 +1,7 @@
 import type { User, UserRole } from "@/types/auth";
+import type { CompleteProfileFormData } from "@/types/auth";
 import { parseUserRole } from "@/utils/roleHelpers";
+import { resolveImageUrl } from "@/utils/catalogHelpers";
 
 export { userRoleToRoleId, ensureRolesLoaded, parseUserRole } from "@/utils/roleHelpers";
 
@@ -44,6 +46,15 @@ export interface ApiUserProfile {
   city?: string | null;
   seller_id?: number | null;
   seller?: { id?: number | null } | null;
+  industry?: string | null;
+  gst_number?: string | null;
+  pan_number?: string | null;
+  cin_number?: string | null;
+  iec_number?: string | null;
+  business_description?: string | null;
+  profile_image?: string | null;
+  company_logo?: string | null;
+  company_banner?: string | null;
 }
 
 function profileCanSell(profile: ApiUserProfile): boolean {
@@ -115,6 +126,32 @@ export function mapApiProfileToUser(profile: ApiUserProfile): User {
     role: parseUserRole(profile.role, profile.role_id),
     phone: extractPhoneFromMobile(mobile),
     country_code: extractCountryCode(mobile),
+  };
+}
+
+export function mapProfileToCompleteProfileForm(profile: ApiUserProfile): CompleteProfileFormData {
+  const addressObj =
+    profile.address && typeof profile.address === "object" ? profile.address : null;
+
+  return {
+    companyName: String(profile.company_name ?? ""),
+    industry: String(profile.industry ?? ""),
+    gstNumber: String(profile.gst_number ?? ""),
+    address: String(
+      addressObj?.address_line_1 ??
+        (typeof profile.address === "string" ? profile.address : "")
+    ),
+    country: String(addressObj?.country ?? "India"),
+    panNumber: String(profile.pan_number ?? ""),
+    cinNumber: String(profile.cin_number ?? ""),
+    iecNumber: String(profile.iec_number ?? ""),
+    businessDescription: String(profile.business_description ?? ""),
+    profileImageFile: null,
+    companyLogoFile: null,
+    companyBannerFile: null,
+    profileImageUrl: resolveImageUrl(profile.profile_image) ?? "",
+    companyLogoUrl: resolveImageUrl(profile.company_logo) ?? "",
+    companyBannerUrl: resolveImageUrl(profile.company_banner) ?? "",
   };
 }
 

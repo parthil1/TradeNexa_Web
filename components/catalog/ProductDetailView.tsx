@@ -151,16 +151,24 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
   const { basic_details: basic, pricing, seller, marketplace, ratings } = product;
   const theme = getMarketplaceTheme(product.id);
 
-  const gallery = useMemo(
-    () =>
-      [
-        ...(product.images.thumbnail ? [product.images.thumbnail] : []),
-        ...(product.images.gallery ?? []),
-      ]
-        .filter((url, i, arr) => arr.indexOf(url) === i)
-        .map((url) => resolveImageUrl(url) ?? url),
-    [product.images]
-  );
+  const gallery = useMemo(() => {
+    const rawUrls = [
+      ...(product.images.thumbnail ? [product.images.thumbnail] : []),
+      ...(product.images.gallery ?? []),
+    ];
+    const seen = new Set<string>();
+    const urls: string[] = [];
+
+    for (const entry of rawUrls) {
+      const resolved = resolveImageUrl(entry);
+      if (resolved && !seen.has(resolved)) {
+        seen.add(resolved);
+        urls.push(resolved);
+      }
+    }
+
+    return urls;
+  }, [product.images]);
 
   const [activeImage, setActiveImage] = useState<string | null>(gallery[0] ?? null);
   const [descExpanded, setDescExpanded] = useState(false);

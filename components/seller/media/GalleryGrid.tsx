@@ -240,6 +240,96 @@ function UploadTile({ variant, disabled, onClick, onDrop }: UploadTileProps) {
   );
 }
 
+function ExistingUrlImageCard({
+  url,
+  index,
+  onRemove,
+  onPreview,
+}: {
+  url: string;
+  index: number;
+  onRemove?: () => void;
+  onPreview: () => void;
+}) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="group absolute inset-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md"
+    >
+      <button
+        type="button"
+        onClick={onPreview}
+        className="absolute inset-0 z-0 h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        aria-label={`Preview existing image ${index + 1}`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="" className="h-full w-full object-cover" />
+      </button>
+      {onRemove ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md transition hover:text-red-600"
+          aria-label={`Remove existing image ${index + 1}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </motion.div>
+  );
+}
+
+function ExistingUrlVideoCard({
+  url,
+  index,
+  onRemove,
+  onPreview,
+}: {
+  url: string;
+  index: number;
+  onRemove?: () => void;
+  onPreview: () => void;
+}) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="group absolute inset-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-sm hover:shadow-md"
+    >
+      <video src={url} className="h-full w-full object-cover opacity-90" muted playsInline />
+      <button
+        type="button"
+        onClick={onPreview}
+        className="absolute inset-0 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        aria-label={`Preview existing video ${index + 1}`}
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+          <Film className="h-4 w-4 text-white" />
+        </div>
+      </button>
+      {onRemove ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md transition hover:text-red-600"
+          aria-label={`Remove existing video ${index + 1}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </motion.div>
+  );
+}
+
 export interface GalleryGridProps {
   images: File[];
   imageUrls: string[];
@@ -257,6 +347,12 @@ export interface GalleryGridProps {
   onPreviewImage: (index: number) => void;
   onPreviewVideo: (index: number) => void;
   galleryError?: string;
+  existingImageUrls?: string[];
+  existingVideoUrls?: string[];
+  onRemoveExistingImage?: (index: number) => void;
+  onRemoveExistingVideo?: (index: number) => void;
+  onPreviewExistingImage?: (index: number) => void;
+  onPreviewExistingVideo?: (index: number) => void;
 }
 
 export default function GalleryGrid({
@@ -276,10 +372,20 @@ export default function GalleryGrid({
   onPreviewImage,
   onPreviewVideo,
   galleryError,
+  existingImageUrls = [],
+  existingVideoUrls = [],
+  onRemoveExistingImage,
+  onRemoveExistingVideo,
+  onPreviewExistingImage,
+  onPreviewExistingVideo,
 }: GalleryGridProps) {
   const openImagePicker = () => imageInputRef.current?.click();
   const openVideoPicker = () => videoInputRef.current?.click();
-  const hasMedia = images.length > 0 || videos.length > 0;
+  const hasMedia =
+    images.length > 0 ||
+    videos.length > 0 ||
+    existingImageUrls.length > 0 ||
+    existingVideoUrls.length > 0;
 
   const imageItems = useMemo<ImageItem[]>(
     () => images.map((file) => ({ id: imageItemId(file), file })),
@@ -332,6 +438,26 @@ export default function GalleryGrid({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {!hasMedia ? uploadTiles : null}
+        {existingImageUrls.map((url, index) => (
+          <div key={`existing-image-${url}-${index}`} className={GRID_CELL}>
+            <ExistingUrlImageCard
+              url={url}
+              index={index}
+              onRemove={onRemoveExistingImage ? () => onRemoveExistingImage(index) : undefined}
+              onPreview={() => onPreviewExistingImage?.(index)}
+            />
+          </div>
+        ))}
+        {existingVideoUrls.map((url, index) => (
+          <div key={`existing-video-${url}-${index}`} className={GRID_CELL}>
+            <ExistingUrlVideoCard
+              url={url}
+              index={index}
+              onRemove={onRemoveExistingVideo ? () => onRemoveExistingVideo(index) : undefined}
+              onPreview={() => onPreviewExistingVideo?.(index)}
+            />
+          </div>
+        ))}
         <Reorder.Group
           axis="y"
           values={imageItems}

@@ -16,12 +16,10 @@ interface PortalTopBarProps {
   onMenuClick?: () => void;
 }
 
-export default function PortalTopBar({ title, subtitle, accent = "buyer", onMenuClick }: PortalTopBarProps) {
+export default function PortalTopBar({ title: _title, subtitle: _subtitle, accent: _accent = "buyer", onMenuClick }: PortalTopBarProps) {
   const router = useRouter();
-  const { user, logoutUser } = useAuth();
+  const { logoutUser } = useAuth();
   const { canSwitchRole, activeRole, setActiveRole } = useActiveRole();
-
-  const accentColor = accent === "seller" ? "text-portal-seller" : "text-portal-buyer";
 
   function switchRole() {
     const next = activeRole === "buyer" ? "seller" : "buyer";
@@ -31,7 +29,7 @@ export default function PortalTopBar({ title, subtitle, accent = "buyer", onMenu
 
   return (
     <header className="sticky top-0 z-40 shrink-0 border-b border-portal-border bg-white/90 backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6 lg:h-16">
+      <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -41,19 +39,7 @@ export default function PortalTopBar({ title, subtitle, accent = "buyer", onMenu
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="lg:hidden">
-            <Logo size="sm" href={activeRole === "seller" ? "/seller/dashboard" : "/buyer/home"} />
-          </div>
-          <div className="min-w-0">
-            <h1 className={`truncate text-base font-semibold tracking-tight sm:text-lg ${accentColor}`}>
-              {title}
-            </h1>
-            {subtitle ? (
-              <p className="truncate text-xs text-portal-muted">{subtitle}</p>
-            ) : user?.company ? (
-              <p className="truncate text-xs text-portal-muted">{user.company}</p>
-            ) : null}
-          </div>
+          <Logo size="nav" href={activeRole === "seller" ? "/seller/dashboard" : "/buyer/home"} />
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">

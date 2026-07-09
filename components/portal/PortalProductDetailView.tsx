@@ -14,7 +14,7 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Package,
+  Pencil,
   Phone,
   Play,
   Share2,
@@ -31,6 +31,7 @@ import {
   formatRating,
   getInitials,
   getVideoThumbnailUrl,
+  productGradient,
   resolveImageUrl,
   resolveProductVideos,
   type GalleryMediaItem,
@@ -50,6 +51,7 @@ import {
 import PortalProductCard from "@/components/portal/PortalProductCard";
 import PortalSection from "@/components/portal/PortalSection";
 import PortalStatCard from "@/components/portal/PortalStatCard";
+import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import { useWishlist } from "@/hooks/useWishlist";
 import { showErrorToast } from "@/utils/toast";
 import {
@@ -96,6 +98,7 @@ function IconAction({
 
 function ProductGallery({
   name,
+  productId,
   media,
   activeId,
   onSelect,
@@ -103,6 +106,7 @@ function ProductGallery({
   compact = false,
 }: {
   name: string;
+  productId?: number;
   media: GalleryMediaItem[];
   activeId: string | null;
   onSelect: (id: string) => void;
@@ -111,6 +115,7 @@ function ProductGallery({
 }) {
   const active = media.find((item) => item.id === activeId) ?? media[0] ?? null;
   const displayName = name || "Product";
+  const gradient = productGradient(productId ?? 0);
 
   function renderVideoPlayer(video: ResolvedProductVideo, className: string) {
     if (video.type === "file") {
@@ -161,7 +166,7 @@ function ProductGallery({
 
   return (
     <div className={`${cardClass} ${compact ? "p-3" : "p-4 lg:p-5"}`}>
-      <div className={`relative overflow-hidden rounded-xl bg-[#F4F6F9] ${compact ? "aspect-[5/4]" : "aspect-square"}`}>
+      <div className={`relative overflow-hidden rounded-xl ${compact ? "aspect-[5/4]" : "aspect-square"}`}>
         {active?.kind === "video" ? (
           <div className="absolute inset-0 bg-black">
             {renderVideoPlayer(active.video, "h-full w-full object-contain")}
@@ -176,12 +181,12 @@ function ProductGallery({
             priority
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-[#B0BEC5]">
-            <Package className={`opacity-40 ${compact ? "h-12 w-12" : "h-16 w-16"}`} strokeWidth={1.25} />
-            <span className={`font-black opacity-30 ${compact ? "text-2xl" : "text-3xl"}`}>
-              {getInitials(displayName)}
-            </span>
-            <span className="text-xs font-medium text-[#90A4AE]">No image available</span>
+          <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`}>
+            <div className="flex h-full items-center justify-center">
+              <span className={`font-black text-white/25 ${compact ? "text-3xl" : "text-5xl"}`}>
+                {getInitials(displayName)}
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -491,6 +496,21 @@ export default function PortalProductDetailView({
         </div>
 
         <div className="flex items-center gap-2">
+          {links.editProduct ? (
+            <Link
+              href={links.editProduct(product.id)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 transition hover:border-blue-500 hover:text-blue-600"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Link>
+          ) : null}
+          {links.editProduct ? (
+            <DeleteProductButton
+              productId={product.id}
+              productName={basic.name ?? "this product"}
+            />
+          ) : null}
           <IconAction onClick={() => void handleShare()} label="Share">
             <Share2 className="h-4 w-4" />
           </IconAction>
@@ -510,6 +530,7 @@ export default function PortalProductDetailView({
           <div className="lg:sticky lg:top-4">
             <ProductGallery
               name={basic.name ?? ""}
+              productId={product.id}
               media={galleryMedia}
               activeId={activeMedia?.id ?? null}
               onSelect={setActiveMediaId}

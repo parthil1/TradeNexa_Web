@@ -1,29 +1,54 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import Link from "next/link";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import PortalProductCard from "@/components/portal/PortalProductCard";
+import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
-import { fetchProducts } from "@/services/catalogService";
+import PortalSearchBar from "@/components/portal/PortalSearchBar";
+import { fetchMyProducts } from "@/services/catalogService";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
+import { sellerCatalogProductLinks } from "@/utils/productDetailLinks";
 
 export default function SellerCatalogPage() {
+  const links = sellerCatalogProductLinks();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 400);
+
   const fetchPage = useCallback(
     (page: number) =>
-      fetchProducts({
+      fetchMyProducts({
         page,
         limit: 12,
+        search: debouncedSearch || undefined,
         sort_by: "created_at",
         sort_order: "desc",
       }),
-    []
+    [debouncedSearch]
   );
 
-  const { items: products, loading, loadingMore, hasMore, loadMore } = useLoadMoreList({
+  const {
+    items: products,
+    pagination,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loadMore,
+    setItems,
+  } = useLoadMoreList({
     fetchPage,
+    resetDeps: [debouncedSearch],
   });
+
+  function handleProductDeleted(productId: number) {
+    setItems((prev) => prev.filter((item) => item.id !== productId));
+  }
+
+  const hasSearch = debouncedSearch.trim().length > 0;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -31,22 +56,83 @@ export default function SellerCatalogPage() {
         title="My Catalog"
         subtitle="Manage your product listings"
         action={
-          <Link href="/seller/add-product" className="inline-flex items-center gap-1.5 rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white">
+          <Link
+            href="/seller/add-product"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+          >
             <Plus className="h-4 w-4" />
             Add Product
           </Link>
         }
       />
+
+      <div className="mb-6">
+        <PortalSearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search your products by name..."
+        />
+        {!loading && hasSearch ? (
+          <p className="mt-2 text-xs text-[#546E7A]">
+            {pagination.total === 0
+              ? "No matches"
+              : `${pagination.total} product${pagination.total === 1 ? "" : "s"} found`}
+          </p>
+        ) : null}
+      </div>
+
+      {error ? (
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </p>
+      ) : null}
+
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
           <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
-          Loading catalog...
+          {hasSearch ? "Searching..." : "Loading catalog..."}
         </div>
+      ) : products.length === 0 ? (
+        <PortalEmptyState
+          icon={Search}
+          title={hasSearch ? "No products found" : "No products yet"}
+          description={
+            hasSearch
+              ? "Try a different search term or clear the search to see all listings."
+              : "Add your first product to start receiving buyer inquiries."
+          }
+          action={
+            hasSearch ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="rounded-xl border border-[#E0E6ED] bg-white px-4 py-2 text-sm font-semibold text-[#546E7A] transition hover:border-[#1565C0] hover:text-[#1565C0]"
+              >
+                Clear search
+              </button>
+            ) : (
+              <Link
+                href="/seller/add-product"
+                className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+              >
+                Add Product
+              </Link>
+            )
+          }
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
-              <PortalProductCard key={p.id} product={p} href={`/buyer/product/${p.id}?from=seller-catalog`} />
+              <PortalProductCard
+                key={p.id}
+                product={p}
+                href={links.product(p.id)}
+                editHref={links.editProduct?.(p.id)}
+                showDelete
+                showWishlist={false}
+                onDeleted={() => handleProductDeleted(p.id)}
+              />
             ))}
           </div>
           <PortalInfiniteScroll

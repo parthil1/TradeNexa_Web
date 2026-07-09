@@ -101,10 +101,6 @@ export default function About() {
           </>
         }
         subtitle="We build marketplace tools that let sellers, buyers, and dual-role businesses connect instantly, transparently, and nationwide."
-        stats={[
-          { label: "Verified Sellers", value: "5,000+" },
-          { label: "Products Listed", value: "10,000+" },
-        ]}
         centered={false}
       />
 
@@ -185,42 +181,110 @@ export default function About() {
         </div>
       </section>
 
-      <section className="border-y border-slate-100 bg-slate-50 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="border-y border-slate-200 bg-slate-50 py-16">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Ethos"
             title="Our Values"
             subtitle="The fundamental standards guiding our development, platform policies, and support systems."
           />
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {values.map((v, i) => {
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-xl border border-slate-200 bg-white p-8 transition-shadow hover:border-slate-300 hover:shadow-sm lg:row-span-2"
+            >
+              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                <Shield className="h-5 w-5" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold text-slate-900">{values[0].title}</h3>
+              <p className="text-sm leading-relaxed text-slate-600">{values[0].desc}</p>
+            </motion.div>
+
+            {values.slice(1, 3).map((v, i) => {
               const Icon = v.icon;
               return (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md"
+                <motion.div
+                  key={v.title}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
                 >
-                  <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mb-2 text-base font-bold text-[#1a2b4c]">{v.title}</h3>
-                  <p className="text-xs leading-relaxed text-slate-500">{v.desc}</p>
-                </div>
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">{v.title}</h3>
+                  <p className="text-xs leading-relaxed text-slate-600">{v.desc}</p>
+                </motion.div>
               );
             })}
+          </div>
+
+          <div className="mt-4">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
+            >
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                <Heart className="h-5 w-5" />
+              </div>
+              <h3 className="mb-2 text-sm font-semibold text-slate-900">{values[3].title}</h3>
+              <p className="text-xs leading-relaxed text-slate-600">{values[3].desc}</p>
+            </motion.div>
           </div>
         </div>
       </section>
 
       <section className="bg-white py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className={MARKETPLACE_CONTAINER}>
           <SectionHeading
             badge="Ecosystem"
             title="Built For Every Business"
             subtitle="Whether you sell, buy, or do both — TradeNexa adapts to how your business actually operates."
           />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {roleCards.map((card, i) => {
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(() => {
+              const card = roleCards[0];
+              const Icon = card.icon;
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="group flex flex-col rounded-xl border border-slate-200 bg-white p-8 transition-shadow hover:border-slate-300 hover:shadow-sm lg:row-span-2"
+                >
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">{card.title}</h3>
+                  <p className="mb-5 text-sm leading-relaxed text-slate-600">{card.description}</p>
+                  <ul className="mb-6 flex-1 space-y-2">
+                    {card.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-xs text-slate-600">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  {!isAuthenticated && (
+                    <button
+                      onClick={() => openRegisterModal(card.role)}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                    >
+                      {card.cta}
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </button>
+                  )}
+                </motion.div>
+              );
+            })()}
+
+            {roleCards.slice(1).map((card, i) => {
               const Icon = card.icon;
               return (
                 <motion.div
@@ -229,43 +293,41 @@ export default function About() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="group flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg"
+                  className="group flex flex-col rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:border-slate-300 hover:shadow-sm"
                 >
-                  <div
-                    className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white shadow-md"
-                  >
-                    <Icon className="h-6 w-6" />
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mb-2 text-xl font-bold text-[#1a2b4c]">{card.title}</h3>
-                  <p className="mb-5 text-sm leading-relaxed text-slate-500">{card.description}</p>
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">{card.title}</h3>
+                  <p className="mb-5 text-sm leading-relaxed text-slate-600">{card.description}</p>
                   <ul className="mb-6 flex-1 space-y-2">
                     {card.features.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-xs text-slate-600">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
                         {feature}
                       </li>
                     ))}
                   </ul>
                   {!isAuthenticated && (
-                  <button
-                    onClick={() => openRegisterModal(card.role)}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary-hover"
-                  >
-                    {card.cta}
-                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                  </button>
+                    <button
+                      onClick={() => openRegisterModal(card.role)}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                    >
+                      {card.cta}
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </button>
                   )}
                 </motion.div>
               );
             })}
           </div>
-          <div className="mt-10 text-center">
+          <div className="mt-8 text-center">
             <Link
               href="/how-it-works"
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:shadow-sm"
             >
               See how each role works
-              <ArrowRight className="h-4 w-4 text-primary" />
+              <ArrowRight className="h-4 w-4 text-blue-500" />
             </Link>
           </div>
         </div>

@@ -1,8 +1,21 @@
 import type { CreateProductFormData } from "@/types/product";
 
-function appendIfPresent(formData: FormData, key: string, value?: string | null) {
-  if (value?.trim()) {
-    formData.append(key, value.trim());
+/** Coerce API / input values to strings before trim/append (avoids number/array runtime errors). */
+export function toFormString(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => toFormString(item)).filter(Boolean).join(", ");
+  }
+  return String(value);
+}
+
+function appendIfPresent(formData: FormData, key: string, value?: unknown) {
+  const normalized = toFormString(value).trim();
+  if (normalized) {
+    formData.append(key, normalized);
   }
 }
 
@@ -19,30 +32,36 @@ function appendBoolean(formData: FormData, key: string, value: boolean) {
 function buildSpecificationsObject(rows: CreateProductFormData["specifications"]): Record<string, string> {
   const specs: Record<string, string> = {};
   for (const row of rows) {
-    const key = row.key.trim();
-    const value = row.value.trim();
+    const key = toFormString(row.key).trim();
+    const value = toFormString(row.value).trim();
     if (key && value) specs[key] = value;
   }
   return specs;
 }
 
-/** Matches POST /api/v1/products multipart form (Postman). */
-export function buildProductFormData(data: CreateProductFormData): FormData {
+/** Matches POST/PUT /api/v1/products multipart form (Postman). */
+export function buildProductFormData(
+  data: CreateProductFormData,
+  options?: { isUpdate?: boolean }
+): FormData {
   const formData = new FormData();
+  const isUpdate = options?.isUpdate ?? false;
 
-  // Required
-  appendFile(formData, "thumbnail", data.thumbnail);
-  formData.append("name", data.name.trim());
+  // Thumbnail — required on create; on update only when user uploads a new file
+  if (!isUpdate || data.thumbnail) {
+    appendFile(formData, "thumbnail", data.thumbnail);
+  }
+  formData.append("name", toFormString(data.name).trim());
   formData.append("category_id", String(data.categoryId));
   formData.append("subcategory_id", String(data.subcategoryId));
   formData.append("brand_id", String(data.brandId));
-  formData.append("short_description", data.shortDescription.trim());
-  formData.append("price", data.price.trim());
-  formData.append("currency", data.currency.trim());
-  formData.append("moq", data.moq.trim());
-  formData.append("unit", data.unit.trim());
-  formData.append("material", data.material.trim());
-  formData.append("country_of_origin", data.countryOfOrigin.trim());
+  formData.append("short_description", toFormString(data.shortDescription).trim());
+  formData.append("price", toFormString(data.price).trim());
+  formData.append("currency", toFormString(data.currency).trim());
+  formData.append("moq", toFormString(data.moq).trim());
+  formData.append("unit", toFormString(data.unit).trim());
+  formData.append("material", toFormString(data.material).trim());
+  formData.append("country_of_origin", toFormString(data.countryOfOrigin).trim());
   formData.append("product_condition", data.productCondition);
   formData.append("stock_status", data.stockStatus);
   appendBoolean(formData, "show_price", data.showPrice);
