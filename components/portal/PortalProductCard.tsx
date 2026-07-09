@@ -3,11 +3,13 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { MapPin, Pencil, Star } from "lucide-react";
 import type { ApiProductListItem } from "@/types/catalog";
 import { formatLocation, formatPrice, getInitials, productGradient, resolveImageUrl } from "@/utils/catalogHelpers";
 import { productHasWishlistField } from "@/utils/wishlistHelpers";
+import { isPortalPath } from "@/utils/roleNavigation";
 import PortalWishlistButton from "@/components/portal/PortalWishlistButton";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -33,12 +35,19 @@ export default function PortalProductCard({
   showWishlist,
   onWishlistToggle,
 }: PortalProductCardProps) {
+  const pathname = usePathname() ?? "";
+  const onPortal = isPortalPath(pathname);
   const { isWishlisted, toggleWishlist } = useWishlist();
   const link = href ?? `/buyer/product/${product.id}`;
   const gradient = productGradient(product.id);
   const badgeLabel = subcategoryLabel || product.subcategory_name;
-  const showWishlistIcon =
-    showWishlist === false ? false : showWishlist === true ? true : productHasWishlistField(product);
+  const showWishlistIcon = onPortal
+    ? showWishlist === false
+      ? false
+      : showWishlist === true
+        ? true
+        : productHasWishlistField(product)
+    : false;
   const wishlisted = isWishlisted(product.id, product.is_wishlist === true);
 
   return (
