@@ -128,8 +128,7 @@ export function normalizeQuotation(raw: unknown): ApiQuotation | null {
     rfq_id: pickNumber(item.rfq_id),
     rfq_status:
       pickString(item.rfq_status) ??
-      pickString(readRecord(item.rfq)?.status) ??
-      pickString(item.rfq?.status),
+      pickString(readRecord(item.rfq)?.status),
     status: pickString(item.status) as QuotationStatus | null,
     price: pickNumber(item.price),
     quantity: pickNumber(item.quantity),
