@@ -597,6 +597,10 @@ export function isQuotationInactiveForBuyer(status?: string | null): boolean {
   return !isQuotationActionableForBuyer(status);
 }
 
+export function isQuotationAccepted(status?: string | null): boolean {
+  return (status ?? "").toUpperCase().includes("ACCEPT");
+}
+
 export function getQuotationStatusHint(status?: string | null): string | null {
   const value = (status ?? "").toUpperCase();
   if (value.includes("WITHDRAW")) {

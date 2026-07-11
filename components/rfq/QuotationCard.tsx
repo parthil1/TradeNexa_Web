@@ -13,6 +13,7 @@ import {
   getBuyerRevisionRemarks,
   getQuotationStatusHint,
   getSellerRevisionStatusHint,
+  isQuotationAccepted,
   isQuotationInactiveForBuyer,
   isQuotationRevisionPending,
 } from "@/utils/rfqHelpers";
@@ -58,7 +59,9 @@ export default function QuotationCard({
     onChatClick ? chatRfqId ?? quotation.rfq_id : null,
     matchSellerId
   );
-  const inactive = emphasizeStatus && isQuotationInactiveForBuyer(quotation.status);
+  const accepted = emphasizeStatus && isQuotationAccepted(quotation.status);
+  const inactive =
+    emphasizeStatus && isQuotationInactiveForBuyer(quotation.status) && !accepted;
   const statusHint = emphasizeStatus ? getQuotationStatusHint(quotation.status) : null;
   const sellerRevisionHint = !showSellerInfo ? getSellerRevisionStatusHint(quotation, rfqStatus) : null;
   const buyerRevisionRemarks = !showSellerInfo ? getBuyerRevisionRemarks(quotation, rfqStatus) : null;
