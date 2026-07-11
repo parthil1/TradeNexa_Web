@@ -10,9 +10,11 @@ import {
 import type { ResolvedGeoLocation } from "@/types/location";
 import {
   type GeoPermissionStatus,
+  clearGeoLastError,
   isGeoCacheFresh,
   readGeoLastLocation,
   readGeoPermissionStatus,
+  writeGeoLastError,
   writeGeoLastLocation,
   writeGeoPermissionStatus,
 } from "@/utils/geoLocationStorage";
@@ -31,6 +33,7 @@ interface GeoLocationContextValue {
 const GeoLocationContext = createContext<GeoLocationContextValue | undefined>(undefined);
 
 function persistResolved(resolved: ResolvedGeoLocation) {
+  clearGeoLastError();
   writeGeoPermissionStatus("granted");
   writeGeoLastLocation({
     state_id: resolved.state_id,
@@ -75,6 +78,7 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
 
   const markNativeDenied = useCallback(() => {
     writeGeoPermissionStatus("denied");
+    writeGeoLastError("Browser location permission denied");
     setPermissionStatus("denied");
   }, []);
 
@@ -82,12 +86,7 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
     const seq = ++locateSeq.current;
     setLocating(true);
     try {
-      const resolved = await resolveGeoLocationFromBrowser({
-        enableHighAccuracy: false,
-        timeout: 30000,
-        maximumAge: 5 * 60_000,
-      });
-      // Always persist to localStorage (even if this effect was cleaned up).
+      const resolved = await resolveGeoLocationFromBrowser();
       persistResolved(resolved);
       if (seq === locateSeq.current) {
         applyResolved(resolved);
@@ -104,6 +103,9 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
     try {
       await refreshFromBrowser();
     } catch (error) {
+      const message =
+        error instanceof Error ? `${(error as GeoPositionError).code ?? "ERROR"}: ${error.message}` : "Locate failed";
+      writeGeoLastError(message);
       if (error instanceof GeoPositionError && error.code === "PERMISSION_DENIED") {
         markNativeDenied();
       }
@@ -113,13 +115,17 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     let cancelled = false;
     let permissionStatusObj: PermissionStatus | null = null;
-    const effectSeq = ++locateSeq.current;
 
     async function runLocate() {
       try {
         await refreshFromBrowser();
       } catch (error) {
         if (cancelled) return;
+        const message =
+          error instanceof Error
+            ? `${(error as GeoPositionError).code ?? "ERROR"}: ${error.message}`
+            : "Locate failed";
+        writeGeoLastError(message);
         if (error instanceof GeoPositionError && error.code === "PERMISSION_DENIED") {
           markNativeDenied();
         }
@@ -129,6 +135,7 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
     async function bootstrap() {
       if (!isGeolocationSupported()) {
         writeGeoPermissionStatus("denied");
+        writeGeoLastError("Geolocation unsupported");
         if (!cancelled) {
           setPermissionStatus("denied");
           setReady(true);
@@ -146,17 +153,18 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
 
       if (browserPermission === "denied") {
         writeGeoPermissionStatus("denied");
+        writeGeoLastError("Browser location permission denied");
         setPermissionStatus("denied");
         setReady(true);
         return;
       }
 
-      // Prove bootstrap ran + browser allows location.
+      // Browser already allowed → status must be "granted" (not "unset").
       if (browserPermission === "granted") {
-        writeGeoPermissionStatus(cached ? "granted" : "unset");
-        if (!cancelled) setPermissionStatus(cached ? "granted" : "unset");
+        writeGeoPermissionStatus("granted");
+        if (!cancelled) setPermissionStatus("granted");
       } else {
-        // prompt / unsupported — keep trying getCurrentPosition (shows native prompt if needed)
+        // prompt / unsupported — only clear a stale denied so we can ask again.
         if (readGeoPermissionStatus() === "denied" && !cached) {
           writeGeoPermissionStatus("unset");
         }
@@ -165,7 +173,6 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
 
       if (!cancelled) setReady(true);
 
-      // Always attempt locate when we don't already have a fresh cache.
       if (!cached || !isGeoCacheFresh(cached) || browserPermission === "granted") {
         await runLocate();
       }
@@ -180,6 +187,8 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
         permissionStatusObj.onchange = () => {
           if (cancelled) return;
           if (permissionStatusObj?.state === "granted") {
+            writeGeoPermissionStatus("granted");
+            setPermissionStatus("granted");
             void runLocate();
           } else if (permissionStatusObj?.state === "denied") {
             markNativeDenied();
@@ -192,15 +201,10 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
 
     return () => {
       cancelled = true;
-      // Invalidate in-flight UI updates, but LS writes from persistResolved still stick.
-      if (locateSeq.current === effectSeq) {
-        locateSeq.current += 1;
-      }
       if (permissionStatusObj) permissionStatusObj.onchange = null;
     };
   }, [applyCache, markNativeDenied, refreshFromBrowser]);
 
-  // Re-hydrate from localStorage when cache appears (e.g. after Strict Mode remount).
   useEffect(() => {
     if (stateId != null && cityId != null) return;
     const cached = readGeoLastLocation();

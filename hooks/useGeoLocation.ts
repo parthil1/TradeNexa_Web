@@ -38,6 +38,19 @@ export async function queryBrowserGeolocationPermission(): Promise<
   }
 }
 
+function mapGeoError(error: GeolocationPositionError): GeoPositionError {
+  if (error.code === error.PERMISSION_DENIED) {
+    return new GeoPositionError("PERMISSION_DENIED", error.message || "Permission denied");
+  }
+  if (error.code === error.POSITION_UNAVAILABLE) {
+    return new GeoPositionError("POSITION_UNAVAILABLE", error.message || "Position unavailable");
+  }
+  if (error.code === error.TIMEOUT) {
+    return new GeoPositionError("TIMEOUT", error.message || "Location timeout");
+  }
+  return new GeoPositionError("UNKNOWN", error.message || "Unknown geolocation error");
+}
+
 export function getCurrentPosition(options?: PositionOptions): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!isGeolocationSupported()) {
@@ -47,37 +60,83 @@ export function getCurrentPosition(options?: PositionOptions): Promise<Geolocati
 
     navigator.geolocation.getCurrentPosition(
       resolve,
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          reject(new GeoPositionError("PERMISSION_DENIED", error.message));
-          return;
-        }
-        if (error.code === error.POSITION_UNAVAILABLE) {
-          reject(new GeoPositionError("POSITION_UNAVAILABLE", error.message));
-          return;
-        }
-        if (error.code === error.TIMEOUT) {
-          reject(new GeoPositionError("TIMEOUT", error.message));
-          return;
-        }
-        reject(new GeoPositionError("UNKNOWN", error.message));
-      },
+      (error) => reject(mapGeoError(error)),
       {
-        // Desktop Windows is unreliable with high accuracy + zero cache.
         enableHighAccuracy: false,
-        timeout: 30000,
-        maximumAge: 5 * 60_000,
+        timeout: 20000,
+        maximumAge: 10 * 60_000,
         ...options,
       }
     );
   });
 }
 
+function getPositionViaWatch(timeoutMs: number): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (!isGeolocationSupported()) {
+      reject(new GeoPositionError("UNSUPPORTED", "Geolocation is not supported"));
+      return;
+    }
+
+    let settled = false;
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        if (settled) return;
+        settled = true;
+        navigator.geolocation.clearWatch(watchId);
+        window.clearTimeout(timer);
+        resolve(position);
+      },
+      (error) => {
+        if (settled) return;
+        settled = true;
+        navigator.geolocation.clearWatch(watchId);
+        window.clearTimeout(timer);
+        reject(mapGeoError(error));
+      },
+      { enableHighAccuracy: false, maximumAge: 10 * 60_000, timeout: timeoutMs }
+    );
+
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      navigator.geolocation.clearWatch(watchId);
+      reject(new GeoPositionError("TIMEOUT", "watchPosition timed out"));
+    }, timeoutMs);
+  });
+}
+
+/** Try several GPS strategies — desktop Windows often fails on the first attempt. */
+export async function getCurrentPositionReliable(): Promise<GeolocationPosition> {
+  const attempts: PositionOptions[] = [
+    { enableHighAccuracy: false, timeout: 12000, maximumAge: 30 * 60_000 },
+    { enableHighAccuracy: false, timeout: 20000, maximumAge: 0 },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+  ];
+
+  let lastError: unknown;
+
+  for (const options of attempts) {
+    try {
+      return await getCurrentPosition(options);
+    } catch (error) {
+      lastError = error;
+      if (error instanceof GeoPositionError && error.code === "PERMISSION_DENIED") {
+        throw error;
+      }
+    }
+  }
+
+  try {
+    return await getPositionViaWatch(20000);
+  } catch (error) {
+    throw lastError instanceof Error ? lastError : error;
+  }
+}
+
 /** Get browser coords and resolve to state_id/city_id via existing location APIs. */
-export async function resolveGeoLocationFromBrowser(
-  options?: PositionOptions
-): Promise<ResolvedGeoLocation> {
-  const position = await getCurrentPosition(options);
+export async function resolveGeoLocationFromBrowser(): Promise<ResolvedGeoLocation> {
+  const position = await getCurrentPositionReliable();
   const { latitude, longitude } = position.coords;
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     throw new GeoPositionError("POSITION_UNAVAILABLE", "Invalid coordinates from browser");
@@ -87,7 +146,7 @@ export async function resolveGeoLocationFromBrowser(
   if (!resolved) {
     throw new GeoPositionError(
       "POSITION_UNAVAILABLE",
-      "Could not match coordinates to a known state/city"
+      `Could not match coordinates (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) to state/city`
     );
   }
   return resolved;

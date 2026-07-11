@@ -12,6 +12,7 @@ export interface GeoLastLocation {
 
 export const GEO_PERMISSION_KEY = "geo_permission_status";
 export const GEO_LAST_LOCATION_KEY = "geo_last_location";
+export const GEO_LAST_ERROR_KEY = "geo_last_error";
 export const GEO_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function readGeoPermissionStatus(): GeoPermissionStatus {
@@ -29,6 +30,27 @@ export function writeGeoPermissionStatus(status: GeoPermissionStatus): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(GEO_PERMISSION_KEY, status);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function writeGeoLastError(message: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      GEO_LAST_ERROR_KEY,
+      JSON.stringify({ message, timestamp: Date.now() })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearGeoLastError(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(GEO_LAST_ERROR_KEY);
   } catch {
     /* ignore */
   }
