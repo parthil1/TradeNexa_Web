@@ -379,8 +379,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
 
     const onTyping = (payload: unknown) => {
-      const parsed = parseTypingPayload(payload);
-      if (!parsed) return;
+      if (process.env.NODE_ENV === "development") {
+        console.info("[chat-socket] recv typing:indicator", payload);
+      }
+      const parsed = parseTypingPayload(payload, activeIdRef.current);
+      if (!parsed) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[chat-socket] typing:indicator ignored (parse failed)", payload);
+        }
+        return;
+      }
 
       // Ignore our own typing echoes when user_id is present.
       if (
@@ -408,7 +416,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             prev[conversationId] ? { ...prev, [conversationId]: false } : prev
           );
           delete remoteTypingTimers.current[conversationId];
-        }, 3500);
+        }, 4000);
       }
     };
 
@@ -529,6 +537,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     s.on("message:new", onMessageNew);
     s.on("typing:indicator", onTyping);
+    // Some backends use alternate event names for the same payload.
+    s.on("typing", onTyping);
+    s.on("typing:update", onTyping);
     s.on("message:read", onMessageRead);
     // Realtime presence socket events (backend may emit any of these)
     s.on("presence:update", onPresence);
@@ -544,6 +555,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (unreadSyncTimer.current) clearTimeout(unreadSyncTimer.current);
       s.off("message:new", onMessageNew);
       s.off("typing:indicator", onTyping);
+      s.off("typing", onTyping);
+      s.off("typing:update", onTyping);
       s.off("message:read", onMessageRead);
       s.off("presence:update", onPresence);
       s.off("presence", onPresence);
@@ -872,13 +885,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     const lastEmit = typingLastEmitRef.current[conversationId] ?? 0;
     const alreadyActive = Boolean(typingActiveRef.current[conversationId]);
-    // Emit start immediately; refresh every ~1.5s so the peer's auto-clear stays alive.
+
+    // Emit immediately on first keystroke; refresh every ~1.5s while still typing.
     if (!alreadyActive || now - lastEmit >= 1500) {
       emitTypingIndicator(conversationId, true);
       typingActiveRef.current[conversationId] = true;
       typingLastEmitRef.current[conversationId] = now;
     }
 
+    // Stop after ~2s idle (timer resets on each keystroke).
     typingTimers.current[conversationId] = setTimeout(() => {
       emitTypingIndicator(conversationId, false);
       typingActiveRef.current[conversationId] = false;

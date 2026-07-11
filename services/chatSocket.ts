@@ -244,33 +244,109 @@ export function leaveConversation(conversationId: number) {
 export function emitTypingIndicator(conversationId: number, isTyping: boolean) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   const s = connectChatSocket();
-  emitWhenConnected(s, "typing:indicator", {
+  // Ensure we are in the conversation room before broadcasting typing.
+  if (!joinedConversationIds.has(conversationId)) {
+    joinedConversationIds.add(conversationId);
+    emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
+  }
+  const payload = {
     conversation_id: conversationId,
     is_typing: isTyping,
-  });
+    // Compatibility aliases some backends read instead of is_typing.
+    typing: isTyping,
+  };
+  if (process.env.NODE_ENV === "development") {
+    console.info("[chat-socket] emit typing:indicator", payload);
+  }
+  emitWhenConnected(s, "typing:indicator", payload);
+}
+
+function coerceBooleanFlag(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "typing", "start"].includes(normalized)) return true;
+    if (["false", "0", "no", "stop", "idle"].includes(normalized)) return false;
+  }
+  return null;
+}
+
+function readTypingRecord(payload: unknown): Record<string, unknown> | null {
+  if (payload == null) return null;
+  if (typeof payload !== "object") return null;
+
+  const root = payload as Record<string, unknown>;
+  const nestedCandidates: Record<string, unknown>[] = [root];
+
+  for (const key of ["data", "payload", "result", "body"] as const) {
+    const nested = root[key];
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      nestedCandidates.push(nested as Record<string, unknown>);
+    }
+  }
+
+  // Prefer the deepest record that actually looks like a typing payload.
+  for (let i = nestedCandidates.length - 1; i >= 0; i -= 1) {
+    const record = nestedCandidates[i];
+    if (
+      "conversation_id" in record ||
+      "conversationId" in record ||
+      "is_typing" in record ||
+      "typing" in record ||
+      "isTyping" in record
+    ) {
+      // Merge parent + nested so we keep conversation_id if only on the outer object.
+      return { ...root, ...record };
+    }
+  }
+
+  return root;
 }
 
 /** Parse inbound `typing:indicator` payloads. */
 export function parseTypingPayload(
-  payload: unknown
+  payload: unknown,
+  fallbackConversationId?: number | null
 ): { conversationId: number; userId: number | null; isTyping: boolean } | null {
-  const data = unwrapSocketPayload(payload);
-  if (!data || typeof data !== "object") return null;
-  const record = data as Record<string, unknown>;
-  const conversationId = Number(
-    record.conversation_id ?? record.conversationId ?? record.room_id
-  );
+  const record = readTypingRecord(payload);
+  if (!record) return null;
+
+  const conversationRaw =
+    record.conversation_id ??
+    record.conversationId ??
+    record.room_id ??
+    (record.conversation && typeof record.conversation === "object"
+      ? (record.conversation as Record<string, unknown>).id
+      : null) ??
+    fallbackConversationId;
+
+  const conversationId = Number(conversationRaw);
   if (!Number.isFinite(conversationId) || conversationId <= 0) return null;
 
-  const rawUser = record.user_id ?? record.sender_id ?? record.typer_id;
+  const rawUser =
+    record.user_id ??
+    record.sender_id ??
+    record.typer_id ??
+    record.participant_id ??
+    (record.user && typeof record.user === "object"
+      ? (record.user as Record<string, unknown>).id
+      : null);
   const userIdNum = Number(rawUser);
   const userId = Number.isFinite(userIdNum) && userIdNum > 0 ? userIdNum : null;
 
+  const flagged =
+    coerceBooleanFlag(record.is_typing) ??
+    coerceBooleanFlag(record.typing) ??
+    coerceBooleanFlag(record.isTyping);
+
   let isTyping: boolean;
-  if (typeof record.is_typing === "boolean") isTyping = record.is_typing;
-  else if (typeof record.typing === "boolean") isTyping = record.typing;
-  else if (typeof record.isTyping === "boolean") isTyping = record.isTyping;
-  else if (typeof record.status === "string") {
+  if (flagged != null) {
+    isTyping = flagged;
+  } else if (typeof record.status === "string") {
     const value = record.status.toLowerCase();
     if (value === "typing" || value === "start") isTyping = true;
     else if (value === "stop" || value === "idle") isTyping = false;

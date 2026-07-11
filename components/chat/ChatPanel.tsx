@@ -19,6 +19,7 @@ import {
   ensureRfqConversation,
   getChatErrorMessage,
 } from "@/services/chatService";
+import { joinConversation } from "@/services/chatSocket";
 import { countsAsUnreadChatMessage, isSystemChatMessage } from "@/utils/chatHelpers";
 import { getInitials } from "@/utils/catalogHelpers";
 import { showErrorToast } from "@/utils/toast";
@@ -128,6 +129,8 @@ export default function ChatPanel({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const blurTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stickToBottom = useRef(true);
   const sendingRef = useRef(false);
   const lastMarkedReadIdRef = useRef<number | null>(null);
@@ -333,7 +336,10 @@ export default function ChatPanel({
 
   useEffect(() => {
     if (!conversationId) return;
+    // Make sure the socket room is joined as soon as chat is ready.
+    joinConversation(conversationId);
     return () => {
+      if (blurTypingTimerRef.current) clearTimeout(blurTypingTimerRef.current);
       setTyping(conversationId, false);
     };
   }, [conversationId, setTyping]);
@@ -570,10 +576,14 @@ export default function ChatPanel({
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               <p
                 className={`text-xs font-semibold ${
-                  online ? "text-emerald-600" : "text-[#90A4AE]"
+                  isTyping
+                    ? "text-[#1565C0]"
+                    : online
+                      ? "text-emerald-600"
+                      : "text-[#90A4AE]"
                 }`}
               >
-                {presenceLabel}
+                {isTyping ? "typing..." : presenceLabel}
               </p>
               <span className="text-[#CFD8DC]">·</span>
               <p className="truncate text-xs text-[#90A4AE]">
@@ -774,14 +784,28 @@ export default function ChatPanel({
               <Paperclip className="h-4 w-4" />
             </button>
             <textarea
+              ref={composerRef}
               value={draft}
               disabled={disconnected}
               onChange={(e) => {
-                setDraft(e.target.value);
-                if (conversationId) setTyping(conversationId, e.target.value.trim().length > 0);
+                const value = e.target.value;
+                setDraft(value);
+                if (!conversationId) return;
+                if (blurTypingTimerRef.current) {
+                  clearTimeout(blurTypingTimerRef.current);
+                  blurTypingTimerRef.current = null;
+                }
+                setTyping(conversationId, value.trim().length > 0);
               }}
               onBlur={() => {
-                if (conversationId) setTyping(conversationId, false);
+                if (!conversationId) return;
+                // Delay stop so clicking Send / Attach doesn't kill the indicator early.
+                if (blurTypingTimerRef.current) clearTimeout(blurTypingTimerRef.current);
+                blurTypingTimerRef.current = setTimeout(() => {
+                  if (document.activeElement === composerRef.current) return;
+                  setTyping(conversationId, false);
+                  blurTypingTimerRef.current = null;
+                }, 200);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
