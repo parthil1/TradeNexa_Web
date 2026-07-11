@@ -9,6 +9,7 @@ import CatalogBreadcrumbs from "@/components/catalog/CatalogBreadcrumbs";
 import PortalProductCard from "@/components/portal/PortalProductCard";
 import { portalProductGridClass } from "@/components/portal/portalLayout";
 import MarketplaceSearchBar from "@/components/catalog/marketplace/MarketplaceSearchBar";
+import LocationFilterBar from "@/components/location/LocationFilterBar";
 import {
   MARKETPLACE_CONTAINER,
   MarketplaceProductGridSkeleton,
@@ -19,6 +20,7 @@ import {
   fetchCategoryById,
   findSubcategoryById,
 } from "@/services/catalogService";
+import { useCityFilter } from "@/hooks/useCityFilter";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
@@ -33,6 +35,19 @@ function ProductsPageContent() {
   const [search, setSearch] = useState("");
   const [redirecting, setRedirecting] = useState(!!(categoryId || subcategoryId) && !trendingOnly);
   const debouncedSearch = useDebouncedValue(search);
+  const {
+    stateId,
+    stateLabel,
+    cityId,
+    cityLabel,
+    setCityId,
+    handleStateChange,
+    clearLocationFilters,
+    clearStateFilter,
+    clearCityFilter,
+    hasLocationFilter,
+    cityFilterParams,
+  } = useCityFilter();
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +94,7 @@ function ProductsPageContent() {
             search: debouncedSearch || undefined,
             sort_by: "name",
             sort_order: "asc",
+            ...cityFilterParams,
           })
         : fetchProducts({
             page,
@@ -88,16 +104,22 @@ function ProductsPageContent() {
             subcategory_id: subcategoryId ? Number(subcategoryId) : undefined,
             sort_by: "name",
             sort_order: "asc",
+            ...cityFilterParams,
           }),
-    [debouncedSearch, categoryId, subcategoryId, trendingOnly]
+    [debouncedSearch, categoryId, subcategoryId, trendingOnly, cityFilterParams]
   );
 
   const { items: products, pagination, loading, loadingMore, error, loadMore } =
     useLoadMoreList({
       fetchPage,
-      resetDeps: [debouncedSearch, categoryId, subcategoryId, trendingOnly],
+      resetDeps: [debouncedSearch, categoryId, subcategoryId, trendingOnly, cityId],
       enabled: !redirecting,
     });
+
+  function clearFilters() {
+    setSearch("");
+    clearLocationFilters();
+  }
 
   const pageTitle = trendingOnly ? "Trending Products" : "All Products";
 
@@ -163,13 +185,30 @@ function ProductsPageContent() {
 
       <section className="flex-1 py-8 lg:py-12">
         <div className={MARKETPLACE_CONTAINER}>
-          {!loading && products.length > 0 && (
-            <p className="mb-6 text-sm font-medium text-slate-500">
-              Showing{" "}
-              <span className="font-semibold text-slate-800">{products.length}</span> of{" "}
-              <span className="font-semibold text-slate-800">{pagination.total}</span> products
-            </p>
-          )}
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <LocationFilterBar
+              idPrefix="products"
+              variant="toolbar"
+              stateId={stateId}
+              stateLabel={stateLabel}
+              cityId={cityId}
+              cityLabel={cityLabel}
+              onStateChange={handleStateChange}
+              onCityChange={setCityId}
+              onClear={clearFilters}
+              onClearState={clearStateFilter}
+              onClearCity={clearCityFilter}
+              clearDisabled={!search.trim() && !hasLocationFilter}
+              className="min-w-0 flex-1"
+            />
+            {!loading && products.length > 0 ? (
+              <p className="shrink-0 text-sm font-medium text-slate-500 sm:text-right">
+                Showing{" "}
+                <span className="font-semibold text-slate-800">{products.length}</span> of{" "}
+                <span className="font-semibold text-slate-800">{pagination.total}</span> products
+              </p>
+            ) : null}
+          </div>
 
           {error && (
             <div className="mb-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
@@ -210,8 +249,8 @@ function ProductsPageContent() {
             <CatalogEmptyState
               title="No products found"
               description="Try adjusting your search or browse categories."
-              onReset={() => setSearch("")}
-              resetLabel="Clear search"
+              onReset={clearFilters}
+              resetLabel="Clear filters"
             />
           )}
         </div>

@@ -1,14 +1,19 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Inbox, Loader2, MessageSquare } from "lucide-react";
+import ConversationBadge, {
+  formatChatBadgeCount,
+  useChatUnreadBadge,
+} from "@/components/chat/ConversationBadge";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import PortalPagination from "@/components/portal/PortalPagination";
 import RfqListCard from "@/components/rfq/RfqListCard";
 import RfqListSidebar from "@/components/rfq/RfqListSidebar";
 import RfqListToolbar from "@/components/rfq/RfqListToolbar";
+import { useChat } from "@/context/ChatContext";
 import { fetchSellerRfqFeed } from "@/services/rfqService";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -22,6 +27,12 @@ export default function SellerLeadsPage() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const unreadTotal = useChatUnreadBadge();
+  const { syncConversationsUnread } = useChat();
+
+  useEffect(() => {
+    void syncConversationsUnread();
+  }, [syncConversationsUnread]);
 
   const fetchPage = useCallback(
     (page: number) =>
@@ -59,6 +70,10 @@ export default function SellerLeadsPage() {
       : `No buyer requirements are currently ${activeTab}.`;
 
   const showCatalogPrompt = !loading && pagination.total > 0 && pagination.total <= PAGE_SIZE;
+  const unreadLabel =
+    unreadTotal > 0
+      ? `${formatChatBadgeCount(unreadTotal)} unread message${unreadTotal === 1 ? "" : "s"}`
+      : null;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
@@ -99,15 +114,6 @@ export default function SellerLeadsPage() {
               </button>
             ))}
           </div>
-        }
-        trailing={
-          <Link
-            href="/seller/quotations"
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[#546E7A] ring-1 ring-[#E0E6ED] transition hover:ring-[#1565C0]/40 hover:text-[#1565C0]"
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            My Quotations
-          </Link>
         }
       />
 
@@ -181,15 +187,39 @@ export default function SellerLeadsPage() {
         <RfqListSidebar
           stats={[
             { label: "Total in feed", value: loading ? "—" : pagination.total },
-            { label: "New today", value: loading ? "—" : newTodayCount, highlight: newTodayCount > 0 },
+            {
+              label: "New today",
+              value: loading ? "—" : newTodayCount,
+              highlight: newTodayCount > 0,
+            },
           ]}
           action={
             <Link
               href="/seller/quotations"
-              className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#E8ECF0] bg-white p-4 text-sm font-bold text-[#546E7A] transition hover:border-[#1565C0]/40 hover:text-[#1565C0]"
+              aria-label={
+                unreadLabel ? `My Quotations, ${unreadLabel}` : "My Quotations"
+              }
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[#E8ECF0] bg-white p-4 text-sm font-bold text-[#546E7A] transition hover:border-[#1565C0]/40 hover:text-[#1565C0]"
             >
-              My Quotations
-              <MessageSquare className="h-4 w-4" />
+              <span className="min-w-0">
+                <span className="block">My Quotations</span>
+                {unreadTotal > 0 ? (
+                  <span className="mt-0.5 block text-[11px] font-semibold text-[#128C7E]">
+                    {formatChatBadgeCount(unreadTotal)} unread message
+                    {unreadTotal === 1 ? "" : "s"}
+                  </span>
+                ) : null}
+              </span>
+              <span className="relative shrink-0">
+                <MessageSquare className="h-4 w-4" />
+                {unreadTotal > 0 ? (
+                  <ConversationBadge
+                    count={unreadTotal}
+                    size="md"
+                    className="absolute -right-2.5 -top-2.5"
+                  />
+                ) : null}
+              </span>
             </Link>
           }
         />

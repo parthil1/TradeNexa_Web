@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import ConversationBadge, { formatChatBadgeCount } from "@/components/chat/ConversationBadge";
 import type { PortalNavItem } from "@/components/portal/PortalBottomNav";
 
 interface SidebarItemProps {
@@ -47,14 +48,15 @@ export default function SidebarItem({
       {!collapsed ? (
         <>
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
-          {item.badge ? (
-            <span className="rounded-full bg-blue-500 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">
-              {item.badge}
-            </span>
-          ) : null}
+          {item.badge ? <ConversationBadge count={item.badge} /> : null}
         </>
       ) : item.badge ? (
-        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-blue-500" />
+        <span
+          className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#25D366] px-1 text-[10px] font-bold tabular-nums text-white"
+          aria-label={`${item.badge} unread message${item.badge === 1 ? "" : "s"}`}
+        >
+          {formatChatBadgeCount(item.badge)}
+        </span>
       ) : null}
     </Link>
   );

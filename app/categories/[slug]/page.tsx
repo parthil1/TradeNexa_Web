@@ -8,6 +8,7 @@ import CategoryProductsLayout from "@/components/catalog/marketplace/CategoryPro
 import CatalogEmptyState from "@/components/catalog/CatalogEmptyState";
 import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 import { fetchCategoryBySlug, fetchProducts, fetchSubcategories } from "@/services/catalogService";
+import { useCityFilter } from "@/hooks/useCityFilter";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 import type { ApiCategoryDetail } from "@/types/catalog";
@@ -22,6 +23,15 @@ export default function CategoryDetailPage() {
   const [selectedSubId, setSelectedSubId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const {
+    stateId,
+    cityId,
+    setCityId,
+    handleStateChange,
+    clearLocationFilters,
+    hasLocationFilter,
+    cityFilterParams,
+  } = useCityFilter();
 
   useEffect(() => {
     let cancelled = false;
@@ -104,9 +114,10 @@ export default function CategoryDetailPage() {
         search: debouncedSearch || undefined,
         sort_by: "name",
         sort_order: "asc",
+        ...cityFilterParams,
       });
     },
-    [category, selectedSubId, debouncedSearch]
+    [category, selectedSubId, debouncedSearch, cityFilterParams]
   );
 
   const {
@@ -118,9 +129,15 @@ export default function CategoryDetailPage() {
     loadMore: loadMoreProducts,
   } = useLoadMoreList({
     fetchPage: fetchProductPage,
-    resetDeps: [category?.id, selectedSubId, debouncedSearch],
+    resetDeps: [category?.id, selectedSubId, debouncedSearch, cityId],
     enabled: !!category,
   });
+
+  function clearFilters() {
+    setSearch("");
+    setSelectedSubId(null);
+    clearLocationFilters();
+  }
 
   const productCountLabel = metaLoading
     ? "Loading..."
@@ -182,6 +199,12 @@ export default function CategoryDetailPage() {
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder={`Search within ${category.name}...`}
+          stateId={stateId}
+          cityId={cityId}
+          onStateChange={handleStateChange}
+          onCityChange={setCityId}
+          onClearFilters={clearFilters}
+          clearFiltersDisabled={!search.trim() && selectedSubId === null && !hasLocationFilter}
           products={products}
           subcategoryLabel={selectedSub?.name}
           pagination={pagination}
@@ -194,10 +217,7 @@ export default function CategoryDetailPage() {
               ? "Try another subcategory or clear your search."
               : "Try a different search term or browse other categories."
           }
-          onEmptyReset={() => {
-            setSearch("");
-            setSelectedSubId(null);
-          }}
+          onEmptyReset={clearFilters}
           emptyResetLabel="Clear filters"
         />
       )}

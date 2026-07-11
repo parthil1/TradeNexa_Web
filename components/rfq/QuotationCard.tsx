@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { MessageSquare } from "lucide-react";
+import ConversationBadge, { useRfqChatUnread } from "@/components/chat/ConversationBadge";
+import QuotationStatusBadge from "@/components/rfq/QuotationStatusBadge";
 import type { ApiQuotation } from "@/types/rfq";
 import { formatPrice } from "@/utils/catalogHelpers";
 import {
@@ -12,7 +16,6 @@ import {
   isQuotationInactiveForBuyer,
   isQuotationRevisionPending,
 } from "@/utils/rfqHelpers";
-import QuotationStatusBadge from "@/components/rfq/QuotationStatusBadge";
 
 interface QuotationCardProps {
   quotation: ApiQuotation;
@@ -25,6 +28,13 @@ interface QuotationCardProps {
   emphasizeStatus?: boolean;
   /** RFQ status helps detect negotiation when quotation status is still "Submitted". */
   rfqStatus?: string | null;
+  /** Open chat (buyer ↔ seller depending on page). */
+  onChatClick?: () => void;
+  /** RFQ id for unread matching when quotation.rfq_id is absent */
+  chatRfqId?: number | null;
+  /** Navigate when the card body is clicked (e.g. seller quotations → lead detail). */
+  href?: string;
+  onCardClick?: () => void;
 }
 
 export default function QuotationCard({
@@ -34,21 +44,43 @@ export default function QuotationCard({
   showProductName = false,
   emphasizeStatus = false,
   rfqStatus,
+  onChatClick,
+  chatRfqId,
+  href,
+  onCardClick,
 }: QuotationCardProps) {
+  const router = useRouter();
   const [showRemarks, setShowRemarks] = useState(false);
+  // Buyer cards match by seller_id; seller list/own-quote match by RFQ only.
+  const matchSellerId =
+    onChatClick && showSellerInfo && !showProductName ? quotation.seller_id : null;
+  const chatUnread = useRfqChatUnread(
+    onChatClick ? chatRfqId ?? quotation.rfq_id : null,
+    matchSellerId
+  );
   const inactive = emphasizeStatus && isQuotationInactiveForBuyer(quotation.status);
   const statusHint = emphasizeStatus ? getQuotationStatusHint(quotation.status) : null;
   const sellerRevisionHint = !showSellerInfo ? getSellerRevisionStatusHint(quotation, rfqStatus) : null;
   const buyerRevisionRemarks = !showSellerInfo ? getBuyerRevisionRemarks(quotation, rfqStatus) : null;
   const revisionPending = isQuotationRevisionPending(quotation, rfqStatus);
   const totals = computeQuotationTotalWithGst(quotation);
-
   const company = quotation.seller_company?.trim();
   const contact = quotation.seller_name?.trim();
   const sellerPrimary = company || contact || "Seller";
   const sellerSecondary = company && contact ? contact : null;
   const productPrimary =
     quotation.product_name?.trim() || quotation.rfq_title?.trim() || "Quotation";
+  const isClickable = Boolean(href || onCardClick);
+  const chatLabel = showSellerInfo && !showProductName ? "Chat with seller" : "Chat with buyer";
+
+  function handleCardActivate() {
+    onCardClick?.();
+    if (href) router.push(href);
+  }
+
+  function stopCardNav(event: React.SyntheticEvent) {
+    event.stopPropagation();
+  }
 
   return (
     <article
@@ -56,7 +88,25 @@ export default function QuotationCard({
         inactive
           ? "border-[#E0E6ED] bg-[#FAFBFC] opacity-80"
           : "border-[#E8ECF0] bg-white shadow-sm"
+      } ${
+        isClickable
+          ? "cursor-pointer transition hover:border-[#1565C0]/35 hover:shadow-md"
+          : ""
       }`}
+      onClick={isClickable ? handleCardActivate : undefined}
+      onKeyDown={
+        isClickable
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleCardActivate();
+              }
+            }
+          : undefined
+      }
+      role={isClickable ? "link" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-label={isClickable ? `Open ${productPrimary}` : undefined}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -87,7 +137,34 @@ export default function QuotationCard({
             <p className="text-base font-extrabold text-[#0D1B2A]">Your quotation</p>
           )}
         </div>
-        <QuotationStatusBadge status={quotation.status} className="shrink-0" />
+        <div className="flex shrink-0 items-center gap-2">
+          {onChatClick ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                stopCardNav(event);
+                onChatClick();
+              }}
+              title={chatLabel}
+              aria-label={
+                chatUnread > 0
+                  ? `${chatLabel}, ${chatUnread} unread`
+                  : chatLabel
+              }
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#E0E6ED] bg-white text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E3F2FD]"
+            >
+              <MessageSquare className="h-4 w-4" />
+              {chatUnread > 0 ? (
+                <ConversationBadge
+                  count={chatUnread}
+                  size="md"
+                  className="absolute -right-1.5 -top-1.5"
+                />
+              ) : null}
+            </button>
+          ) : null}
+          <QuotationStatusBadge status={quotation.status} className="shrink-0" />
+        </div>
       </div>
 
       {totals ? (
@@ -155,7 +232,7 @@ export default function QuotationCard({
       ) : null}
 
       {quotation.remarks && !(revisionPending && buyerRevisionRemarks) ? (
-        <div className="mt-3">
+        <div className="mt-3" onClick={stopCardNav} onKeyDown={stopCardNav}>
           <button
             type="button"
             onClick={() => setShowRemarks((v) => !v)}
@@ -184,7 +261,13 @@ export default function QuotationCard({
       ) : null}
 
       {actions ? (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-[#F0F2F5] pt-4">{actions}</div>
+        <div
+          className="mt-4 flex flex-wrap gap-2 border-t border-[#F0F2F5] pt-4"
+          onClick={stopCardNav}
+          onKeyDown={stopCardNav}
+        >
+          {actions}
+        </div>
       ) : null}
     </article>
   );

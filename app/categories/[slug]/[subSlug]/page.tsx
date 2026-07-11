@@ -13,6 +13,7 @@ import {
   fetchSubcategories,
   findSubcategoryBySlug,
 } from "@/services/catalogService";
+import { useCityFilter } from "@/hooks/useCityFilter";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 import type { ApiCategoryDetail, ApiSubcategory } from "@/types/catalog";
@@ -29,6 +30,15 @@ export default function SubcategoryProductsPage() {
   const [selectedSubId, setSelectedSubId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const {
+    stateId,
+    cityId,
+    setCityId,
+    handleStateChange,
+    clearLocationFilters,
+    hasLocationFilter,
+    cityFilterParams,
+  } = useCityFilter();
 
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +139,7 @@ export default function SubcategoryProductsPage() {
           search: debouncedSearch || undefined,
           sort_by: "name",
           sort_order: "asc",
+          ...cityFilterParams,
         });
       }
       const subId = selectedSubId ?? resolvedSub?.id;
@@ -145,9 +156,10 @@ export default function SubcategoryProductsPage() {
         search: debouncedSearch || undefined,
         sort_by: "name",
         sort_order: "asc",
+        ...cityFilterParams,
       });
     },
-    [selectedSubId, resolvedSub?.id, category, debouncedSearch]
+    [selectedSubId, resolvedSub?.id, category, debouncedSearch, cityFilterParams]
   );
 
   const {
@@ -159,9 +171,14 @@ export default function SubcategoryProductsPage() {
     error: productError,
   } = useLoadMoreList({
     fetchPage: fetchProductPage,
-    resetDeps: [selectedSubId, category?.id, resolvedSub?.id, debouncedSearch],
+    resetDeps: [selectedSubId, category?.id, resolvedSub?.id, debouncedSearch, cityId],
     enabled: !!category || !!resolvedSub,
   });
+
+  function clearFilters() {
+    setSearch("");
+    clearLocationFilters();
+  }
 
   const displayError = metaError || productError || subError;
   const headerTitle = category?.name ?? "Category";
@@ -224,6 +241,12 @@ export default function SubcategoryProductsPage() {
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder={`Search within ${activeSub?.name ?? category.name}...`}
+          stateId={stateId}
+          cityId={cityId}
+          onStateChange={handleStateChange}
+          onCityChange={setCityId}
+          onClearFilters={clearFilters}
+          clearFiltersDisabled={!search.trim() && !hasLocationFilter}
           products={products}
           subcategoryLabel={selectedSubId === null ? undefined : activeSub?.name}
           pagination={pagination}
@@ -231,8 +254,8 @@ export default function SubcategoryProductsPage() {
           loadingMore={loadingMoreProducts}
           onLoadMore={loadMoreProducts}
           resultsLabel={`${pagination.total.toLocaleString()} products`}
-          onEmptyReset={() => setSearch("")}
-          emptyResetLabel="Clear search"
+          onEmptyReset={clearFilters}
+          emptyResetLabel="Clear filters"
         />
       )}
 

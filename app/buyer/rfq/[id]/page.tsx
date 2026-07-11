@@ -28,7 +28,7 @@ import {
   publishRfq,
   rejectQuotation,
 } from "@/services/rfqService";
-import type { ApiRfqDetail } from "@/types/rfq";
+import type { ApiQuotation, ApiRfqDetail } from "@/types/rfq";
 import { formatPrice } from "@/utils/catalogHelpers";
 import {
   formatRfqDate,
@@ -40,6 +40,8 @@ import {
 } from "@/utils/rfqHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
+import ChatSidePanel from "@/components/chat/ChatSidePanel";
+import { useChat } from "@/context/ChatContext";
 
 const QUOTATIONS_PAGE_SIZE = 5;
 
@@ -72,6 +74,8 @@ export default function BuyerRfqDetailPage() {
   const [rfqLoading, setRfqLoading] = useState(!invalidId);
   const [actionId, setActionId] = useState<number | null>(null);
   const [revisionFor, setRevisionFor] = useState<number | null>(null);
+  const [chatTarget, setChatTarget] = useState<ApiQuotation | null>(null);
+  const { hydrateRfqConversations } = useChat();
 
   const fetchQuotesPage = useCallback(
     (page: number) =>
@@ -103,12 +107,13 @@ export default function BuyerRfqDetailPage() {
     try {
       const detail = await fetchPublicRfqById(rfqId);
       setRfq(detail);
+      void hydrateRfqConversations(rfqId);
     } catch {
       setRfq(null);
     } finally {
       setRfqLoading(false);
     }
-  }, [invalidId, rfqId]);
+  }, [invalidId, rfqId, hydrateRfqConversations]);
 
   useEffect(() => {
     void loadRfq();
@@ -409,6 +414,8 @@ export default function BuyerRfqDetailPage() {
                     key={quotation.id}
                     quotation={quotation}
                     emphasizeStatus
+                    chatRfqId={rfq.id}
+                    onChatClick={() => setChatTarget(quotation)}
                     actions={
                       isQuotationActionableForBuyer(quotation.status) ? (
                         <>
@@ -454,6 +461,24 @@ export default function BuyerRfqDetailPage() {
           </div>
         </section>
       </div>
+
+      <ChatSidePanel
+        open={chatTarget !== null}
+        onClose={() => setChatTarget(null)}
+        title="Chat with Seller"
+        rfqId={rfq.id}
+        role="buyer"
+        rfqTitle={rfq.title}
+        rfqStatus={rfq.status}
+        sellerId={chatTarget?.seller_id ?? null}
+        otherPartyName={
+          chatTarget?.seller_company?.trim() ||
+          chatTarget?.seller_name?.trim() ||
+          null
+        }
+        productId={rfq.product_id ?? rfq.product?.id ?? null}
+        productName={rfq.product_name ?? rfq.product?.name ?? null}
+      />
 
       <RequestRevisionModal
         isOpen={revisionFor !== null}

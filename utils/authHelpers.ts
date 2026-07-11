@@ -110,9 +110,12 @@ export function mapApiProfileToUser(profile: ApiUserProfile): User {
   const mobile = String(profile.mobile_number || "");
   const addressObj =
     profile.address && typeof profile.address === "object" ? profile.address : null;
+  const numericUserId =
+    parsePositiveId(profile.user_id) ?? parsePositiveId(profile.id);
 
   return {
     id: String(profile.uuid ?? profile.id ?? ""),
+    user_id: numericUserId,
     name: String(profile.full_name ?? ""),
     company: String(profile.company_name ?? ""),
     email: profile.email ? String(profile.email) : "",

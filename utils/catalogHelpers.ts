@@ -5,9 +5,15 @@ import { parseWishlistFlag, readProductWishlistFlag } from "@/utils/wishlistHelp
 function proxyBackendMediaUrl(url: URL): string | null {
   const backendHost = new URL(BACKEND_ORIGIN).host;
   if (url.host !== backendHost) return null;
-  if (!url.pathname.startsWith("/media/")) return null;
-  const mediaPath = url.pathname.slice("/media/".length);
-  return mediaPath ? `/api/media/${mediaPath}` : null;
+
+  // Legacy product media: /media/foo → /api/media/foo
+  if (url.pathname.startsWith("/media/")) {
+    const mediaPath = url.pathname.slice("/media/".length);
+    return mediaPath ? `/api/media/${mediaPath}${url.search}` : null;
+  }
+
+  // Chat uploads and other backend paths — generic same-origin proxy.
+  return `/api/media/proxy?url=${encodeURIComponent(url.toString())}`;
 }
 
 function coerceImageUrl(input: unknown): string | null {
@@ -34,6 +40,8 @@ function coerceImageUrl(input: unknown): string | null {
       "src",
       "thumbnail",
       "file",
+      "file_url",
+      "media_url",
     ]) {
       const value = record[key];
       if (typeof value === "string" && value.trim()) return value.trim();
@@ -45,7 +53,7 @@ function coerceImageUrl(input: unknown): string | null {
 
 /**
  * Resolves API image URLs for use in <img> tags.
- * Backend /media/* URLs are rewritten to same-origin /api/media/* because
+ * Backend media URLs are rewritten to same-origin /api/media/* because
  * Railway sets Cross-Origin-Resource-Policy: same-origin (blocks cross-site images).
  */
 export function resolveImageUrl(url: unknown): string | null {
@@ -53,6 +61,7 @@ export function resolveImageUrl(url: unknown): string | null {
   if (!normalized) return null;
 
   if (normalized.startsWith("data:")) return normalized;
+  if (normalized.startsWith("blob:")) return normalized;
 
   if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
     try {
@@ -69,6 +78,15 @@ export function resolveImageUrl(url: unknown): string | null {
   if (cleanUrl.startsWith("/media/")) {
     const mediaPath = cleanUrl.slice("/media/".length);
     return mediaPath ? `/api/media/${mediaPath}` : null;
+  }
+
+  // Relative non-/media paths (e.g. /uploads/chat/x.jpg) — proxy via backend origin.
+  try {
+    const absolute = new URL(cleanUrl, BACKEND_ORIGIN);
+    const proxied = proxyBackendMediaUrl(absolute);
+    if (proxied) return proxied;
+  } catch {
+    /* fall through */
   }
 
   return `${BACKEND_ORIGIN}${cleanUrl}`;
@@ -305,10 +323,35 @@ export function normalizeProductListItem(
   item: Partial<ApiProductListItem> & Pick<ApiProductListItem, "id" | "name" | "price">
 ): ApiProductListItem {
   const raw = item as Record<string, unknown>;
+  const address =
+    raw.address && typeof raw.address === "object"
+      ? (raw.address as Record<string, unknown>)
+      : null;
+  const location =
+    raw.location && typeof raw.location === "object"
+      ? (raw.location as Record<string, unknown>)
+      : null;
+
+  const pickLocationString = (...values: unknown[]): string | null => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return null;
+  };
+
   const wishlistFlag =
     item.is_wishlist !== undefined
       ? parseWishlistFlag(item.is_wishlist)
       : readProductWishlistFlag(raw);
+
+  const supplierName =
+    (typeof item.supplier_name === "string" && item.supplier_name.trim()
+      ? item.supplier_name.trim()
+      : null) ??
+    (typeof raw.seller_name === "string" && raw.seller_name.trim()
+      ? raw.seller_name.trim()
+      : null) ??
+    "Supplier";
 
   return {
     id: item.id,
@@ -319,11 +362,11 @@ export function normalizeProductListItem(
     currency: item.currency ?? "INR",
     moq: item.moq ?? 1,
     unit: item.unit ?? "unit",
-    supplier_name: item.supplier_name ?? "Supplier",
+    supplier_name: supplierName,
     verified: item.verified ?? false,
     rating: item.rating ?? 0,
-    city: item.city ?? null,
-    state: item.state ?? null,
+    city: pickLocationString(item.city, address?.city, location?.city),
+    state: pickLocationString(item.state, address?.state, location?.state),
     is_trending: item.is_trending ?? false,
     created_at: item.created_at ?? "",
     subcategory_id: item.subcategory_id ?? null,

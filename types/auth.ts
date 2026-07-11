@@ -2,6 +2,8 @@ export type UserRole = "seller" | "buyer" | "both";
 
 export interface User {
   id: string;
+  /** Numeric backend user id — used for chat sender ownership (sender_id). */
+  user_id?: number | null;
   name: string;
   company: string;
   email: string;

@@ -12,11 +12,13 @@ import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import PortalProductGrid from "@/components/portal/PortalProductGrid";
 import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
 import { fetchCategoryById, fetchProducts, fetchSubcategories } from "@/services/catalogService";
+import { useCityFilter } from "@/hooks/useCityFilter";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
 import { resolveImageUrl } from "@/utils/catalogHelpers";
 import type { ApiCategoryDetail } from "@/types/catalog";
+import LocationFilterBar from "@/components/location/LocationFilterBar";
 
 export default function BuyerCategoryPage() {
   const params = useParams();
@@ -32,6 +34,15 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
   const [selectedSubId, setSelectedSubId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const {
+    stateId,
+    cityId,
+    setCityId,
+    handleStateChange,
+    clearLocationFilters,
+    hasLocationFilter,
+    cityFilterParams,
+  } = useCityFilter();
 
   useEffect(() => {
     if (!categoryId) return;
@@ -120,9 +131,10 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
         search: debouncedSearch || undefined,
         sort_by: "name",
         sort_order: "asc",
+        ...cityFilterParams,
       });
     },
-    [categoryId, selectedSubId, debouncedSearch]
+    [categoryId, selectedSubId, debouncedSearch, cityFilterParams]
   );
 
   const {
@@ -135,9 +147,14 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
     hasMore: hasMoreProducts,
   } = useLoadMoreList({
     fetchPage: fetchProductPage,
-    resetDeps: [categoryId, selectedSubId, debouncedSearch],
+    resetDeps: [categoryId, selectedSubId, debouncedSearch, cityId],
     enabled: !!categoryId,
   });
+
+  function clearFilters() {
+    setSearch("");
+    clearLocationFilters();
+  }
 
   const productCountLabel =
     selectedSubId === null
@@ -206,6 +223,17 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
             onChange={setSearch}
             placeholder={`Search in ${selectedSub?.name ?? category?.name ?? "category"}...`}
             className="mt-4"
+          />
+
+          <LocationFilterBar
+            idPrefix="buyer-category"
+            stateId={stateId}
+            cityId={cityId}
+            onStateChange={handleStateChange}
+            onCityChange={setCityId}
+            onClear={clearFilters}
+            clearDisabled={!search.trim() && !hasLocationFilter}
+            className="mt-3"
           />
 
           {productError ? (

@@ -24,12 +24,19 @@ interface SelectProps {
   required?: boolean;
   /** Type in the select field to filter options (default: true) */
   searchable?: boolean;
+  /**
+   * When set, typing triggers remote search instead of client-side filtering.
+   * Parent should debounce and refetch options.
+   */
+  onSearchChange?: (query: string) => void;
   /** Infinite-scroll: more pages available */
   hasMore?: boolean;
   /** Infinite-scroll: loading next page */
   loadingMore?: boolean;
   /** Infinite-scroll: called near bottom of list */
   onLoadMore?: () => void;
+  /** Optional icon rendered inside the trigger, before the label */
+  leadingIcon?: React.ReactNode;
 }
 
 interface MenuPosition {
@@ -58,9 +65,11 @@ export function Select({
   name,
   required,
   searchable,
+  onSearchChange,
   hasMore = false,
   loadingMore = false,
   onLoadMore,
+  leadingIcon,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,6 +81,7 @@ export function Select({
   const listRef = useRef<HTMLUListElement>(null);
   const listboxId = useId();
   const loadMoreLock = useRef(false);
+  const remoteSearch = Boolean(onSearchChange);
 
   const showSearch = searchable !== false;
   const inputPlaceholder = searchPlaceholder ?? `Type to search — ${placeholder}`;
@@ -79,11 +89,16 @@ export function Select({
   const selected = options.find((opt) => opt.value === value) ?? null;
 
   const filteredOptions = useMemo(() => {
-    if (!showSearch || !open) return options;
+    if (!showSearch || !open || remoteSearch) return options;
     const query = searchQuery.trim().toLowerCase();
     if (!query) return options;
     return options.filter((opt) => opt.label.toLowerCase().includes(query));
-  }, [options, open, searchQuery, showSearch]);
+  }, [options, open, remoteSearch, searchQuery, showSearch]);
+
+  useEffect(() => {
+    if (!open || !remoteSearch) return;
+    onSearchChange?.(searchQuery);
+  }, [open, remoteSearch, searchQuery, onSearchChange]);
 
   useEffect(() => {
     setMounted(true);
@@ -233,8 +248,9 @@ export function Select({
 
   const openRing = open ? "border-blue-500 ring-2 ring-blue-500/20" : "";
   const errorRing = error ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "";
+  const horizontalPad = leadingIcon ? "pl-9" : "pl-3";
 
-  const triggerClass = `flex h-12 w-full items-center rounded-lg border bg-white px-3 text-left text-sm outline-none transition-all duration-200 appearance-none ${
+  const triggerClass = `flex h-12 w-full items-center rounded-lg border bg-white text-left text-sm outline-none transition-all duration-200 appearance-none ${horizontalPad} pr-10 ${
     error ? errorRing : `border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${openRing}`
   } ${disabled ? "cursor-not-allowed opacity-60" : ""} ${className}`;
 
@@ -287,7 +303,7 @@ export function Select({
                   </li>
                 );
               })}
-              {!searchQuery.trim() && (hasMore || loadingMore) ? (
+              {(remoteSearch || !searchQuery.trim()) && (hasMore || loadingMore) ? (
                 <li className="flex items-center justify-center gap-2 px-3 py-2.5 text-xs text-slate-400">
                   {loadingMore ? (
                     <>
@@ -308,6 +324,11 @@ export function Select({
   return (
     <div ref={triggerRef} className={`relative ${open ? "z-30" : ""}`}>
       <div className="relative">
+        {leadingIcon ? (
+          <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400">
+            {leadingIcon}
+          </span>
+        ) : null}
         {showSearch ? (
           <input
             ref={inputRef}
@@ -331,9 +352,9 @@ export function Select({
               if (!disabled) openMenu();
             }}
             onKeyDown={handleTriggerKeyDown}
-            className={`${triggerClass} pr-10 ${!open && !selected ? "text-slate-400" : "text-slate-900"} ${
-              open ? "cursor-text" : "cursor-pointer"
-            }`}
+            className={`${triggerClass} ${
+              !open && !selected ? "text-slate-400" : "text-slate-900"
+            } ${open ? "cursor-text" : "cursor-pointer"}`}
           />
         ) : (
           <button
@@ -346,7 +367,9 @@ export function Select({
             aria-invalid={!!error}
             aria-required={required}
             onClick={toggleMenu}
-            className={`${triggerClass} pr-10 ${!selected ? "text-slate-400" : "text-slate-900"} cursor-pointer`}
+            className={`${triggerClass} ${
+              !selected ? "text-slate-400" : "text-slate-900"
+            } cursor-pointer`}
           >
             <span className="truncate">{selected?.label ?? placeholder}</span>
           </button>

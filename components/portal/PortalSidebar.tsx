@@ -219,8 +219,13 @@ export default function PortalSidebar({
 
   return (
     <>
+      {/* Width spacer — keeps main content offset while the real sidebar is fixed. */}
+      <div
+        className={`hidden shrink-0 transition-[width] duration-200 lg:block ${widthClass}`}
+        aria-hidden
+      />
       <aside
-        className={`hidden shrink-0 flex-col border-r border-white/[0.08] bg-slate-900 transition-[width] duration-200 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:self-start ${widthClass}`}
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-white/[0.08] bg-slate-900 transition-[width] duration-200 lg:flex ${widthClass}`}
       >
         <SidebarPanel
           items={items}

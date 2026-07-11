@@ -6,6 +6,7 @@ import {
   SubcategoryFilterSidebar,
 } from "@/components/catalog/marketplace/SubcategoryPillFilter";
 import MarketplaceSearchBar from "@/components/catalog/marketplace/MarketplaceSearchBar";
+import LocationFilterBar from "@/components/location/LocationFilterBar";
 import PortalProductCard from "@/components/portal/PortalProductCard";
 import { portalProductGridClass } from "@/components/portal/portalLayout";
 import CatalogLoadMore from "@/components/catalog/CatalogLoadMore";
@@ -28,6 +29,12 @@ interface CategoryProductsLayoutProps {
   search: string;
   onSearchChange: (v: string) => void;
   searchPlaceholder: string;
+  stateId: string;
+  cityId: string;
+  onStateChange: (stateId: string) => void;
+  onCityChange: (cityId: string) => void;
+  onClearFilters: () => void;
+  clearFiltersDisabled?: boolean;
   products: ApiProductListItem[];
   subcategoryLabel?: string;
   pagination: ApiPagination;
@@ -53,6 +60,12 @@ export default function CategoryProductsLayout({
   search,
   onSearchChange,
   searchPlaceholder,
+  stateId,
+  cityId,
+  onStateChange,
+  onCityChange,
+  onClearFilters,
+  clearFiltersDisabled = false,
   products,
   subcategoryLabel,
   pagination,
@@ -86,21 +99,28 @@ export default function CategoryProductsLayout({
         {showSidebar && <SubcategoryFilterSidebar {...filterProps} />}
 
         <div className="min-w-0 flex-1">
-          <div
-            className={`mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-center lg:justify-between${
-              showSidebar ? " mt-5 lg:mt-0" : ""
-            }`}
-          >
-            <MarketplaceSearchBar
-              size="sm"
-              value={search}
-              onChange={onSearchChange}
-              placeholder={searchPlaceholder}
-              className="max-w-md lg:max-w-sm lg:flex-1"
+          <div className={`mb-6 space-y-3 lg:mb-8${showSidebar ? " mt-5 lg:mt-0" : ""}`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <MarketplaceSearchBar
+                size="sm"
+                value={search}
+                onChange={onSearchChange}
+                placeholder={searchPlaceholder}
+                className="max-w-md lg:max-w-sm lg:flex-1"
+              />
+              {resultsLabel && products.length > 0 && (
+                <p className="shrink-0 text-sm font-medium text-slate-500">{resultsLabel}</p>
+              )}
+            </div>
+            <LocationFilterBar
+              idPrefix="category-products"
+              stateId={stateId}
+              cityId={cityId}
+              onStateChange={onStateChange}
+              onCityChange={onCityChange}
+              onClear={onClearFilters}
+              clearDisabled={clearFiltersDisabled}
             />
-            {resultsLabel && products.length > 0 && (
-              <p className="shrink-0 text-sm font-medium text-slate-500">{resultsLabel}</p>
-            )}
           </div>
 
           {loading && products.length === 0 ? (

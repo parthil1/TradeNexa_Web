@@ -146,6 +146,7 @@ export function normalizeQuotation(raw: unknown): ApiQuotation | null {
 
   const seller = readRecord(item.seller);
   const rfq = readRecord(item.rfq);
+  const buyer = readRecord(item.buyer) ?? readRecord(rfq?.buyer);
   const product = readRecord(item.product) ?? readRecord(rfq?.product);
 
   return {
@@ -178,6 +179,23 @@ export function normalizeQuotation(raw: unknown): ApiQuotation | null {
     seller_name: pickString(item.seller_name) ?? pickString(seller?.name),
     seller_company:
       pickString(item.seller_company) ?? pickString(seller?.company_name) ?? pickString(seller?.company),
+    seller_id:
+      pickNumber(item.seller_id) ??
+      pickNumber(item.seller_user_id) ??
+      pickNumber(item.user_id) ??
+      pickNumber(seller?.id) ??
+      pickNumber(seller?.user_id) ??
+      pickNumber(seller?.seller_id) ??
+      pickNumber(seller?.seller_user_id),
+    buyer_name:
+      pickString(item.buyer_name) ??
+      pickString(buyer?.name) ??
+      pickString(rfq?.buyer_name),
+    buyer_company:
+      pickString(item.buyer_company) ??
+      pickString(buyer?.company_name) ??
+      pickString(buyer?.company) ??
+      pickString(rfq?.buyer_company),
     rfq_title:
       pickString(item.rfq_title) ??
       pickString(rfq?.title) ??
@@ -225,11 +243,11 @@ export function mapQuotationListResult(
   page = 1,
   limit = 10
 ): PaginatedResult<ApiQuotation> {
-  if (Array.isArray(payload)) {
-    const all = payload.map(normalizeQuotation).filter((item): item is ApiQuotation => item !== null);
-    const total = all.length;
-    const pageSize = limit || 10;
-    const currentPage = page || 1;
+  const pageSize = limit > 0 ? limit : 10;
+  const currentPage = page > 0 ? page : 1;
+
+  const paginateLocally = (all: ApiQuotation[], totalOverride?: number): PaginatedResult<ApiQuotation> => {
+    const total = totalOverride != null && totalOverride > 0 ? totalOverride : all.length;
     const start = (currentPage - 1) * pageSize;
     return {
       results: all.slice(start, start + pageSize),
@@ -240,19 +258,118 @@ export function mapQuotationListResult(
         totalPages: total > 0 ? Math.ceil(total / pageSize) : 0,
       },
     };
+  };
+
+  const pickList = (value: unknown): unknown[] | null =>
+    Array.isArray(value) ? value : null;
+
+  if (Array.isArray(payload)) {
+    const all = payload.map(normalizeQuotation).filter((item): item is ApiQuotation => item !== null);
+    return paginateLocally(all);
   }
 
-  if (payload && typeof payload === "object") {
-    const record = payload as Record<string, unknown>;
-    if (Array.isArray(record.quotations)) {
-      return mapQuotationListResult(record.quotations, page, limit);
-    }
-    if (Array.isArray(record.items)) {
-      return mapQuotationListResult(record.items, page, limit);
-    }
+  if (!payload || typeof payload !== "object") {
+    return paginateLocally([]);
   }
 
-  return unwrapRfqPaginated(payload, normalizeQuotation, page, limit);
+  const record = payload as Record<string, unknown>;
+  const nestedList =
+    pickList(record.quotations) ??
+    pickList(record.items) ??
+    pickList(record.data) ??
+    pickList(record.results);
+
+  const meta =
+    (record.pagination && typeof record.pagination === "object"
+      ? (record.pagination as Record<string, unknown>)
+      : null) ??
+    (record.meta && typeof record.meta === "object"
+      ? (record.meta as Record<string, unknown>)
+      : null);
+
+  const metaTotal =
+    pickNumber(meta?.total) ??
+    pickNumber(meta?.count) ??
+    pickNumber(record.total) ??
+    pickNumber(record.count);
+  const metaPage =
+    pickNumber(meta?.page) ??
+    pickNumber(meta?.current_page) ??
+    pickNumber(record.page) ??
+    currentPage;
+  const metaLimit =
+    pickNumber(meta?.limit) ??
+    pickNumber(meta?.per_page) ??
+    pickNumber(meta?.page_size) ??
+    pickNumber(record.limit) ??
+    pageSize;
+  const metaTotalPages =
+    pickNumber(meta?.totalPages) ??
+    pickNumber(meta?.total_pages) ??
+    pickNumber(record.totalPages) ??
+    pickNumber(record.total_pages);
+
+  if (nestedList) {
+    const all = nestedList
+      .map(normalizeQuotation)
+      .filter((item): item is ApiQuotation => item !== null);
+
+    // Server already returned a single page (count <= limit) with total metadata.
+    const serverPaged =
+      metaTotal != null &&
+      metaTotal > all.length &&
+      all.length <= pageSize;
+
+    if (serverPaged) {
+      const total = metaTotal;
+      const totalPages =
+        metaTotalPages != null && metaTotalPages > 0
+          ? metaTotalPages
+          : Math.ceil(total / (metaLimit || pageSize));
+      return {
+        results: all,
+        pagination: {
+          total,
+          page: metaPage || currentPage,
+          limit: metaLimit || pageSize,
+          totalPages,
+        },
+      };
+    }
+
+    // Full list (or no usable server paging) — slice on the client.
+    return paginateLocally(all, metaTotal ?? all.length);
+  }
+
+  const unwrapped = unwrapRfqPaginated(payload, normalizeQuotation, currentPage, pageSize);
+  if (
+    unwrapped.results.length > pageSize ||
+    (unwrapped.pagination.totalPages <= 1 &&
+      unwrapped.pagination.total > pageSize &&
+      unwrapped.results.length > pageSize)
+  ) {
+    return paginateLocally(unwrapped.results, unwrapped.pagination.total);
+  }
+
+  return {
+    results: unwrapped.results,
+    pagination: {
+      total: unwrapped.pagination.total || unwrapped.results.length,
+      page: unwrapped.pagination.page || currentPage,
+      limit: unwrapped.pagination.limit || pageSize,
+      totalPages:
+        unwrapped.pagination.totalPages > 0
+          ? unwrapped.pagination.totalPages
+          : unwrapped.results.length > 0
+            ? Math.max(
+                1,
+                Math.ceil(
+                  (unwrapped.pagination.total || unwrapped.results.length) / pageSize
+                )
+              )
+            : 0,
+    },
+  };
 }
 
 export function formatRfqStatus(status?: string | null): string {

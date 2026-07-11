@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FileText, Loader2, Plus } from "lucide-react";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
@@ -9,6 +9,7 @@ import PortalPagination from "@/components/portal/PortalPagination";
 import RfqListCard from "@/components/rfq/RfqListCard";
 import RfqListSidebar from "@/components/rfq/RfqListSidebar";
 import RfqListToolbar from "@/components/rfq/RfqListToolbar";
+import { useChat } from "@/context/ChatContext";
 import { fetchMyRfqs } from "@/services/rfqService";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -22,6 +23,11 @@ export default function BuyerInquiriesPage() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const { syncConversationsUnread } = useChat();
+
+  useEffect(() => {
+    void syncConversationsUnread();
+  }, [syncConversationsUnread]);
 
   const fetchPage = useCallback(
     (page: number) =>

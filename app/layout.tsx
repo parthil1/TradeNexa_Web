@@ -5,6 +5,7 @@ import { AppProvider } from "@/app/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ActiveRoleProvider } from "@/context/ActiveRoleContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { ChatProvider } from "@/context/ChatContext";
 import AppChrome from "@/components/layout/AppChrome";
 import { Toaster } from "react-hot-toast";
 import { TOAST_DURATION_MS } from "@/utils/toast";
@@ -39,9 +40,11 @@ export default function RootLayout({
         <AuthProvider>
           <ActiveRoleProvider>
             <WishlistProvider>
-              <AppProvider>
-                <AppChrome>{children}</AppChrome>
-              </AppProvider>
+              <ChatProvider>
+                <AppProvider>
+                  <AppChrome>{children}</AppChrome>
+                </AppProvider>
+              </ChatProvider>
             </WishlistProvider>
           </ActiveRoleProvider>
           <Toaster position="top-center" toastOptions={{ duration: TOAST_DURATION_MS }} />

@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
+import ConversationBadge from "@/components/chat/ConversationBadge";
 
 export interface PortalNavItem {
   label: string;
@@ -41,9 +42,10 @@ export default function PortalBottomNav({ items }: PortalBottomNavProps) {
               >
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 2} />
                 {item.badge ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-portal-seller px-1 text-[9px] font-bold text-white">
-                    {item.badge}
-                  </span>
+                  <ConversationBadge
+                    count={item.badge}
+                    className="absolute -right-0.5 -top-0.5"
+                  />
                 ) : null}
               </span>
               <span className="truncate">{item.label}</span>

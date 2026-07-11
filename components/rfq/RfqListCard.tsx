@@ -1,5 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Calendar, Clock, MapPin, MessageSquare, Package, Users } from "lucide-react";
+import ConversationBadge, {
+  formatChatBadgeCount,
+  useRfqChatUnread,
+} from "@/components/chat/ConversationBadge";
 import type { ApiRfqListItem } from "@/types/rfq";
 import {
   formatRfqDate,
@@ -23,6 +29,7 @@ interface RfqListCardProps {
 
 export default function RfqListCard({ rfq, href, variant = "buyer", meta }: RfqListCardProps) {
   const isSeller = variant === "seller";
+  const chatUnread = useRfqChatUnread(rfq.id);
   const quantity = formatRfqQuantity(rfq);
   const location = formatRfqLocation(rfq);
   const deadlineUrgency = formatRfqDeadlineUrgency(rfq.quotation_deadline);
@@ -39,12 +46,22 @@ export default function RfqListCard({ rfq, href, variant = "buyer", meta }: RfqL
   const hoverBorder = "hover:border-[#1565C0]/40";
   const hoverTitle = "group-hover:text-[#1565C0]";
   const ctaClass = "bg-[#1565C0] hover:bg-[#1255A8]";
+  const unreadLabel =
+    chatUnread > 0
+      ? `${formatChatBadgeCount(chatUnread)} unread message${chatUnread === 1 ? "" : "s"}`
+      : null;
 
   return (
     <article
       className={`group flex h-full flex-col rounded-2xl border border-[#E8ECF0] bg-white transition hover:shadow-md ${hoverBorder}`}
     >
-      <Link href={href} className="flex flex-1 cursor-pointer flex-col p-4 sm:p-5">
+      <Link
+        href={href}
+        aria-label={
+          unreadLabel ? `${rfq.title}, ${unreadLabel}` : rfq.title
+        }
+        className="flex flex-1 cursor-pointer flex-col p-4 sm:p-5"
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -54,6 +71,12 @@ export default function RfqListCard({ rfq, href, variant = "buyer", meta }: RfqL
               {isNew ? (
                 <span className="shrink-0 rounded-full bg-[#1565C0] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                   New
+                </span>
+              ) : null}
+              {chatUnread > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F8EF] px-2 py-0.5 text-[10px] font-bold text-[#128C7E]">
+                  <MessageSquare className="h-3 w-3" />
+                  {formatChatBadgeCount(chatUnread)} unread
                 </span>
               ) : null}
             </div>
@@ -140,10 +163,17 @@ export default function RfqListCard({ rfq, href, variant = "buyer", meta }: RfqL
       <div className="border-t border-[#F0F2F5] px-4 pb-4 pt-3 sm:px-5">
         <Link
           href={href}
-          className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition active:scale-[0.98] ${ctaClass}`}
+          className={`relative inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition active:scale-[0.98] ${ctaClass}`}
         >
           {isSeller ? "View & Quote" : "View RFQ & Quotes"}
           <ArrowRight className="h-4 w-4" />
+          {chatUnread > 0 ? (
+            <ConversationBadge
+              count={chatUnread}
+              size="md"
+              className="absolute -right-1.5 -top-1.5 ring-2 ring-white"
+            />
+          ) : null}
         </Link>
       </div>
     </article>

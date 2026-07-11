@@ -18,4 +18,9 @@ export const API_ENDPOINTS = {
   RFQS_MY: "/rfqs/my",
   RFQS_SELLER_FEED: "/rfqs/seller/feed",
   RFQS_SELLER_QUOTATIONS: "/rfqs/seller/quotations",
+  LOCATIONS_STATES: "/locations/states",
+  LOCATIONS_CITIES: "/locations/cities",
+  CHATS_CONVERSATIONS: "/chats/conversations",
+  CHATS_UNREAD_SUMMARY: "/chats/unread-summary",
+  CHATS_RFQ_CONVERSATIONS: "/chats/rfqs",
 } as const;

@@ -30,11 +30,17 @@ function buildParams(params?: CatalogListParams | ProductListParams | MyProductL
   if (params && "subcategory_id" in params && params.subcategory_id) {
     query.subcategory_id = params.subcategory_id;
   }
+  if (params && "brand_id" in params && params.brand_id) {
+    query.brand_id = params.brand_id;
+  }
+  if (params && "city_id" in params && params.city_id) {
+    query.city_id = params.city_id;
+  }
   if (params && "is_trending" in params && params.is_trending !== undefined) {
     query.is_trending = params.is_trending;
   }
   const brandId = (params as MyProductListParams | undefined)?.brand_id;
-  if (brandId) query.brand_id = brandId;
+  if (brandId && !query.brand_id) query.brand_id = brandId;
   return query;
 }
 
@@ -213,7 +219,7 @@ export async function fetchMyProducts(
 }
 
 export async function fetchTrendingProducts(
-  params?: CatalogListParams
+  params?: CatalogListParams & { city_id?: number }
 ): Promise<PaginatedResult<ApiProductListItem>> {
   const query: Record<string, string | number> = {
     page: params?.page ?? 1,
@@ -222,6 +228,7 @@ export async function fetchTrendingProducts(
     sort_order: params?.sort_order ?? "asc",
   };
   if (params?.search?.trim()) query.search = params.search.trim();
+  if (params?.city_id) query.city_id = params.city_id;
 
   const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/trending`, { params: query });
   const data = unwrapApiPayload<unknown>(response.data);

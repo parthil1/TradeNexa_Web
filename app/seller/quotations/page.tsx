@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, MessageSquare } from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
@@ -9,13 +9,19 @@ import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import PortalPagination from "@/components/portal/PortalPagination";
 import RfqListToolbar from "@/components/rfq/RfqListToolbar";
 import QuotationCard from "@/components/rfq/QuotationCard";
+import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import { ReviseQuotationFormModal } from "@/components/rfq/ReviseQuotationForm";
 import { UpdateQuotationFormModal } from "@/components/rfq/UpdateQuotationForm";
+import { useChat } from "@/context/ChatContext";
 import { fetchSellerQuotations, withdrawQuotation } from "@/services/rfqService";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { ApiQuotation } from "@/types/rfq";
-import { canSellerUpdateQuotation, canSellerWithdrawQuotation, isQuotationRevisionPending } from "@/utils/rfqHelpers";
+import {
+  canSellerUpdateQuotation,
+  canSellerWithdrawQuotation,
+  isQuotationRevisionPending,
+} from "@/utils/rfqHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 
 const PAGE_SIZE = 5;
@@ -24,8 +30,10 @@ export default function SellerQuotationsPage() {
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
   const [revisingQuotation, setRevisingQuotation] = useState<ApiQuotation | null>(null);
   const [updatingQuotation, setUpdatingQuotation] = useState<ApiQuotation | null>(null);
+  const [chatTarget, setChatTarget] = useState<ApiQuotation | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const { hydrateRfqConversations } = useChat();
 
   const fetchPage = useCallback(
     (page: number) =>
@@ -45,6 +53,19 @@ export default function SellerQuotationsPage() {
   });
 
   const hasSearch = debouncedSearch.trim().length > 0;
+
+  useEffect(() => {
+    const rfqIds = [
+      ...new Set(
+        items
+          .map((q) => q.rfq_id)
+          .filter((id): id is number => typeof id === "number" && id > 0)
+      ),
+    ];
+    for (const rfqId of rfqIds) {
+      void hydrateRfqConversations(rfqId);
+    }
+  }, [items, hydrateRfqConversations]);
 
   async function handleWithdraw(quotationId: number) {
     setWithdrawingId(quotationId);
@@ -118,15 +139,31 @@ export default function SellerQuotationsPage() {
       ) : (
         <>
           <div className="space-y-3">
-            {items.map((quotation) => (
+            {items.map((quotation) => {
+              const revisionPending = isQuotationRevisionPending(
+                quotation,
+                quotation.rfq_status
+              );
+              const canUpdate =
+                !revisionPending && canSellerUpdateQuotation(quotation.status);
+              const canWithdraw = canSellerWithdrawQuotation(quotation.status);
+              const hasActions = revisionPending || canUpdate || canWithdraw;
+
+              return (
               <QuotationCard
                 key={quotation.id}
                 quotation={quotation}
                 showProductName
                 rfqStatus={quotation.rfq_status}
+                href={quotation.rfq_id ? `/seller/lead/${quotation.rfq_id}` : undefined}
+                chatRfqId={quotation.rfq_id}
+                onChatClick={
+                  quotation.rfq_id ? () => setChatTarget(quotation) : undefined
+                }
                 actions={
+                  hasActions ? (
                   <>
-                    {isQuotationRevisionPending(quotation, quotation.rfq_status) ? (
+                    {revisionPending ? (
                       <button
                         type="button"
                         onClick={() => setRevisingQuotation(quotation)}
@@ -134,7 +171,7 @@ export default function SellerQuotationsPage() {
                       >
                         Revise quote
                       </button>
-                    ) : canSellerUpdateQuotation(quotation.status) ? (
+                    ) : canUpdate ? (
                       <button
                         type="button"
                         onClick={() => setUpdatingQuotation(quotation)}
@@ -143,15 +180,7 @@ export default function SellerQuotationsPage() {
                         Update quote
                       </button>
                     ) : null}
-                    {quotation.rfq_id ? (
-                      <Link
-                        href={`/seller/lead/${quotation.rfq_id}`}
-                        className="cursor-pointer rounded-lg border border-[#E0E6ED] px-3 py-1.5 text-xs font-bold text-[#546E7A]"
-                      >
-                        View RFQ
-                      </Link>
-                    ) : null}
-                    {canSellerWithdrawQuotation(quotation.status) ? (
+                    {canWithdraw ? (
                       <button
                         type="button"
                         disabled={withdrawingId === quotation.id}
@@ -162,18 +191,41 @@ export default function SellerQuotationsPage() {
                       </button>
                     ) : null}
                   </>
+                  ) : undefined
                 }
               />
-            ))}
+              );
+            })}
           </div>
           <PortalPagination
             pagination={pagination}
             onPageChange={goToPage}
             loading={loading}
             itemLabel="quotations"
+            compact
           />
         </>
       )}
+
+      <ChatSidePanel
+        open={chatTarget !== null}
+        onClose={() => setChatTarget(null)}
+        title="Chat with Buyer"
+        rfqId={chatTarget?.rfq_id ?? 0}
+        role="seller"
+        rfqTitle={
+          chatTarget?.rfq_title?.trim() ||
+          chatTarget?.product_name?.trim() ||
+          null
+        }
+        rfqStatus={chatTarget?.rfq_status}
+        otherPartyName={
+          chatTarget?.buyer_company?.trim() ||
+          chatTarget?.buyer_name?.trim() ||
+          null
+        }
+        quotations={chatTarget ? [chatTarget] : []}
+      />
 
       {revisingQuotation ? (
         <ReviseQuotationFormModal
