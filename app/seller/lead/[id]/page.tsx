@@ -279,7 +279,7 @@ export default function SellerLeadDetailPage() {
                   >
                     View in My Quotations
                   </Link>
-                  {canSellerWithdrawQuotation(existingQuotation.status) ? (
+                  {canSellerWithdrawQuotation(existingQuotation.status, rfq.status) ? (
                     <button
                       type="button"
                       disabled={withdrawing}

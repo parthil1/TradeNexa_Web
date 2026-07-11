@@ -235,7 +235,9 @@ export default function BuyerRfqDetailPage() {
     !isDraft && !status.includes("CANCEL") && !status.includes("CLOSE");
   const quantity = formatRfqQuantity(rfq);
   const totalQuotes = Math.max(quotesPagination.total, rfq.quotations_count ?? 0, quotations.length);
-  const actionableCount = quotations.filter((q) => isQuotationActionableForBuyer(q.status)).length;
+  const actionableCount = quotations.filter((q) =>
+    isQuotationActionableForBuyer(q.status, rfq.status)
+  ).length;
   const quotesMismatch = !quotesLoading && totalQuotes > 0 && quotations.length === 0;
 
   return (
@@ -416,7 +418,7 @@ export default function BuyerRfqDetailPage() {
                     const awarded = isRfqAwarded(rfq.status);
                     const accepted = isQuotationAccepted(quotation.status);
                     const showActions =
-                      !awarded && isQuotationActionableForBuyer(quotation.status);
+                      !awarded && isQuotationActionableForBuyer(quotation.status, rfq.status);
 
                     return (
                   <QuotationCard

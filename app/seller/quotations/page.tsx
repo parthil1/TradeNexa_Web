@@ -146,7 +146,10 @@ export default function SellerQuotationsPage() {
               );
               const canUpdate =
                 !revisionPending && canSellerUpdateQuotation(quotation.status);
-              const canWithdraw = canSellerWithdrawQuotation(quotation.status);
+              const canWithdraw = canSellerWithdrawQuotation(
+                quotation.status,
+                quotation.rfq_status
+              );
               const hasActions = revisionPending || canUpdate || canWithdraw;
 
               return (

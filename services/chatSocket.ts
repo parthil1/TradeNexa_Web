@@ -110,6 +110,7 @@ function handleAuthFailure() {
 function rejoinRooms(s: Socket) {
   joinedConversationIds.forEach((conversationId) => {
     s.emit("conversation:join", { conversation_id: conversationId });
+    s.emit("presence:subscribe", { conversation_id: conversationId });
   });
 }
 
@@ -228,19 +229,58 @@ export function joinConversation(conversationId: number) {
   joinedConversationIds.add(conversationId);
   const s = connectChatSocket();
   emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
+  // Realtime presence subscription (ignored if backend doesn't support it).
+  emitWhenConnected(s, "presence:subscribe", { conversation_id: conversationId });
 }
 
 export function leaveConversation(conversationId: number) {
   joinedConversationIds.delete(conversationId);
   if (!socket?.connected) return;
+  socket.emit("presence:unsubscribe", { conversation_id: conversationId });
   socket.emit("conversation:leave", { conversation_id: conversationId });
 }
 
+/** Emit `typing:indicator` (Postman Buyer/Seller Chat listen event). */
 export function emitTypingIndicator(conversationId: number, isTyping: boolean) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
-  const s = getChatSocket();
-  if (!s.connected) return;
-  s.emit("typing:indicator", { conversation_id: conversationId, is_typing: isTyping });
+  const s = connectChatSocket();
+  emitWhenConnected(s, "typing:indicator", {
+    conversation_id: conversationId,
+    is_typing: isTyping,
+  });
+}
+
+/** Parse inbound `typing:indicator` payloads. */
+export function parseTypingPayload(
+  payload: unknown
+): { conversationId: number; userId: number | null; isTyping: boolean } | null {
+  const data = unwrapSocketPayload(payload);
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  const conversationId = Number(
+    record.conversation_id ?? record.conversationId ?? record.room_id
+  );
+  if (!Number.isFinite(conversationId) || conversationId <= 0) return null;
+
+  const rawUser = record.user_id ?? record.sender_id ?? record.typer_id;
+  const userIdNum = Number(rawUser);
+  const userId = Number.isFinite(userIdNum) && userIdNum > 0 ? userIdNum : null;
+
+  let isTyping: boolean;
+  if (typeof record.is_typing === "boolean") isTyping = record.is_typing;
+  else if (typeof record.typing === "boolean") isTyping = record.typing;
+  else if (typeof record.isTyping === "boolean") isTyping = record.isTyping;
+  else if (typeof record.status === "string") {
+    const value = record.status.toLowerCase();
+    if (value === "typing" || value === "start") isTyping = true;
+    else if (value === "stop" || value === "idle") isTyping = false;
+    else return null;
+  } else {
+    // Event without an explicit flag usually means "started typing".
+    isTyping = true;
+  }
+
+  return { conversationId, userId, isTyping };
 }
 
 /** Best-effort unwrap of common socket event envelopes. */
@@ -254,7 +294,13 @@ export function unwrapSocketPayload(payload: unknown): unknown {
   }
   if (record.data && typeof record.data === "object") {
     const data = record.data as Record<string, unknown>;
-    if ("id" in data || "conversation_id" in data || "message" in data) {
+    if (
+      "id" in data ||
+      "conversation_id" in data ||
+      "message" in data ||
+      "user_id" in data ||
+      "is_online" in data
+    ) {
       return unwrapSocketPayload(record.data);
     }
   }
@@ -262,4 +308,38 @@ export function unwrapSocketPayload(payload: unknown): unknown {
     return unwrapSocketPayload(record.payload);
   }
   return payload;
+}
+
+/** Parse presence from socket realtime events (`presence:update`, `user:online`, etc.). */
+export function parsePresencePayload(
+  payload: unknown,
+  forcedOnline?: boolean
+): { userId: number; online: boolean } | null {
+  const data = unwrapSocketPayload(payload);
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  const userId = Number(
+    record.user_id ?? record.id ?? record.other_user_id ?? record.participant_id ?? record.sender_id
+  );
+  if (!Number.isFinite(userId) || userId <= 0) return null;
+
+  if (typeof forcedOnline === "boolean") {
+    return { userId, online: forcedOnline };
+  }
+
+  let online: boolean | null = null;
+  if (typeof record.is_online === "boolean") online = record.is_online;
+  else if (typeof record.online === "boolean") online = record.online;
+  else if (typeof record.presence === "string") {
+    const value = record.presence.toLowerCase();
+    if (value === "online" || value === "active") online = true;
+    if (value === "offline" || value === "away" || value === "inactive") online = false;
+  } else if (typeof record.status === "string") {
+    const value = record.status.toLowerCase();
+    if (value === "online" || value === "active") online = true;
+    if (value === "offline" || value === "away" || value === "inactive") online = false;
+  }
+
+  if (online == null) return null;
+  return { userId, online };
 }

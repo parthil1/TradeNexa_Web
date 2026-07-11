@@ -332,6 +332,13 @@ export default function ChatPanel({
   ]);
 
   useEffect(() => {
+    if (!conversationId) return;
+    return () => {
+      setTyping(conversationId, false);
+    };
+  }, [conversationId, setTyping]);
+
+  useEffect(() => {
     lastMarkedReadIdRef.current = null;
     initialScrollDoneRef.current = false;
     stickToBottom.current = true;
@@ -659,7 +666,20 @@ export default function ChatPanel({
               </React.Fragment>
             ))}
             {isTyping ? (
-              <p className="mt-2 pl-9 text-xs font-medium text-[#90A4AE]">Typing...</p>
+              <div
+                className="mt-2 flex items-end gap-2 pl-1"
+                aria-live="polite"
+                aria-label="Typing"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ECEFF1] text-[10px] font-bold text-[#546E7A]">
+                  {getInitials(headerName)}
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-2xl rounded-bl-md bg-[#F4F6F9] px-3 py-2.5">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#90A4AE] [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#90A4AE] [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#90A4AE]" />
+                </div>
+              </div>
             ) : null}
             <div ref={bottomRef} />
           </>
@@ -758,7 +778,10 @@ export default function ChatPanel({
               disabled={disconnected}
               onChange={(e) => {
                 setDraft(e.target.value);
-                if (conversationId) setTyping(conversationId, e.target.value.length > 0);
+                if (conversationId) setTyping(conversationId, e.target.value.trim().length > 0);
+              }}
+              onBlur={() => {
+                if (conversationId) setTyping(conversationId, false);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {

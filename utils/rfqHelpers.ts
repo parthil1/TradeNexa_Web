@@ -576,14 +576,33 @@ export function getSellerRevisionStatusHint(
   return "The buyer requested changes to your quotation.";
 }
 
-/** Buyer can accept/reject/request revision only while a quote is awaiting decision. */
-export function isQuotationActionableForBuyer(status?: string | null): boolean {
+/** Buyer can accept/reject/request revision while a quote is awaiting decision or in negotiation. */
+export function isQuotationActionableForBuyer(
+  status?: string | null,
+  rfqStatus?: string | null
+): boolean {
   const value = (status ?? "").toUpperCase();
+  const rfq = (rfqStatus ?? "").toUpperCase();
+
   if (value.includes("ACCEPT") || value.includes("REJECT") || value.includes("WITHDRAW")) {
     return false;
   }
-  if (value.includes("REVISION")) return false;
-  return value.includes("PENDING") || value.includes("SUBMIT");
+
+  // Quote-level negotiation / revision still allows accept or reject.
+  if (value.includes("NEGOTIAT") || value.includes("REVISION")) {
+    return true;
+  }
+
+  if (value.includes("PENDING") || value.includes("SUBMIT")) {
+    return true;
+  }
+
+  // RFQ in negotiation — buyer can still decide on open quotes.
+  if (rfq.includes("NEGOTIAT")) {
+    return true;
+  }
+
+  return false;
 }
 
 /** RFQ is no longer open for new quotes or edits. */
@@ -704,8 +723,12 @@ export function canSellerUpdateQuotation(status?: string | null): boolean {
   return value.includes("PENDING") || value.includes("SUBMIT");
 }
 
-/** Seller can withdraw only while a quote is still awaiting buyer decision. */
-export function canSellerWithdrawQuotation(status?: string | null): boolean {
+/** Seller can withdraw only while a quote is still awaiting buyer decision (not after RFQ is awarded). */
+export function canSellerWithdrawQuotation(
+  status?: string | null,
+  rfqStatus?: string | null
+): boolean {
+  if (isRfqAwarded(rfqStatus) || isQuotationAccepted(status)) return false;
   return canSellerUpdateQuotation(status);
 }
 

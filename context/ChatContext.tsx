@@ -18,6 +18,8 @@ import {
   emitTypingIndicator,
   joinConversation,
   leaveConversation,
+  parsePresencePayload,
+  parseTypingPayload,
   subscribeChatSocketStatus,
   unwrapSocketPayload,
   type ChatSocketStatus,
@@ -166,6 +168,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
   const activeIdRef = useRef<number | null>(null);
   const typingTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const typingActiveRef = useRef<Record<number, boolean>>({});
+  const typingLastEmitRef = useRef<Record<number, number>>({});
+  const remoteTypingTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const conversationsMetaRef = useRef<Record<number, ApiChatConversation>>({});
   const unreadSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** How message pages are numbered for each conversation after the initial fetch. */
@@ -304,6 +309,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         ]),
       }));
 
+      // New message means the other party stopped typing.
+      if (!owned.is_mine) {
+        if (remoteTypingTimers.current[owned.conversation_id]) {
+          clearTimeout(remoteTypingTimers.current[owned.conversation_id]);
+          delete remoteTypingTimers.current[owned.conversation_id];
+        }
+        setTypingByConversation((prev) =>
+          prev[owned.conversation_id] ? { ...prev, [owned.conversation_id]: false } : prev
+        );
+      }
+
       // Only person messages bump unread — system/status events do not.
       const isIncomingUnread =
         activeIdRef.current !== owned.conversation_id &&
@@ -363,31 +379,36 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
 
     const onTyping = (payload: unknown) => {
-      const data = unwrapSocketPayload(payload);
-      if (!data || typeof data !== "object") return;
-      const record = data as Record<string, unknown>;
-      const conversationId = Number(record.conversation_id);
-      if (!Number.isFinite(conversationId)) return;
+      const parsed = parseTypingPayload(payload);
+      if (!parsed) return;
 
       // Ignore our own typing echoes when user_id is present.
-      const typerId = Number(record.user_id ?? record.sender_id);
       if (
-        Number.isFinite(typerId) &&
+        parsed.userId != null &&
         currentUserIdRef.current != null &&
-        typerId === currentUserIdRef.current
+        parsed.userId === currentUserIdRef.current
       ) {
         return;
       }
 
-      const isTyping = Boolean(record.is_typing ?? record.typing);
-      setTypingByConversation((prev) => ({ ...prev, [conversationId]: isTyping }));
+      const { conversationId, isTyping } = parsed;
+      setTypingByConversation((prev) => {
+        if (prev[conversationId] === isTyping) return prev;
+        return { ...prev, [conversationId]: isTyping };
+      });
+
+      if (remoteTypingTimers.current[conversationId]) {
+        clearTimeout(remoteTypingTimers.current[conversationId]);
+        delete remoteTypingTimers.current[conversationId];
+      }
 
       if (isTyping) {
-        window.setTimeout(() => {
+        remoteTypingTimers.current[conversationId] = setTimeout(() => {
           setTypingByConversation((prev) =>
             prev[conversationId] ? { ...prev, [conversationId]: false } : prev
           );
-        }, 3000);
+          delete remoteTypingTimers.current[conversationId];
+        }, 3500);
       }
     };
 
@@ -415,30 +436,29 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       });
     };
 
+    const applyPresence = (userId: number, online: boolean) => {
+      setPresenceByUserId((prev) => {
+        if (prev[userId] === online) return prev;
+        return { ...prev, [userId]: online };
+      });
+    };
+
     const onPresence = (payload: unknown) => {
-      const data = unwrapSocketPayload(payload);
-      if (!data || typeof data !== "object") return;
-      const record = data as Record<string, unknown>;
-      const userId = Number(
-        record.user_id ?? record.id ?? record.other_user_id ?? record.participant_id
-      );
-      if (!Number.isFinite(userId) || userId <= 0) return;
+      const parsed = parsePresencePayload(payload);
+      if (!parsed) return;
+      applyPresence(parsed.userId, parsed.online);
+    };
 
-      let online: boolean | null = null;
-      if (typeof record.is_online === "boolean") online = record.is_online;
-      else if (typeof record.online === "boolean") online = record.online;
-      else if (typeof record.presence === "string") {
-        const value = record.presence.toLowerCase();
-        if (value === "online" || value === "active") online = true;
-        if (value === "offline" || value === "away") online = false;
-      } else if (typeof record.status === "string") {
-        const value = record.status.toLowerCase();
-        if (value === "online" || value === "active") online = true;
-        if (value === "offline" || value === "away") online = false;
-      }
-      if (online == null) return;
+    const onUserOnline = (payload: unknown) => {
+      const parsed = parsePresencePayload(payload, true);
+      if (!parsed) return;
+      applyPresence(parsed.userId, true);
+    };
 
-      setPresenceByUserId((prev) => ({ ...prev, [userId]: online }));
+    const onUserOffline = (payload: unknown) => {
+      const parsed = parsePresencePayload(payload, false);
+      if (!parsed) return;
+      applyPresence(parsed.userId, false);
     };
 
     const seedPresenceFromConversation = (conversation: {
@@ -496,12 +516,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (process.env.NODE_ENV === "development") {
         console.info("[chat-socket] conversation:join ack", payload);
       }
+      // Some backends include participant presence in the join ack.
+      const data = unwrapSocketPayload(payload);
+      if (data && typeof data === "object") {
+        const record = data as Record<string, unknown>;
+        const conversation = normalizeChatConversation(record.conversation ?? record);
+        if (conversation) seedPresenceFromConversation(conversation);
+        const parsed = parsePresencePayload(record);
+        if (parsed) applyPresence(parsed.userId, parsed.online);
+      }
     };
 
     s.on("message:new", onMessageNew);
     s.on("typing:indicator", onTyping);
     s.on("message:read", onMessageRead);
+    // Realtime presence socket events (backend may emit any of these)
     s.on("presence:update", onPresence);
+    s.on("presence", onPresence);
+    s.on("user:presence", onPresence);
+    s.on("user:online", onUserOnline);
+    s.on("user:offline", onUserOffline);
     s.on("conversation:updated", onConversationUpdated);
     s.on("chat:error", onChatError);
     s.on("conversation:join", onJoinAck);
@@ -512,6 +546,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       s.off("typing:indicator", onTyping);
       s.off("message:read", onMessageRead);
       s.off("presence:update", onPresence);
+      s.off("presence", onPresence);
+      s.off("user:presence", onPresence);
+      s.off("user:online", onUserOnline);
+      s.off("user:offline", onUserOffline);
       s.off("conversation:updated", onConversationUpdated);
       s.off("chat:error", onChatError);
       s.off("conversation:join", onJoinAck);
@@ -815,15 +853,38 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 
   const setTyping = useCallback((conversationId: number, isTyping: boolean) => {
-    emitTypingIndicator(conversationId, isTyping);
+    if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+
     if (typingTimers.current[conversationId]) {
       clearTimeout(typingTimers.current[conversationId]);
+      delete typingTimers.current[conversationId];
     }
-    if (isTyping) {
-      typingTimers.current[conversationId] = setTimeout(() => {
+
+    if (!isTyping) {
+      if (typingActiveRef.current[conversationId]) {
         emitTypingIndicator(conversationId, false);
-      }, 2000);
+        typingActiveRef.current[conversationId] = false;
+        delete typingLastEmitRef.current[conversationId];
+      }
+      return;
     }
+
+    const now = Date.now();
+    const lastEmit = typingLastEmitRef.current[conversationId] ?? 0;
+    const alreadyActive = Boolean(typingActiveRef.current[conversationId]);
+    // Emit start immediately; refresh every ~1.5s so the peer's auto-clear stays alive.
+    if (!alreadyActive || now - lastEmit >= 1500) {
+      emitTypingIndicator(conversationId, true);
+      typingActiveRef.current[conversationId] = true;
+      typingLastEmitRef.current[conversationId] = now;
+    }
+
+    typingTimers.current[conversationId] = setTimeout(() => {
+      emitTypingIndicator(conversationId, false);
+      typingActiveRef.current[conversationId] = false;
+      delete typingLastEmitRef.current[conversationId];
+      delete typingTimers.current[conversationId];
+    }, 2000);
   }, []);
 
   const markRead = useCallback(
