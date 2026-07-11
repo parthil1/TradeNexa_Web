@@ -3,18 +3,22 @@
 import { io, type Socket } from "socket.io-client";
 import axios from "axios";
 import { API_BASE_URL, BACKEND_ORIGIN } from "@/config/api";
+import { CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { getAccessToken, getRefreshToken, unwrapApiPayload } from "@/utils/authHelpers";
 
 export type ChatSocketStatus = "disconnected" | "connecting" | "connected" | "reconnecting";
 
 type StatusListener = (status: ChatSocketStatus) => void;
+type ChatEventHandler = (...args: unknown[]) => void;
 
 let socket: Socket | null = null;
 let status: ChatSocketStatus = "disconnected";
 const statusListeners = new Set<StatusListener>();
 /** Conversation rooms this client should stay in across reconnects. */
 const joinedConversationIds = new Set<number>();
+/** App-level listeners that survive socket instance recreation. */
+const eventHub = new Map<string, Set<ChatEventHandler>>();
 let refreshInFlight: Promise<string> | null = null;
 let authFailureHandled = false;
 
@@ -32,6 +36,57 @@ export function subscribeChatSocketStatus(listener: StatusListener): () => void 
   statusListeners.add(listener);
   listener(status);
   return () => statusListeners.delete(listener);
+}
+
+/**
+ * Subscribe to a Socket.IO event via a hub that stays attached across reconnects
+ * and React effect remounts.
+ */
+export function subscribeChatEvent(event: string, handler: ChatEventHandler): () => void {
+  let handlers = eventHub.get(event);
+  if (!handlers) {
+    handlers = new Set();
+    eventHub.set(event, handlers);
+  }
+  handlers.add(handler);
+  return () => {
+    handlers?.delete(handler);
+  };
+}
+
+function dispatchChatEvent(event: string, args: unknown[]) {
+  const handlers = eventHub.get(event);
+  if (!handlers || handlers.size === 0) return;
+  handlers.forEach((handler) => {
+    try {
+      handler(...args);
+    } catch (err) {
+      console.error(`[chat-socket] handler error for ${event}`, err);
+    }
+  });
+}
+
+/** Bridge every Postman Buyer + Seller listen event onto the live socket. */
+function bindSocketEventBridges(s: Socket) {
+  for (const event of CHAT_SOCKET_LISTEN_EVENTS) {
+    s.on(event, (...args: unknown[]) => {
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[chat-socket] recv ${event}`, ...args);
+      }
+      dispatchChatEvent(event, args);
+    });
+  }
+
+  // Catch mistyped / alternate typing event names from the backend.
+  s.onAny((event, ...args) => {
+    const name = String(event);
+    if (!name.toLowerCase().includes("typing")) return;
+    if (name === "typing:indicator") return; // already bridged
+    if (process.env.NODE_ENV === "development") {
+      console.info("[chat-socket] onAny typing-related", name, args);
+    }
+    dispatchChatEvent("typing:indicator", args);
+  });
 }
 
 function getStoredAccessToken(): string | null {
@@ -153,10 +208,15 @@ export function getChatSocket(): Socket {
     },
   });
 
+  bindSocketEventBridges(socket);
+
   socket.on("connect", () => {
     authFailureHandled = false;
     setStatus("connected");
     rejoinRooms(socket!);
+    if (process.env.NODE_ENV === "development") {
+      console.info("[chat-socket] connected", socket!.id);
+    }
   });
 
   socket.on("disconnect", (reason) => {
@@ -229,7 +289,6 @@ export function joinConversation(conversationId: number) {
   joinedConversationIds.add(conversationId);
   const s = connectChatSocket();
   emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
-  // Realtime presence subscription (ignored if backend doesn't support it).
   emitWhenConnected(s, "presence:subscribe", { conversation_id: conversationId });
 }
 
@@ -240,25 +299,30 @@ export function leaveConversation(conversationId: number) {
   socket.emit("conversation:leave", { conversation_id: conversationId });
 }
 
-/** Emit `typing:indicator` — same event for Buyer Chat and Seller Chat (Postman). */
-export function emitTypingIndicator(conversationId: number, isTyping: boolean) {
+/** Emit `typing:indicator` — Buyer Chat + Seller Chat (Postman). */
+export function emitTypingIndicator(
+  conversationId: number,
+  isTyping: boolean,
+  extras?: { rfqId?: number | null }
+) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   const s = connectChatSocket();
   joinedConversationIds.add(conversationId);
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     conversation_id: conversationId,
     is_typing: Boolean(isTyping),
   };
+  if (extras?.rfqId != null && Number.isFinite(extras.rfqId)) {
+    payload.rfq_id = extras.rfqId;
+  }
 
   const send = () => {
-    // Re-join every time so seller/buyer stay in the conversation room.
-    s.emit("conversation:join", { conversation_id: conversationId });
+    // Do NOT re-join on every keystroke — that can drop in-flight typing events.
+    if (!s.connected) return;
     s.emit("typing:indicator", payload);
     if (process.env.NODE_ENV === "development") {
-      console.info("[chat-socket] emit typing:indicator", payload, {
-        connected: s.connected,
-      });
+      console.info("[chat-socket] emit typing:indicator", payload, { id: s.id });
     }
   };
 
@@ -266,8 +330,27 @@ export function emitTypingIndicator(conversationId: number, isTyping: boolean) {
     send();
     return;
   }
+  // Ensure room membership, then send typing once connected.
   emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
   emitWhenConnected(s, "typing:indicator", payload);
+}
+
+/**
+ * Emit `message:read` over the socket (in addition to REST mark-read).
+ * Postman lists this on both Buyer and Seller Chat Events tabs.
+ */
+export function emitMessageRead(conversationId: number, lastReadMessageId: number) {
+  if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+  if (!Number.isFinite(lastReadMessageId) || lastReadMessageId <= 0) return;
+  const s = connectChatSocket();
+  const payload = {
+    conversation_id: conversationId,
+    last_read_message_id: lastReadMessageId,
+  };
+  emitWhenConnected(s, "message:read", payload);
+  if (process.env.NODE_ENV === "development") {
+    console.info("[chat-socket] emit message:read", payload);
+  }
 }
 
 function coerceBooleanFlag(value: unknown): boolean | null {
@@ -298,7 +381,6 @@ function readTypingRecord(payload: unknown): Record<string, unknown> | null {
     }
   }
 
-  // Prefer the deepest record that actually looks like a typing payload.
   for (let i = nestedCandidates.length - 1; i >= 0; i -= 1) {
     const record = nestedCandidates[i];
     if (
@@ -308,7 +390,6 @@ function readTypingRecord(payload: unknown): Record<string, unknown> | null {
       "typing" in record ||
       "isTyping" in record
     ) {
-      // Merge parent + nested so we keep conversation_id if only on the outer object.
       return { ...root, ...record };
     }
   }
@@ -320,9 +401,24 @@ function readTypingRecord(payload: unknown): Record<string, unknown> | null {
 export function parseTypingPayload(
   payload: unknown,
   fallbackConversationId?: number | null
-): { conversationId: number; userId: number | null; isTyping: boolean } | null {
+): {
+  conversationId: number;
+  userId: number | null;
+  isTyping: boolean;
+  rfqId: number | null;
+} | null {
   const record = readTypingRecord(payload);
-  if (!record) return null;
+  if (!record) {
+    if (fallbackConversationId && Number.isFinite(fallbackConversationId)) {
+      return {
+        conversationId: fallbackConversationId,
+        userId: null,
+        isTyping: true,
+        rfqId: null,
+      };
+    }
+    return null;
+  }
 
   const conversationRaw =
     record.conversation_id ??
@@ -347,6 +443,10 @@ export function parseTypingPayload(
   const userIdNum = Number(rawUser);
   const userId = Number.isFinite(userIdNum) && userIdNum > 0 ? userIdNum : null;
 
+  const rfqRaw = record.rfq_id ?? record.rfqId;
+  const rfqNum = Number(rfqRaw);
+  const rfqId = Number.isFinite(rfqNum) && rfqNum > 0 ? rfqNum : null;
+
   const flagged =
     coerceBooleanFlag(record.is_typing) ??
     coerceBooleanFlag(record.typing) ??
@@ -361,11 +461,10 @@ export function parseTypingPayload(
     else if (value === "stop" || value === "idle") isTyping = false;
     else return null;
   } else {
-    // Event without an explicit flag usually means "started typing".
     isTyping = true;
   }
 
-  return { conversationId, userId, isTyping };
+  return { conversationId, userId, isTyping, rfqId };
 }
 
 /** Best-effort unwrap of common socket event envelopes. */

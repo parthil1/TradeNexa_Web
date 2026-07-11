@@ -97,6 +97,7 @@ export default function ChatPanel({
     setActiveConversationId,
     messagesByConversation,
     typingByConversation,
+    typingByRfq,
     presenceByUserId,
     loadMessages,
     loadOlderMessages,
@@ -140,7 +141,9 @@ export default function ChatPanel({
   const messages = conversationId ? messagesByConversation[conversationId] ?? [] : [];
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
-  const isTyping = conversationId ? Boolean(typingByConversation[conversationId]) : false;
+  const isTyping = Boolean(
+    (conversationId != null && typingByConversation[conversationId]) || typingByRfq[rfqId]
+  );
   const disconnected = socketStatus !== "connected";
   const livePresence =
     otherUserId != null && Object.prototype.hasOwnProperty.call(presenceByUserId, otherUserId)
@@ -322,17 +325,22 @@ export default function ChatPanel({
 
     return () => {
       cancelled = true;
-      setActiveConversationId(null);
     };
   }, [
     rfqId,
     role,
     sellerId,
-    otherPartyName,
     loadMessages,
     setActiveConversationId,
     upsertConversationMeta,
   ]);
+
+  // Clear active conversation only when the chat panel fully unmounts.
+  useEffect(() => {
+    return () => {
+      setActiveConversationId(null);
+    };
+  }, [setActiveConversationId]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -340,9 +348,9 @@ export default function ChatPanel({
     joinConversation(conversationId);
     return () => {
       if (blurTypingTimerRef.current) clearTimeout(blurTypingTimerRef.current);
-      setTyping(conversationId, false);
+      setTyping(conversationId, false, rfqId);
     };
-  }, [conversationId, setTyping]);
+  }, [conversationId, rfqId, setTyping]);
 
   useEffect(() => {
     lastMarkedReadIdRef.current = null;
@@ -495,7 +503,7 @@ export default function ChatPanel({
     const content = draft.trim();
     sendingRef.current = true;
     setDraft("");
-    setTyping(conversationId, false);
+    setTyping(conversationId, false, rfqId);
     setSending(true);
     stickToBottom.current = true;
     try {
@@ -798,7 +806,7 @@ export default function ChatPanel({
                   blurTypingTimerRef.current = null;
                 }
                 // Buyer + seller both emit Postman `typing:indicator` over Socket.IO.
-                setTyping(conversationId, value.trim().length > 0);
+                setTyping(conversationId, value.trim().length > 0, rfqId);
               }}
               onBlur={() => {
                 if (!conversationId) return;
@@ -806,7 +814,7 @@ export default function ChatPanel({
                 if (blurTypingTimerRef.current) clearTimeout(blurTypingTimerRef.current);
                 blurTypingTimerRef.current = setTimeout(() => {
                   if (document.activeElement === composerRef.current) return;
-                  setTyping(conversationId, false);
+                  setTyping(conversationId, false, rfqId);
                   blurTypingTimerRef.current = null;
                 }, 200);
               }}

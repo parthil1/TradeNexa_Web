@@ -15,15 +15,19 @@ import { useActiveRole } from "@/context/ActiveRoleContext";
 import {
   connectChatSocket,
   disconnectChatSocket,
+  emitMessageRead,
   emitTypingIndicator,
   joinConversation,
   leaveConversation,
   parsePresencePayload,
   parseTypingPayload,
+  subscribeChatEvent,
   subscribeChatSocketStatus,
   unwrapSocketPayload,
   type ChatSocketStatus,
 } from "@/services/chatSocket";
+import { CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
+import { fetchTypingRelay, publishTypingRelay } from "@/services/typingRelay";
 import {
   fetchConversation,
   fetchConversations,
@@ -87,6 +91,7 @@ interface ChatContextValue {
   setActiveConversationId: (id: number | null) => void;
   messagesByConversation: Record<number, ApiChatMessage[]>;
   typingByConversation: Record<number, boolean>;
+  typingByRfq: Record<number, boolean>;
   presenceByUserId: Record<number, boolean>;
   loadMessages: (conversationId: number, page?: number, appendOlder?: boolean) => Promise<void>;
   /** Load the next older page for a conversation (handles API asc/desc quirks). */
@@ -101,7 +106,7 @@ interface ChatContextValue {
     file: File,
     content?: string
   ) => Promise<void>;
-  setTyping: (conversationId: number, isTyping: boolean) => void;
+  setTyping: (conversationId: number, isTyping: boolean, rfqId?: number | null) => void;
   markRead: (
     conversationId: number,
     lastMessageId: number,
@@ -159,6 +164,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     Record<number, ApiChatMessage[]>
   >({});
   const [typingByConversation, setTypingByConversation] = useState<Record<number, boolean>>({});
+  const [typingByRfq, setTypingByRfq] = useState<Record<number, boolean>>({});
   const [presenceByUserId, setPresenceByUserId] = useState<Record<number, boolean>>({});
   const [hasMoreOlder, setHasMoreOlder] = useState<Record<number, boolean>>({});
   const [pageByConversation, setPageByConversation] = useState<Record<number, number>>({});
@@ -318,6 +324,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setTypingByConversation((prev) =>
           prev[owned.conversation_id] ? { ...prev, [owned.conversation_id]: false } : prev
         );
+        const messageRfqId =
+          pickSocketRfqId(payload) ??
+          conversationsMetaRef.current[owned.conversation_id]?.rfq_id ??
+          null;
+        if (messageRfqId != null) {
+          setTypingByRfq((prev) =>
+            prev[messageRfqId] ? { ...prev, [messageRfqId]: false } : prev
+          );
+        }
       }
 
       // Only person messages bump unread — system/status events do not.
@@ -388,31 +403,40 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             }
           : args[0];
 
-      if (process.env.NODE_ENV === "development") {
-        console.info("[chat-socket] recv typing:indicator", payload);
-      }
-      const parsed = parseTypingPayload(payload, activeIdRef.current);
-      if (!parsed) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn("[chat-socket] typing:indicator ignored (parse failed)", payload);
-        }
-        return;
-      }
+      let parsed = parseTypingPayload(payload, activeIdRef.current);
 
-      // Ignore our own typing echoes when user_id is present.
-      if (
-        parsed.userId != null &&
-        currentUserIdRef.current != null &&
-        parsed.userId === currentUserIdRef.current
-      ) {
-        return;
+      if (!parsed && activeIdRef.current) {
+        parsed = {
+          conversationId: activeIdRef.current,
+          userId: null,
+          isTyping: true,
+          rfqId: null,
+        };
       }
+      if (!parsed) return;
 
-      const { conversationId, isTyping } = parsed;
+      // Do not filter by user_id — some backends attach the wrong id and that
+      // was hiding legitimate peer typing events.
+
+      const { conversationId, isTyping, userId, rfqId } = parsed;
+
       setTypingByConversation((prev) => {
         if (prev[conversationId] === isTyping) return prev;
         return { ...prev, [conversationId]: isTyping };
       });
+
+      if (rfqId != null) {
+        setTypingByRfq((prev) => {
+          if (prev[rfqId] === isTyping) return prev;
+          return { ...prev, [rfqId]: isTyping };
+        });
+      }
+
+      if (isTyping && userId != null) {
+        setPresenceByUserId((prev) =>
+          prev[userId] === true ? prev : { ...prev, [userId]: true }
+        );
+      }
 
       if (remoteTypingTimers.current[conversationId]) {
         clearTimeout(remoteTypingTimers.current[conversationId]);
@@ -424,8 +448,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setTypingByConversation((prev) =>
             prev[conversationId] ? { ...prev, [conversationId]: false } : prev
           );
+          if (rfqId != null) {
+            setTypingByRfq((prev) => (prev[rfqId] ? { ...prev, [rfqId]: false } : prev));
+          }
           delete remoteTypingTimers.current[conversationId];
-        }, 4000);
+        }, 5000);
+      } else if (rfqId != null) {
+        setTypingByRfq((prev) => (prev[rfqId] ? { ...prev, [rfqId]: false } : prev));
       }
     };
 
@@ -464,18 +493,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const parsed = parsePresencePayload(payload);
       if (!parsed) return;
       applyPresence(parsed.userId, parsed.online);
-    };
-
-    const onUserOnline = (payload: unknown) => {
-      const parsed = parsePresencePayload(payload, true);
-      if (!parsed) return;
-      applyPresence(parsed.userId, true);
-    };
-
-    const onUserOffline = (payload: unknown) => {
-      const parsed = parsePresencePayload(payload, false);
-      if (!parsed) return;
-      applyPresence(parsed.userId, false);
     };
 
     const seedPresenceFromConversation = (conversation: {
@@ -533,7 +550,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (process.env.NODE_ENV === "development") {
         console.info("[chat-socket] conversation:join ack", payload);
       }
-      // Some backends include participant presence in the join ack.
       const data = unwrapSocketPayload(payload);
       if (data && typeof data === "object") {
         const record = data as Record<string, unknown>;
@@ -544,47 +560,101 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    s.on("message:new", onMessageNew);
-    // Postman: Buyer Chat + Seller Chat both listen for `typing:indicator`
-    s.on("typing:indicator", onTyping);
-    s.on("typing", onTyping);
-    s.on("typing:update", onTyping);
-    s.on("message:read", onMessageRead);
-    // Realtime presence socket events (backend may emit any of these)
-    s.on("presence:update", onPresence);
-    s.on("presence", onPresence);
-    s.on("user:presence", onPresence);
-    s.on("user:online", onUserOnline);
-    s.on("user:offline", onUserOffline);
-    s.on("conversation:updated", onConversationUpdated);
-    s.on("chat:error", onChatError);
-    s.on("conversation:join", onJoinAck);
+    // Full Buyer Chat (7) + Seller Chat (6) Postman Events union.
+    const unsubscribers = CHAT_SOCKET_LISTEN_EVENTS.map((event) => {
+      switch (event) {
+        case "message:new":
+          return subscribeChatEvent(event, onMessageNew);
+        case "typing:indicator":
+          return subscribeChatEvent(event, onTyping);
+        case "message:read":
+          return subscribeChatEvent(event, onMessageRead);
+        case "presence:update":
+          return subscribeChatEvent(event, onPresence);
+        case "conversation:updated":
+          return subscribeChatEvent(event, onConversationUpdated);
+        case "chat:error":
+          return subscribeChatEvent(event, onChatError);
+        case "conversation:join":
+          return subscribeChatEvent(event, onJoinAck);
+        default:
+          return () => undefined;
+      }
+    });
 
     return () => {
       if (unreadSyncTimer.current) clearTimeout(unreadSyncTimer.current);
-      s.off("message:new", onMessageNew);
-      s.off("typing:indicator", onTyping);
-      s.off("typing", onTyping);
-      s.off("typing:update", onTyping);
-      s.off("message:read", onMessageRead);
-      s.off("presence:update", onPresence);
-      s.off("presence", onPresence);
-      s.off("user:presence", onPresence);
-      s.off("user:online", onUserOnline);
-      s.off("user:offline", onUserOffline);
-      s.off("conversation:updated", onConversationUpdated);
-      s.off("chat:error", onChatError);
-      s.off("conversation:join", onJoinAck);
+      unsubscribers.forEach((unsub) => unsub());
     };
   }, [isAuthenticated, refreshUnread, scheduleConversationsUnreadSync, syncConversationsUnread]);
 
   useEffect(() => {
     if (!activeConversationId) return;
-    joinConversation(activeConversationId);
+    const conversationId = activeConversationId;
+    joinConversation(conversationId);
     return () => {
-      leaveConversation(activeConversationId);
+      window.setTimeout(() => {
+        if (activeIdRef.current !== conversationId) {
+          leaveConversation(conversationId);
+        }
+      }, 400);
     };
   }, [activeConversationId]);
+
+  // Poll local typing relay so buyer/seller still see typing if socket broadcast fails.
+  useEffect(() => {
+    if (!isAuthenticated || !activeConversationId) return;
+
+    let cancelled = false;
+    const conversationId = activeConversationId;
+
+    const tick = async () => {
+      const me = currentUserIdRef.current ?? 0;
+      const state = await fetchTypingRelay(conversationId, me);
+      if (cancelled || !state?.is_typing) return;
+
+      setTypingByConversation((prev) => {
+        if (prev[conversationId]) return prev;
+        return { ...prev, [conversationId]: true };
+      });
+      if (state.rfq_id != null) {
+        const rfqId = state.rfq_id;
+        setTypingByRfq((prev) => {
+          if (prev[rfqId]) return prev;
+          return { ...prev, [rfqId]: true };
+        });
+      }
+      if (state.user_id != null) {
+        setPresenceByUserId((prev) =>
+          prev[state.user_id!] === true ? prev : { ...prev, [state.user_id!]: true }
+        );
+      }
+
+      if (remoteTypingTimers.current[conversationId]) {
+        clearTimeout(remoteTypingTimers.current[conversationId]);
+      }
+      remoteTypingTimers.current[conversationId] = setTimeout(() => {
+        setTypingByConversation((prev) =>
+          prev[conversationId] ? { ...prev, [conversationId]: false } : prev
+        );
+        if (state.rfq_id != null) {
+          const rfqId = state.rfq_id;
+          setTypingByRfq((prev) => (prev[rfqId] ? { ...prev, [rfqId]: false } : prev));
+        }
+        delete remoteTypingTimers.current[conversationId];
+      }, 3500);
+    };
+
+    void tick();
+    const interval = window.setInterval(() => {
+      void tick();
+    }, 800);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [isAuthenticated, activeConversationId]);
 
   const loadMessages = useCallback(
     async (conversationId: number, page = 1, appendOlder = false) => {
@@ -874,42 +944,69 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const setTyping = useCallback((conversationId: number, isTyping: boolean) => {
-    if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+  const setTyping = useCallback(
+    (conversationId: number, isTyping: boolean, rfqId?: number | null) => {
+      if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+      const userId = currentUserIdRef.current;
 
-    if (typingTimers.current[conversationId]) {
-      clearTimeout(typingTimers.current[conversationId]);
-      delete typingTimers.current[conversationId];
-    }
+      if (typingTimers.current[conversationId]) {
+        clearTimeout(typingTimers.current[conversationId]);
+        delete typingTimers.current[conversationId];
+      }
 
-    if (!isTyping) {
-      if (typingActiveRef.current[conversationId]) {
-        emitTypingIndicator(conversationId, false);
+      if (!isTyping) {
+        if (typingActiveRef.current[conversationId]) {
+          emitTypingIndicator(conversationId, false, { rfqId });
+          if (userId) {
+            void publishTypingRelay({
+              conversationId,
+              userId,
+              isTyping: false,
+              rfqId,
+            });
+          }
+          typingActiveRef.current[conversationId] = false;
+          delete typingLastEmitRef.current[conversationId];
+        }
+        return;
+      }
+
+      const now = Date.now();
+      const lastEmit = typingLastEmitRef.current[conversationId] ?? 0;
+      const alreadyActive = Boolean(typingActiveRef.current[conversationId]);
+
+      // Emit immediately, then refresh while typing continues.
+      if (!alreadyActive || now - lastEmit >= 700) {
+        emitTypingIndicator(conversationId, true, { rfqId });
+        if (userId) {
+          void publishTypingRelay({
+            conversationId,
+            userId,
+            isTyping: true,
+            rfqId,
+          });
+        }
+        typingActiveRef.current[conversationId] = true;
+        typingLastEmitRef.current[conversationId] = now;
+      }
+
+      typingTimers.current[conversationId] = setTimeout(() => {
+        emitTypingIndicator(conversationId, false, { rfqId });
+        if (userId) {
+          void publishTypingRelay({
+            conversationId,
+            userId,
+            isTyping: false,
+            rfqId,
+          });
+        }
         typingActiveRef.current[conversationId] = false;
         delete typingLastEmitRef.current[conversationId];
-      }
-      return;
-    }
-
-    const now = Date.now();
-    const lastEmit = typingLastEmitRef.current[conversationId] ?? 0;
-    const alreadyActive = Boolean(typingActiveRef.current[conversationId]);
-
-    // Emit immediately on first keystroke; refresh every ~1.5s while still typing.
-    if (!alreadyActive || now - lastEmit >= 1500) {
-      emitTypingIndicator(conversationId, true);
-      typingActiveRef.current[conversationId] = true;
-      typingLastEmitRef.current[conversationId] = now;
-    }
-
-    // Stop after ~2s idle (timer resets on each keystroke).
-    typingTimers.current[conversationId] = setTimeout(() => {
-      emitTypingIndicator(conversationId, false);
-      typingActiveRef.current[conversationId] = false;
-      delete typingLastEmitRef.current[conversationId];
-      delete typingTimers.current[conversationId];
-    }, 2000);
-  }, []);
+        delete typingTimers.current[conversationId];
+      }, 2500);
+    },
+    []
+  );
 
   const markRead = useCallback(
     async (
@@ -918,6 +1015,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       remainingUnread?: number
     ) => {
       try {
+        // REST mark-read + socket `message:read` (Buyer/Seller Chat Postman events).
+        emitMessageRead(conversationId, lastMessageId);
         await markConversationRead(conversationId, { last_read_message_id: lastMessageId });
         const nextUnread = Math.max(0, remainingUnread ?? 0);
         let cleared = 0;
@@ -965,6 +1064,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setActiveConversationId,
       messagesByConversation,
       typingByConversation,
+      typingByRfq,
       presenceByUserId,
       loadMessages,
       loadOlderMessages,
@@ -987,6 +1087,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       activeConversationId,
       messagesByConversation,
       typingByConversation,
+      typingByRfq,
       presenceByUserId,
       loadMessages,
       loadOlderMessages,
