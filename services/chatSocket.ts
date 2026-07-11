@@ -240,24 +240,33 @@ export function leaveConversation(conversationId: number) {
   socket.emit("conversation:leave", { conversation_id: conversationId });
 }
 
-/** Emit `typing:indicator` (Postman Buyer/Seller Chat listen event). */
+/** Emit `typing:indicator` — same event for Buyer Chat and Seller Chat (Postman). */
 export function emitTypingIndicator(conversationId: number, isTyping: boolean) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   const s = connectChatSocket();
-  // Ensure we are in the conversation room before broadcasting typing.
-  if (!joinedConversationIds.has(conversationId)) {
-    joinedConversationIds.add(conversationId);
-    emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
-  }
+  joinedConversationIds.add(conversationId);
+
   const payload = {
     conversation_id: conversationId,
-    is_typing: isTyping,
-    // Compatibility aliases some backends read instead of is_typing.
-    typing: isTyping,
+    is_typing: Boolean(isTyping),
   };
-  if (process.env.NODE_ENV === "development") {
-    console.info("[chat-socket] emit typing:indicator", payload);
+
+  const send = () => {
+    // Re-join every time so seller/buyer stay in the conversation room.
+    s.emit("conversation:join", { conversation_id: conversationId });
+    s.emit("typing:indicator", payload);
+    if (process.env.NODE_ENV === "development") {
+      console.info("[chat-socket] emit typing:indicator", payload, {
+        connected: s.connected,
+      });
+    }
+  };
+
+  if (s.connected) {
+    send();
+    return;
   }
+  emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
   emitWhenConnected(s, "typing:indicator", payload);
 }
 

@@ -553,6 +553,8 @@ export default function ChatPanel({
   const chatUnavailable = Boolean(bootError);
   const canCompose =
     Boolean(conversationId) && !bootLoading && !chatUnavailable;
+  /** Keep composer usable while socket reconnects so typing:indicator can still emit. */
+  const composerDisabled = !canCompose;
   const errorCopy = humanizeChatBootError(bootError ?? "", missingSellerId);
 
   return (
@@ -786,15 +788,16 @@ export default function ChatPanel({
             <textarea
               ref={composerRef}
               value={draft}
-              disabled={disconnected}
+              disabled={composerDisabled}
               onChange={(e) => {
                 const value = e.target.value;
                 setDraft(value);
-                if (!conversationId) return;
+                if (!conversationId || composerDisabled) return;
                 if (blurTypingTimerRef.current) {
                   clearTimeout(blurTypingTimerRef.current);
                   blurTypingTimerRef.current = null;
                 }
+                // Buyer + seller both emit Postman `typing:indicator` over Socket.IO.
                 setTyping(conversationId, value.trim().length > 0);
               }}
               onBlur={() => {
@@ -819,10 +822,10 @@ export default function ChatPanel({
             />
             <button
               type="button"
-              disabled={!draft.trim() || sending || disconnected}
+              disabled={!draft.trim() || sending || composerDisabled}
               onClick={() => void handleSend()}
               className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition ${
-                draft.trim() && !sending && !disconnected
+                draft.trim() && !sending && !composerDisabled
                   ? "bg-[#1565C0] text-white hover:bg-[#1255A8]"
                   : "cursor-not-allowed bg-[#E8ECF0] text-[#90A4AE]"
               }`}

@@ -378,7 +378,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const onTyping = (payload: unknown) => {
+    const onTyping = (...args: unknown[]) => {
+      const payload =
+        args.length >= 2 && (typeof args[0] === "number" || typeof args[0] === "string")
+          ? {
+              conversation_id: args[0],
+              is_typing: args[1],
+              ...(args[2] && typeof args[2] === "object" ? (args[2] as object) : {}),
+            }
+          : args[0];
+
       if (process.env.NODE_ENV === "development") {
         console.info("[chat-socket] recv typing:indicator", payload);
       }
@@ -536,8 +545,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
 
     s.on("message:new", onMessageNew);
+    // Postman: Buyer Chat + Seller Chat both listen for `typing:indicator`
     s.on("typing:indicator", onTyping);
-    // Some backends use alternate event names for the same payload.
     s.on("typing", onTyping);
     s.on("typing:update", onTyping);
     s.on("message:read", onMessageRead);
