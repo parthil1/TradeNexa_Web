@@ -139,12 +139,21 @@ export default function ChatPanel({
   messagesRef.current = messages;
   const isTyping = conversationId ? Boolean(typingByConversation[conversationId]) : false;
   const disconnected = socketStatus !== "connected";
-  const online =
-    otherUserId != null
+  const livePresence =
+    otherUserId != null && Object.prototype.hasOwnProperty.call(presenceByUserId, otherUserId)
       ? presenceByUserId[otherUserId]
-      : conversationId
-        ? conversationsMeta[conversationId]?.other_party?.is_online ?? undefined
-        : undefined;
+      : undefined;
+  const metaParty =
+    conversationId != null ? conversationsMeta[conversationId]?.other_party : null;
+  const metaPresence =
+    typeof metaParty?.is_online === "boolean" ? metaParty.is_online : undefined;
+  const online =
+    typeof livePresence === "boolean"
+      ? livePresence
+      : typeof metaPresence === "boolean"
+        ? metaPresence
+        : false;
+  const presenceLabel = online ? "Online" : "Offline";
 
   function captureUnreadBanner(conversation: { unread_count?: number | null }) {
     const count = conversation.unread_count ?? 0;
@@ -543,18 +552,23 @@ export default function ChatPanel({
             </span>
             <span
               className={`absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full ring-[2.5px] ring-white ${
-                online === true
-                  ? "bg-emerald-500"
-                  : online === false
-                    ? "bg-[#B0BEC5]"
-                    : "bg-[#90A4AE]"
+                online ? "bg-emerald-500" : "bg-[#B0BEC5]"
               }`}
-              title={online === true ? "Online" : online === false ? "Offline" : "Presence unknown"}
+              title={presenceLabel}
+              aria-label={presenceLabel}
             />
           </div>
           <div className="min-w-0 pt-0.5">
             <h3 className="truncate text-sm font-bold text-[#0D1B2A]">{headerName}</h3>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              <p
+                className={`text-xs font-semibold ${
+                  online ? "text-emerald-600" : "text-[#90A4AE]"
+                }`}
+              >
+                {presenceLabel}
+              </p>
+              <span className="text-[#CFD8DC]">·</span>
               <p className="truncate text-xs text-[#90A4AE]">
                 {rfqTitle ? `RFQ · ${rfqTitle}` : `RFQ #${rfqId}`}
               </p>

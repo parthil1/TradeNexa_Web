@@ -419,15 +419,51 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const data = unwrapSocketPayload(payload);
       if (!data || typeof data !== "object") return;
       const record = data as Record<string, unknown>;
-      const userId = Number(record.user_id ?? record.id);
-      if (!Number.isFinite(userId)) return;
-      const online = Boolean(record.is_online ?? record.online);
+      const userId = Number(
+        record.user_id ?? record.id ?? record.other_user_id ?? record.participant_id
+      );
+      if (!Number.isFinite(userId) || userId <= 0) return;
+
+      let online: boolean | null = null;
+      if (typeof record.is_online === "boolean") online = record.is_online;
+      else if (typeof record.online === "boolean") online = record.online;
+      else if (typeof record.presence === "string") {
+        const value = record.presence.toLowerCase();
+        if (value === "online" || value === "active") online = true;
+        if (value === "offline" || value === "away") online = false;
+      } else if (typeof record.status === "string") {
+        const value = record.status.toLowerCase();
+        if (value === "online" || value === "active") online = true;
+        if (value === "offline" || value === "away") online = false;
+      }
+      if (online == null) return;
+
       setPresenceByUserId((prev) => ({ ...prev, [userId]: online }));
+    };
+
+    const seedPresenceFromConversation = (conversation: {
+      other_party?: { user_id?: number; id?: number; is_online?: boolean | null } | null;
+      buyer?: { user_id?: number; id?: number; is_online?: boolean | null } | null;
+      seller?: { user_id?: number; id?: number; is_online?: boolean | null } | null;
+    }) => {
+      const parties = [conversation.other_party, conversation.buyer, conversation.seller];
+      setPresenceByUserId((prev) => {
+        let next = prev;
+        for (const party of parties) {
+          if (!party || typeof party.is_online !== "boolean") continue;
+          const userId = Number(party.user_id ?? party.id);
+          if (!Number.isFinite(userId) || userId <= 0) continue;
+          if (next === prev) next = { ...prev };
+          next[userId] = party.is_online;
+        }
+        return next;
+      });
     };
 
     const onConversationUpdated = (payload: unknown) => {
       const conversation = normalizeChatConversation(unwrapSocketPayload(payload));
       if (conversation) {
+        seedPresenceFromConversation(conversation);
         setConversationsMeta((prev) => {
           const existing = prev[conversation.id];
           return {
@@ -589,6 +625,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
         },
       };
+    });
+
+    const parties = [conversation.other_party, conversation.buyer, conversation.seller];
+    setPresenceByUserId((prev) => {
+      let next = prev;
+      for (const party of parties) {
+        if (!party || typeof party.is_online !== "boolean") continue;
+        const userId = Number(party.user_id ?? party.id);
+        if (!Number.isFinite(userId) || userId <= 0) continue;
+        if (next === prev) next = { ...prev };
+        next[userId] = party.is_online;
+      }
+      return next;
     });
   }, []);
 

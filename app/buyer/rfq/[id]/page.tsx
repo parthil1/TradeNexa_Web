@@ -35,6 +35,8 @@ import {
   formatRfqLocation,
   formatRfqQuantity,
   isQuotationActionableForBuyer,
+  isQuotationAccepted,
+  isRfqAwarded,
   isRfqDraft,
   isRfqInactiveStatus,
 } from "@/utils/rfqHelpers";
@@ -410,15 +412,26 @@ export default function BuyerRfqDetailPage() {
             ) : (
               <>
                 <div className="mt-4 space-y-4">
-                  {quotations.map((quotation) => (
+                  {quotations.map((quotation) => {
+                    const awarded = isRfqAwarded(rfq.status);
+                    const accepted = isQuotationAccepted(quotation.status);
+                    const showActions =
+                      !awarded && isQuotationActionableForBuyer(quotation.status);
+
+                    return (
                   <QuotationCard
                     key={quotation.id}
                     quotation={quotation}
                     emphasizeStatus
+                    rfqStatus={rfq.status}
                     chatRfqId={rfq.id}
-                    onChatClick={() => setChatTarget(quotation)}
+                    onChatClick={
+                      awarded && !accepted
+                        ? undefined
+                        : () => setChatTarget(quotation)
+                    }
                     actions={
-                      isQuotationActionableForBuyer(quotation.status) ? (
+                      showActions ? (
                         <>
                           <button
                             type="button"
@@ -448,7 +461,8 @@ export default function BuyerRfqDetailPage() {
                       ) : undefined
                     }
                   />
-                  ))}
+                    );
+                  })}
                 </div>
                 <PortalPagination
                   pagination={quotesPagination}

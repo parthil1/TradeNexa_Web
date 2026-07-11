@@ -601,6 +601,10 @@ export function isQuotationAccepted(status?: string | null): boolean {
   return (status ?? "").toUpperCase().includes("ACCEPT");
 }
 
+export function isRfqAwarded(status?: string | null): boolean {
+  return (status ?? "").toUpperCase().includes("AWARD");
+}
+
 export function getQuotationStatusHint(status?: string | null): string | null {
   const value = (status ?? "").toUpperCase();
   if (value.includes("WITHDRAW")) {

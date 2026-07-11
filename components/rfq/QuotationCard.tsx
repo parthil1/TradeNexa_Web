@@ -16,6 +16,7 @@ import {
   isQuotationAccepted,
   isQuotationInactiveForBuyer,
   isQuotationRevisionPending,
+  isRfqAwarded,
 } from "@/utils/rfqHelpers";
 
 interface QuotationCardProps {
@@ -59,10 +60,18 @@ export default function QuotationCard({
     onChatClick ? chatRfqId ?? quotation.rfq_id : null,
     matchSellerId
   );
-  const accepted = emphasizeStatus && isQuotationAccepted(quotation.status);
+  const accepted = isQuotationAccepted(quotation.status);
+  const rfqAwarded = isRfqAwarded(rfqStatus);
+  /** When RFQ is awarded, only the accepted quote stays active; others are disabled. */
+  const disabled = emphasizeStatus && rfqAwarded && !accepted;
   const inactive =
-    emphasizeStatus && isQuotationInactiveForBuyer(quotation.status) && !accepted;
-  const statusHint = emphasizeStatus ? getQuotationStatusHint(quotation.status) : null;
+    emphasizeStatus &&
+    (disabled || (isQuotationInactiveForBuyer(quotation.status) && !accepted));
+  const statusHint = emphasizeStatus
+    ? disabled
+      ? "This RFQ was awarded to another seller."
+      : getQuotationStatusHint(quotation.status)
+    : null;
   const sellerRevisionHint = !showSellerInfo ? getSellerRevisionStatusHint(quotation, rfqStatus) : null;
   const buyerRevisionRemarks = !showSellerInfo ? getBuyerRevisionRemarks(quotation, rfqStatus) : null;
   const revisionPending = isQuotationRevisionPending(quotation, rfqStatus);
@@ -88,17 +97,19 @@ export default function QuotationCard({
   return (
     <article
       className={`rounded-2xl border p-4 sm:p-5 ${
-        inactive
-          ? "border-[#E0E6ED] bg-[#FAFBFC] opacity-80"
-          : "border-[#E8ECF0] bg-white shadow-sm"
+        disabled
+          ? "pointer-events-none border-[#E0E6ED] bg-[#FAFBFC] opacity-50"
+          : inactive
+            ? "border-[#E0E6ED] bg-[#FAFBFC] opacity-80"
+            : "border-[#E8ECF0] bg-white shadow-sm"
       } ${
-        isClickable
+        isClickable && !disabled
           ? "cursor-pointer transition hover:border-[#1565C0]/35 hover:shadow-md"
           : ""
       }`}
-      onClick={isClickable ? handleCardActivate : undefined}
+      onClick={isClickable && !disabled ? handleCardActivate : undefined}
       onKeyDown={
-        isClickable
+        isClickable && !disabled
           ? (event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
@@ -107,9 +118,10 @@ export default function QuotationCard({
             }
           : undefined
       }
-      role={isClickable ? "link" : undefined}
-      tabIndex={isClickable ? 0 : undefined}
-      aria-label={isClickable ? `Open ${productPrimary}` : undefined}
+      role={isClickable && !disabled ? "link" : undefined}
+      tabIndex={isClickable && !disabled ? 0 : undefined}
+      aria-label={isClickable && !disabled ? `Open ${productPrimary}` : undefined}
+      aria-disabled={disabled || undefined}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -141,7 +153,7 @@ export default function QuotationCard({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {onChatClick ? (
+          {onChatClick && !disabled ? (
             <button
               type="button"
               onClick={(event) => {
