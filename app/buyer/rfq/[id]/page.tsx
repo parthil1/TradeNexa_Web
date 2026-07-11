@@ -229,7 +229,8 @@ export default function BuyerRfqDetailPage() {
   const status = (rfq.status ?? "").toUpperCase();
   const isDraft = isRfqDraft(rfq.status);
   const isInactive = isRfqInactiveStatus(rfq.status);
-  const canCancel = !status.includes("CANCEL") && !status.includes("CLOSE");
+  const canCancel =
+    !isDraft && !status.includes("CANCEL") && !status.includes("CLOSE");
   const quantity = formatRfqQuantity(rfq);
   const totalQuotes = Math.max(quotesPagination.total, rfq.quotations_count ?? 0, quotations.length);
   const actionableCount = quotations.filter((q) => isQuotationActionableForBuyer(q.status)).length;

@@ -73,6 +73,8 @@ export interface ApiRfqDetail extends ApiRfqListItem {
   } | null;
   /** Seller's own quotation on this RFQ (when returned by GET /rfqs/seller/:id). */
   my_quotation?: ApiQuotation | null;
+  /** Invited sellers when visibility is PRIVATE */
+  seller_ids?: number[] | null;
 }
 
 export interface ApiQuotation {
@@ -125,6 +127,8 @@ export interface CreateRfqPayload {
   required_before?: string;
   payment_terms?: string;
   visibility?: RfqVisibility;
+  /** Required when visibility is PRIVATE — invited seller/supplier ids */
+  seller_ids?: number[];
 }
 
 export type UpdateRfqPayload = Partial<CreateRfqPayload>;

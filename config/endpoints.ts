@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
   RFQS_MY: "/rfqs/my",
   RFQS_SELLER_FEED: "/rfqs/seller/feed",
   RFQS_SELLER_QUOTATIONS: "/rfqs/seller/quotations",
+  SUPPLIERS: "/suppliers",
   LOCATIONS_STATES: "/locations/states",
   LOCATIONS_CITIES: "/locations/cities",
   CHATS_CONVERSATIONS: "/chats/conversations",

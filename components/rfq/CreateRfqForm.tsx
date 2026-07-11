@@ -7,12 +7,15 @@ import { DateInput } from "@/components/common/DateInput";
 import { Select } from "@/components/common/Select";
 import { Button } from "@/components/common/Button";
 import ProductSelect from "@/components/rfq/ProductSelect";
+import SellerMultiSelect from "@/components/rfq/SellerMultiSelect";
 import ProductWizardStepper from "@/components/seller/ProductWizardStepper";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchCategories, fetchSubcategories } from "@/services/catalogService";
 import { createRfq, fetchPublicRfqById, publishRfq, updateRfq } from "@/services/rfqService";
+import { fetchSuppliers } from "@/services/supplierService";
 import type { ApiCategory, ApiSubcategory } from "@/types/catalog";
 import type { ApiRfqDetail, CreateRfqPayload } from "@/types/rfq";
+import type { ApiSupplier } from "@/types/supplier";
 import { formatApiValidationSummary, getApiFieldErrors } from "@/utils/apiErrors";
 import { isRfqDraft, isoToDateInput } from "@/utils/rfqHelpers";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
@@ -33,6 +36,8 @@ const API_TO_FORM_FIELD: Record<string, string> = {
   state: "state",
   country: "country",
   pincode: "pincode",
+  visibility: "visibility",
+  seller_ids: "sellerIds",
 };
 
 function dateInputToIso(dateStr: string): string {
@@ -59,12 +64,12 @@ const initialForm = {
   budget: "",
   currency: "INR",
   paymentTerms: "",
-  visibility: "PUBLIC" as const,
+  visibility: "PUBLIC" as "PUBLIC" | "PRIVATE",
   publishNow: true,
 };
 
 type FormState = typeof initialForm;
-type FormErrors = Partial<Record<keyof FormState, string>>;
+type FormErrors = Partial<Record<keyof FormState | "sellerIds", string>>;
 
 function mapRfqDetailToForm(detail: ApiRfqDetail): FormState {
   const categoryId = detail.category_id ?? detail.category?.id;
@@ -91,12 +96,13 @@ function mapRfqDetailToForm(detail: ApiRfqDetail): FormState {
     budget: detail.budget != null ? String(detail.budget) : "",
     currency: detail.currency ?? "INR",
     paymentTerms: detail.payment_terms ?? "",
-    visibility: (detail.visibility as FormState["visibility"]) ?? "PUBLIC",
+    visibility:
+      detail.visibility?.toUpperCase() === "PRIVATE" ? "PRIVATE" : "PUBLIC",
     publishNow: false,
   };
 }
 
-const FIELD_ERROR_ORDER: (keyof FormState)[] = [
+const FIELD_ERROR_ORDER: (keyof FormErrors)[] = [
   "title",
   "categoryId",
   "subcategoryId",
@@ -109,9 +115,11 @@ const FIELD_ERROR_ORDER: (keyof FormState)[] = [
   "state",
   "country",
   "pincode",
+  "visibility",
+  "sellerIds",
 ];
 
-const FIELD_IDS: Partial<Record<keyof FormState, string>> = {
+const FIELD_IDS: Partial<Record<keyof FormErrors, string>> = {
   categoryId: "rfq-category",
   subcategoryId: "rfq-subcategory",
 };
@@ -125,14 +133,14 @@ const WIZARD_STEPS: { key: WizardStepKey; label: string; shortLabel: string }[] 
   { key: "settings", label: "Listing Settings", shortLabel: "Settings" },
 ];
 
-const ERROR_KEYS_BY_STEP: Record<WizardStepKey, (keyof FormState)[]> = {
+const ERROR_KEYS_BY_STEP: Record<WizardStepKey, (keyof FormErrors)[]> = {
   details: ["title", "categoryId", "subcategoryId", "description"],
   quantity: ["quantity", "unit", "quotationDeadline"],
   delivery: ["addressLine1", "city", "state", "country", "pincode"],
-  settings: [],
+  settings: ["visibility", "sellerIds"],
 };
 
-const STEP_INDEX_BY_FIELD: Partial<Record<keyof FormState, number>> = {
+const STEP_INDEX_BY_FIELD: Partial<Record<keyof FormErrors, number>> = {
   title: 0,
   categoryId: 0,
   subcategoryId: 0,
@@ -145,9 +153,11 @@ const STEP_INDEX_BY_FIELD: Partial<Record<keyof FormState, number>> = {
   state: 2,
   country: 2,
   pincode: 2,
+  visibility: 3,
+  sellerIds: 3,
 };
 
-function validateForm(form: FormState): FormErrors {
+function validateForm(form: FormState, sellerIds: number[]): FormErrors {
   const errors: FormErrors = {};
 
   const title = form.title.trim();
@@ -193,6 +203,10 @@ function validateForm(form: FormState): FormErrors {
   if (!pincode) errors.pincode = "Pincode is required";
   else if (!/^\d{6}$/.test(pincode)) errors.pincode = "Enter a valid 6-digit pincode";
 
+  if (form.visibility === "PRIVATE" && sellerIds.length === 0) {
+    errors.sellerIds = "Select at least one seller for a private RFQ";
+  }
+
   return errors;
 }
 
@@ -201,7 +215,7 @@ function mapApiErrorsToForm(apiErrors: Record<string, string>): FormErrors {
   for (const [apiField, message] of Object.entries(apiErrors)) {
     const formField = API_TO_FORM_FIELD[apiField];
     if (formField) {
-      errors[formField as keyof FormState] = message;
+      errors[formField as keyof FormErrors] = message;
     }
   }
   return errors;
@@ -233,6 +247,8 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
   const { isAuthenticated, openAuthModal } = useAuth();
   const isEditMode = Boolean(rfqId);
   const [form, setForm] = useState<FormState>(initialForm);
+  const [sellerIds, setSellerIds] = useState<number[]>([]);
+  const [selectedSellers, setSelectedSellers] = useState<ApiSupplier[]>([]);
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
   const [loadingRfq, setLoadingRfq] = useState(isEditMode);
   const [editBlocked, setEditBlocked] = useState<string | null>(null);
@@ -276,6 +292,36 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
         }
 
         setForm(mapRfqDetailToForm(detail));
+        const invitedIds = detail.seller_ids ?? [];
+        setSellerIds(invitedIds);
+        if (invitedIds.length > 0) {
+          try {
+            const { results } = await fetchSuppliers({
+              page: 1,
+              limit: 50,
+              sort_by: "company_name",
+              sort_order: "asc",
+            });
+            const matched = results.filter((s) => invitedIds.includes(s.id));
+            const missingIds = invitedIds.filter((id) => !matched.some((s) => s.id === id));
+            setSelectedSellers([
+              ...matched,
+              ...missingIds.map((id) => ({
+                id,
+                company_name: `Seller #${id}`,
+              })),
+            ]);
+          } catch {
+            setSelectedSellers(
+              invitedIds.map((id) => ({
+                id,
+                company_name: `Seller #${id}`,
+              }))
+            );
+          }
+        } else {
+          setSelectedSellers([]);
+        }
         setMaxReachedStepIndex(lastStepIndex);
       } catch {
         if (!cancelled) setEditBlocked("Could not load this RFQ for editing.");
@@ -405,18 +451,23 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setFieldErrors((prev) => {
-      if (!prev[key]) return prev;
+      if (!prev[key] && !(key === "visibility" && prev.sellerIds)) return prev;
       const next = { ...prev };
       delete next[key];
+      if (key === "visibility") delete next.sellerIds;
       return next;
     });
+    if (key === "visibility" && value === "PUBLIC") {
+      setSellerIds([]);
+      setSelectedSellers([]);
+    }
   }
 
-  function fieldError(name: keyof FormState): string | undefined {
+  function fieldError(name: keyof FormErrors): string | undefined {
     return fieldErrors[name];
   }
 
-  function errorClass(name: keyof FormState): string {
+  function errorClass(name: keyof FormErrors): string {
     return fieldError(name) ? "border-red-300 focus:border-red-500" : "border-[#E0E6ED] focus:border-[#1565C0]";
   }
 
@@ -431,7 +482,7 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
     const stepKey = WIZARD_STEPS[stepIndex]?.key;
     if (!stepKey) return {};
 
-    const allErrors = validateForm(form);
+    const allErrors = validateForm(form, sellerIds);
     const relevantKeys = ERROR_KEYS_BY_STEP[stepKey];
     const stepErrors: FormErrors = {};
 
@@ -490,7 +541,7 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
   }
 
   async function submitRfq() {
-    const clientErrors = validateForm(form);
+    const clientErrors = validateForm(form, sellerIds);
     if (Object.keys(clientErrors).length > 0) {
       setFieldErrors(clientErrors);
       jumpToFieldError(clientErrors);
@@ -513,6 +564,7 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
       pincode: form.pincode.trim(),
       currency: form.currency,
       visibility: form.visibility,
+      ...(form.visibility === "PRIVATE" ? { seller_ids: sellerIds } : {}),
       ...(form.paymentTerms.trim() ? { payment_terms: form.paymentTerms.trim() } : {}),
       ...(form.requiredBefore ? { required_before: dateInputToIso(form.requiredBefore) } : {}),
       ...(form.productId ? { product_id: Number(form.productId) } : {}),
@@ -580,7 +632,7 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
   const selectClass = "!h-10";
   const labelClass = "mb-1 block text-xs font-bold text-[#546E7A]";
 
-  function FieldHint({ name }: { name: keyof FormState }) {
+  function FieldHint({ name }: { name: keyof FormErrors }) {
     const message = fieldError(name);
     if (!message) return null;
     return <p className="mt-1 text-xs text-red-600">{message}</p>;
@@ -886,7 +938,67 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
           ) : null}
 
           {activeStepIndex === 3 ? (
-      <Section title="Listing Settings" optional>
+      <Section title="Listing Settings">
+        <div data-form-field="visibility">
+          <RequiredLabel>Visibility</RequiredLabel>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => updateField("visibility", "PUBLIC")}
+              className={`rounded-xl border px-4 py-3 text-left transition ${
+                form.visibility === "PUBLIC"
+                  ? "border-[#1565C0] bg-[#E3F2FD] ring-1 ring-[#1565C0]/40"
+                  : "border-[#E0E6ED] bg-white hover:border-[#1565C0]/30"
+              }`}
+            >
+              <p className="text-sm font-bold text-[#0D1B2A]">Public</p>
+              <p className="mt-0.5 text-xs text-[#546E7A]">
+                Visible to all sellers in the RFQ feed
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateField("visibility", "PRIVATE")}
+              className={`rounded-xl border px-4 py-3 text-left transition ${
+                form.visibility === "PRIVATE"
+                  ? "border-[#1565C0] bg-[#E3F2FD] ring-1 ring-[#1565C0]/40"
+                  : "border-[#E0E6ED] bg-white hover:border-[#1565C0]/30"
+              }`}
+            >
+              <p className="text-sm font-bold text-[#0D1B2A]">Private</p>
+              <p className="mt-0.5 text-xs text-[#546E7A]">
+                Invite specific sellers only
+              </p>
+            </button>
+          </div>
+          <FieldHint name="visibility" />
+        </div>
+
+        {form.visibility === "PRIVATE" ? (
+          <div data-form-field="sellerIds">
+            <RequiredLabel>Invite sellers</RequiredLabel>
+            <p className="mb-2 text-xs text-[#90A4AE]">
+              Search and select sellers who can see and quote on this RFQ.
+            </p>
+            <SellerMultiSelect
+              selectedIds={sellerIds}
+              selectedSellers={selectedSellers}
+              error={Boolean(fieldError("sellerIds"))}
+              onChange={(ids, sellers) => {
+                setSellerIds(ids);
+                setSelectedSellers(sellers);
+                setFieldErrors((prev) => {
+                  if (!prev.sellerIds) return prev;
+                  const next = { ...prev };
+                  delete next.sellerIds;
+                  return next;
+                });
+              }}
+            />
+            <FieldHint name="sellerIds" />
+          </div>
+        ) : null}
+
         <div>
           <label className={labelClass}>Payment terms</label>
           <input

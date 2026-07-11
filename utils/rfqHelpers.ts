@@ -135,6 +135,20 @@ export function normalizeRfqDetail(raw: unknown): ApiRfqDetail | null {
       normalizeQuotation(item.my_quotation) ??
       normalizeQuotation(item.seller_quotation) ??
       normalizeQuotation(item.quotation),
+    seller_ids: (() => {
+      const rawIds = item.seller_ids ?? item.sellers;
+      if (!Array.isArray(rawIds)) return null;
+      const ids = rawIds
+        .map((entry) => {
+          if (typeof entry === "number" || typeof entry === "string") {
+            return pickNumber(entry);
+          }
+          const record = readRecord(entry);
+          return pickNumber(record?.id) ?? pickNumber(record?.seller_id) ?? pickNumber(record?.user_id);
+        })
+        .filter((id): id is number => id != null);
+      return ids.length > 0 ? ids : [];
+    })(),
   };
 }
 
