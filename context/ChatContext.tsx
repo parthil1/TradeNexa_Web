@@ -19,6 +19,7 @@ import {
   emitTypingIndicator,
   joinConversation,
   leaveConversation,
+  parseConversationPresencePayload,
   parsePresencePayload,
   parseTypingPayload,
   subscribeChatEvent,
@@ -28,6 +29,7 @@ import {
 } from "@/services/chatSocket";
 import { CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
 import { fetchTypingRelay, publishTypingRelay } from "@/services/typingRelay";
+import { fetchPresenceRelay, publishPresenceRelay } from "@/services/presenceRelay";
 import {
   fetchConversation,
   fetchConversations,
@@ -546,41 +548,68 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       showErrorToast(message);
     };
 
-    const onJoinAck = (payload: unknown) => {
+    const onJoinAck = (...args: unknown[]) => {
+      const payload = args[0];
       if (process.env.NODE_ENV === "development") {
-        console.info("[chat-socket] conversation:join ack", payload);
+        console.info("[chat-socket] conversation:join", payload);
       }
+
       const data = unwrapSocketPayload(payload);
       if (data && typeof data === "object") {
         const record = data as Record<string, unknown>;
         const conversation = normalizeChatConversation(record.conversation ?? record);
         if (conversation) seedPresenceFromConversation(conversation);
-        const parsed = parsePresencePayload(record);
-        if (parsed) applyPresence(parsed.userId, parsed.online);
+      }
+
+      // conversation:join ⇒ peer is online (buyer + seller).
+      const updates = parseConversationPresencePayload(payload, {
+        forceOnline: true,
+        excludeUserId: currentUserIdRef.current,
+      });
+      for (const update of updates) {
+        applyPresence(update.userId, true);
+      }
+    };
+
+    const onLeave = (...args: unknown[]) => {
+      const payload = args[0];
+      if (process.env.NODE_ENV === "development") {
+        console.info("[chat-socket] conversation:leave", payload);
+      }
+      // conversation:leave ⇒ peer is offline (buyer + seller).
+      const updates = parseConversationPresencePayload(payload, {
+        forceOnline: false,
+        excludeUserId: currentUserIdRef.current,
+      });
+      for (const update of updates) {
+        applyPresence(update.userId, false);
       }
     };
 
     // Full Buyer Chat (7) + Seller Chat (6) Postman Events union.
-    const unsubscribers = CHAT_SOCKET_LISTEN_EVENTS.map((event) => {
-      switch (event) {
-        case "message:new":
-          return subscribeChatEvent(event, onMessageNew);
-        case "typing:indicator":
-          return subscribeChatEvent(event, onTyping);
-        case "message:read":
-          return subscribeChatEvent(event, onMessageRead);
-        case "presence:update":
-          return subscribeChatEvent(event, onPresence);
-        case "conversation:updated":
-          return subscribeChatEvent(event, onConversationUpdated);
-        case "chat:error":
-          return subscribeChatEvent(event, onChatError);
-        case "conversation:join":
-          return subscribeChatEvent(event, onJoinAck);
-        default:
-          return () => undefined;
-      }
-    });
+    const unsubscribers = [
+      ...CHAT_SOCKET_LISTEN_EVENTS.map((event) => {
+        switch (event) {
+          case "message:new":
+            return subscribeChatEvent(event, onMessageNew);
+          case "typing:indicator":
+            return subscribeChatEvent(event, onTyping);
+          case "message:read":
+            return subscribeChatEvent(event, onMessageRead);
+          case "presence:update":
+            return subscribeChatEvent(event, onPresence);
+          case "conversation:updated":
+            return subscribeChatEvent(event, onConversationUpdated);
+          case "chat:error":
+            return subscribeChatEvent(event, onChatError);
+          case "conversation:join":
+            return subscribeChatEvent(event, onJoinAck);
+          default:
+            return () => undefined;
+        }
+      }),
+      subscribeChatEvent("conversation:leave", onLeave),
+    ];
 
     return () => {
       if (unreadSyncTimer.current) clearTimeout(unreadSyncTimer.current);
@@ -592,7 +621,27 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (!activeConversationId) return;
     const conversationId = activeConversationId;
     joinConversation(conversationId);
+
+    const userId = currentUserIdRef.current;
+    if (userId) {
+      void publishPresenceRelay({ conversationId, userId, online: true });
+    }
+
+    // Heartbeat while chat is open so the peer keeps seeing Online.
+    const heartbeat = window.setInterval(() => {
+      joinConversation(conversationId);
+      const me = currentUserIdRef.current;
+      if (me) {
+        void publishPresenceRelay({ conversationId, userId: me, online: true });
+      }
+    }, 20_000);
+
     return () => {
+      window.clearInterval(heartbeat);
+      const me = currentUserIdRef.current;
+      if (me) {
+        void publishPresenceRelay({ conversationId, userId: me, online: false });
+      }
       window.setTimeout(() => {
         if (activeIdRef.current !== conversationId) {
           leaveConversation(conversationId);
@@ -600,6 +649,37 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }, 400);
     };
   }, [activeConversationId]);
+
+  // Poll presence relay — keeps Online/Offline in sync for buyer + seller on localhost.
+  useEffect(() => {
+    if (!isAuthenticated || !activeConversationId) return;
+
+    let cancelled = false;
+    const conversationId = activeConversationId;
+
+    const tick = async () => {
+      const me = currentUserIdRef.current ?? 0;
+      const state = await fetchPresenceRelay(conversationId, me);
+      if (cancelled || !state) return;
+      for (const user of state.users) {
+        if (!Number.isFinite(user.user_id) || user.user_id <= 0) continue;
+        setPresenceByUserId((prev) => {
+          if (prev[user.user_id] === user.is_online) return prev;
+          return { ...prev, [user.user_id]: user.is_online };
+        });
+      }
+    };
+
+    void tick();
+    const interval = window.setInterval(() => {
+      void tick();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [isAuthenticated, activeConversationId]);
 
   // Poll local typing relay so buyer/seller still see typing if socket broadcast fails.
   useEffect(() => {

@@ -3,7 +3,7 @@
 import { io, type Socket } from "socket.io-client";
 import axios from "axios";
 import { API_BASE_URL, BACKEND_ORIGIN } from "@/config/api";
-import { CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
+import { CHAT_SOCKET_EXTRA_LISTEN_EVENTS, CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { getAccessToken, getRefreshToken, unwrapApiPayload } from "@/utils/authHelpers";
 
@@ -68,7 +68,8 @@ function dispatchChatEvent(event: string, args: unknown[]) {
 
 /** Bridge every Postman Buyer + Seller listen event onto the live socket. */
 function bindSocketEventBridges(s: Socket) {
-  for (const event of CHAT_SOCKET_LISTEN_EVENTS) {
+  const events = [...CHAT_SOCKET_LISTEN_EVENTS, ...CHAT_SOCKET_EXTRA_LISTEN_EVENTS];
+  for (const event of events) {
     s.on(event, (...args: unknown[]) => {
       if (process.env.NODE_ENV === "development") {
         console.info(`[chat-socket] recv ${event}`, ...args);
@@ -288,15 +289,23 @@ export function joinConversation(conversationId: number) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   joinedConversationIds.add(conversationId);
   const s = connectChatSocket();
-  emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
+  // Buyer + seller: joining the room announces online for this conversation.
+  emitWhenConnected(s, "conversation:join", {
+    conversation_id: conversationId,
+    is_online: true,
+  });
   emitWhenConnected(s, "presence:subscribe", { conversation_id: conversationId });
 }
 
 export function leaveConversation(conversationId: number) {
   joinedConversationIds.delete(conversationId);
   if (!socket?.connected) return;
+  // Leaving announces offline for this conversation (buyer + seller).
+  socket.emit("conversation:leave", {
+    conversation_id: conversationId,
+    is_online: false,
+  });
   socket.emit("presence:unsubscribe", { conversation_id: conversationId });
-  socket.emit("conversation:leave", { conversation_id: conversationId });
 }
 
 /** Emit `typing:indicator` — Buyer Chat + Seller Chat (Postman). */
@@ -526,4 +535,82 @@ export function parsePresencePayload(
 
   if (online == null) return null;
   return { userId, online };
+}
+
+/**
+ * Extract online/offline users from `conversation:join` / `conversation:leave`
+ * payloads (buyer + seller). Join ⇒ online; leave ⇒ offline when unspecified.
+ */
+export function parseConversationPresencePayload(
+  payload: unknown,
+  options?: { forceOnline?: boolean; excludeUserId?: number | null }
+): { userId: number; online: boolean }[] {
+  const data = unwrapSocketPayload(payload);
+  if (!data || typeof data !== "object") return [];
+  const record = data as Record<string, unknown>;
+  const exclude =
+    options?.excludeUserId != null && Number.isFinite(options.excludeUserId)
+      ? options.excludeUserId
+      : null;
+  const results: { userId: number; online: boolean }[] = [];
+  const seen = new Set<number>();
+
+  const push = (userId: number, online: boolean) => {
+    if (!Number.isFinite(userId) || userId <= 0) return;
+    if (exclude != null && userId === exclude) return;
+    if (seen.has(userId)) return;
+    seen.add(userId);
+    results.push({ userId, online });
+  };
+
+  const readParty = (
+    party: unknown,
+    fallbackOnline?: boolean
+  ): void => {
+    if (!party || typeof party !== "object") return;
+    const p = party as Record<string, unknown>;
+    const userId = Number(p.user_id ?? p.id);
+    if (!Number.isFinite(userId) || userId <= 0) return;
+    if (typeof p.is_online === "boolean") push(userId, p.is_online);
+    else if (typeof p.online === "boolean") push(userId, p.online);
+    else if (typeof fallbackOnline === "boolean") push(userId, fallbackOnline);
+  };
+
+  // Direct user on the event (who joined / left).
+  const direct = parsePresencePayload(
+    record,
+    typeof options?.forceOnline === "boolean" ? options.forceOnline : undefined
+  );
+  if (direct) {
+    push(direct.userId, direct.online);
+  } else if (typeof options?.forceOnline === "boolean") {
+    const userId = Number(
+      record.user_id ?? record.sender_id ?? record.participant_id ?? record.joiner_id
+    );
+    if (Number.isFinite(userId) && userId > 0) push(userId, options.forceOnline);
+  }
+
+  readParty(record.other_party, options?.forceOnline);
+  readParty(record.buyer, options?.forceOnline);
+  readParty(record.seller, options?.forceOnline);
+  readParty(record.user, options?.forceOnline);
+
+  const conversation =
+    record.conversation && typeof record.conversation === "object"
+      ? (record.conversation as Record<string, unknown>)
+      : null;
+  if (conversation) {
+    readParty(conversation.other_party);
+    readParty(conversation.buyer);
+    readParty(conversation.seller);
+  }
+
+  const participants = record.participants ?? conversation?.participants;
+  if (Array.isArray(participants)) {
+    for (const party of participants) {
+      readParty(party, options?.forceOnline);
+    }
+  }
+
+  return results;
 }

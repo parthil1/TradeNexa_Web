@@ -28,5 +28,8 @@ export const CHAT_SOCKET_EMIT_EVENTS = [
   "presence:unsubscribe",
 ] as const;
 
+/** Also listen for leave so we can flip peer to Offline (buyer + seller). */
+export const CHAT_SOCKET_EXTRA_LISTEN_EVENTS = ["conversation:leave"] as const;
+
 export type ChatSocketListenEvent = (typeof CHAT_SOCKET_LISTEN_EVENTS)[number];
 export type ChatSocketEmitEvent = (typeof CHAT_SOCKET_EMIT_EVENTS)[number];
