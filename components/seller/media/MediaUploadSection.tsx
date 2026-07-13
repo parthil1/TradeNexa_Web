@@ -177,18 +177,18 @@ export default function MediaUploadSection({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="rounded-[20px] border border-slate-200/80 bg-white p-7 shadow-[0_1px_3px_rgba(15,23,42,0.06),0_8px_24px_-4px_rgba(15,23,42,0.08)] sm:p-8"
+        className="rounded-[20px] border border-border bg-card p-7 shadow-[0_1px_3px_rgba(15,23,42,0.06),0_8px_24px_-4px_rgba(15,23,42,0.08)] sm:p-8"
         aria-labelledby="media-section-title"
       >
-        <div className="mb-6 flex items-start gap-3 border-b border-slate-100 pb-5">
+        <div className="mb-6 flex items-start gap-3 border-b border-border pb-5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
             <ImageIcon className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 id="media-section-title" className="text-base font-semibold text-slate-900">
+            <h2 id="media-section-title" className="text-base font-semibold text-foreground">
               Media
             </h2>
-            <p className="mt-0.5 text-sm text-slate-500">Upload product images and videos</p>
+            <p className="mt-0.5 text-sm text-muted-fg">Upload product images and videos</p>
           </div>
         </div>
 

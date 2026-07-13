@@ -51,7 +51,7 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col items-center rounded-xl border border-slate-100 bg-slate-50/80 p-4"
+            className="flex flex-col items-center rounded-xl border border-border bg-muted p-4"
           >
             <div className="skeleton mb-3 h-10 w-10 rounded-xl" />
             <div className="skeleton h-3 w-16 rounded" />
@@ -64,9 +64,9 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
 
   if (!roles.length) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center">
-        <p className="text-sm font-medium text-slate-600">Unable to load account types</p>
-        <p className="mt-1 text-xs text-slate-400">Please refresh and try again</p>
+      <div className="rounded-xl border border-dashed border-border bg-muted px-4 py-8 text-center">
+        <p className="text-sm font-medium text-muted-fg">Unable to load account types</p>
+        <p className="mt-1 text-xs text-muted-fg">Please refresh and try again</p>
       </div>
     );
   }
@@ -92,8 +92,8 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
               } ${
                 isSelected
                   ? "border-primary bg-primary/[0.04] shadow-[0_0_0_1px_rgba(37,99,235,0.15),0_4px_16px_-4px_rgba(37,99,235,0.15)]"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
-              } ${error && !value ? "border-red-200" : ""}`}
+                  : "border-border bg-card hover:border-muted hover:shadow-sm"
+              } ${error && !value ? "border-error/30" : ""}`}
             >
               <div
                 className={`flex items-center justify-center rounded-xl transition-all duration-200 ${
@@ -101,20 +101,20 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
                 } ${
                   isSelected
                     ? "bg-primary text-white shadow-sm"
-                    : "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
+                    : "bg-muted text-muted-fg group-hover:bg-primary/10 group-hover:text-primary"
                 }`}
               >
                 <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
               </div>
               <span
                 className={`font-semibold ${compact ? "text-[11px] leading-tight" : "text-sm"} ${
-                  isSelected ? "text-primary" : "text-slate-900"
+                  isSelected ? "text-primary" : "text-foreground"
                 }`}
               >
                 {role.name}
               </span>
               {!compact && (
-                <span className="mt-1 text-[11px] leading-snug text-slate-500">
+                <span className="mt-1 text-[11px] leading-snug text-muted-fg">
                   {role.description}
                 </span>
               )}
@@ -122,7 +122,7 @@ export function RoleSelector({ value, onChange, error, compact }: RoleSelectorPr
           );
         })}
       </div>
-      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+      {error && <p className="text-xs font-medium text-error">{error}</p>}
     </div>
   );
 }

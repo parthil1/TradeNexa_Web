@@ -38,22 +38,22 @@ export default function ProductWizardStepper({
   const current = steps[safeActiveIndex];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.05)] sm:p-5">
+    <div className="surface-card overflow-hidden p-5 sm:p-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
             Step {safeActiveIndex + 1} of {steps.length}
           </p>
-          <h2 className="mt-0.5 text-base font-semibold text-slate-900 sm:text-lg">
+          <h2 className="mt-1 text-lg font-semibold text-foreground sm:text-xl">
             {current?.label ?? "Create product"}
           </h2>
         </div>
-        <p className="text-xs text-slate-500">{percentComplete}% complete</p>
+        <p className="text-sm font-medium text-muted-fg">{percentComplete}% complete</p>
       </div>
 
-      <div className="relative mb-5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="relative mb-6 h-2 overflow-hidden rounded-full bg-border">
         <motion.div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary to-blue-500"
+          className="absolute inset-y-0 left-0 rounded-full bg-primary"
           initial={false}
           animate={{ width: `${progressPct}%` }}
           transition={{ duration: 0.35, ease: "easeOut" }}
@@ -81,23 +81,23 @@ export default function ProductWizardStepper({
                     aria-current={isActive ? "step" : undefined}
                     aria-label={`${step.label}${isCompleted ? ", completed" : isActive ? ", current" : ""}`}
                     onClick={() => canClick && onStepClick(idx)}
-                    className="group flex cursor-pointer flex-col items-center gap-2 focus-visible:outline-none disabled:cursor-not-allowed"
+                    className="group flex cursor-pointer flex-col items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                   >
                     <motion.span
                       layout
                       className={[
-                        "relative flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold transition-shadow duration-300 sm:h-10 sm:w-10",
+                        "relative flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300 sm:h-11 sm:w-11",
                         isActive
-                          ? "border-primary bg-primary text-white shadow-[0_0_0_4px_rgba(37,99,235,0.18)]"
+                          ? "border-primary bg-primary text-white shadow-[0_0_0_4px_rgba(21,101,192,0.2)]"
                           : isCompleted
                             ? "border-primary bg-primary text-white"
-                            : "border-slate-200 bg-white text-slate-400 group-hover:border-slate-300",
+                            : "border-border bg-white text-muted-placeholder group-hover:border-primary/50",
                       ].join(" ")}
                       whileHover={canClick ? { scale: 1.05 } : undefined}
                       whileTap={canClick ? { scale: 0.97 } : undefined}
                     >
                       {isCompleted && !isActive ? (
-                        <Check className="h-4 w-4" strokeWidth={2.5} />
+                        <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
                       ) : (
                         idx + 1
                       )}
@@ -105,11 +105,11 @@ export default function ProductWizardStepper({
 
                     <span
                       className={[
-                        "max-w-[72px] text-center text-[10px] font-medium leading-tight sm:max-w-none sm:text-xs",
+                        "max-w-[72px] text-center text-xs font-medium leading-tight sm:max-w-none sm:text-sm",
                         isActive ? "font-semibold text-primary" : null,
-                        isCompleted && !isActive ? "text-slate-700" : null,
-                        isUpcoming ? "text-slate-400" : null,
-                        !isActive && !isCompleted && !isUpcoming ? "text-slate-500" : null,
+                        isCompleted && !isActive ? "text-foreground" : null,
+                        isUpcoming ? "text-muted-placeholder" : null,
+                        !isActive && !isCompleted && !isUpcoming ? "text-muted-fg" : null,
                       ]
                         .filter(Boolean)
                         .join(" ")}
@@ -127,7 +127,7 @@ export default function ProductWizardStepper({
                   >
                     <div
                       className={`h-full rounded-full transition-colors duration-300 ${
-                        idx < safeMaxReached ? "bg-primary" : "bg-slate-200"
+                        idx < safeMaxReached ? "bg-primary" : "bg-border"
                       }`}
                     />
                   </div>

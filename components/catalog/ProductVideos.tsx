@@ -10,7 +10,7 @@ interface ProductVideosProps {
   productName: string;
 }
 
-const cardClass = "rounded-2xl border border-[#E8ECF0] bg-white shadow-sm overflow-hidden";
+const cardClass = "rounded-2xl border border-border bg-card shadow-sm overflow-hidden";
 
 export default function ProductVideos({ videos, productName }: ProductVideosProps) {
   if (videos.length === 0) return null;
@@ -23,7 +23,7 @@ export default function ProductVideos({ videos, productName }: ProductVideosProp
       <div className={`grid gap-4 ${videos.length > 1 ? "md:grid-cols-2" : ""}`}>
         {videos.map((video, index) => (
           <div key={video.key} className={cardClass}>
-            <div className="relative aspect-video bg-[#0D1B2A]">
+            <div className="relative aspect-video bg-foreground">
               {video.type === "file" ? (
                 <video
                   src={video.src}
@@ -44,8 +44,8 @@ export default function ProductVideos({ videos, productName }: ProductVideosProp
                 />
               )}
             </div>
-            <div className="flex items-center gap-2 border-t border-[#E8ECF0] px-4 py-2.5 text-xs font-semibold text-[#546E7A]">
-              <Play className="h-3.5 w-3.5 text-[#1565C0]" />
+            <div className="flex items-center gap-2 border-t border-border px-4 py-2.5 text-xs font-semibold text-muted-fg">
+              <Play className="h-3.5 w-3.5 text-primary" />
               {video.type === "youtube"
                 ? "YouTube"
                 : video.type === "vimeo"

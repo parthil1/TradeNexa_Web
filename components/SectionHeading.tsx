@@ -17,14 +17,14 @@ export default function SectionHeading({
   centered = true,
 }: SectionHeadingProps) {
   return (
-    <div className={`mb-16 max-w-3xl ${centered ? "mx-auto text-center" : "text-left"}`}>
+    <div className={`mb-12 max-w-3xl sm:mb-14 ${centered ? "mx-auto text-center" : "text-left"}`}>
       {badge && (
         <motion.span
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.4 }}
-          className="mb-4 inline-flex items-center rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary"
+          transition={{ duration: 0.35 }}
+          className="mb-3 inline-flex items-center rounded-full border border-primary/15 bg-primary-soft px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary"
         >
           {badge}
         </motion.span>
@@ -33,8 +33,8 @@ export default function SectionHeading({
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.45, delay: 0.05 }}
-        className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl"
+        transition={{ duration: 0.4, delay: 0.05 }}
+        className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
       >
         {title}
       </motion.h2>
@@ -43,8 +43,8 @@ export default function SectionHeading({
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.45, delay: 0.1 }}
-          className="mt-4 text-lg leading-relaxed text-slate-500"
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mt-4 text-base leading-relaxed text-muted-fg sm:text-lg"
         >
           {subtitle}
         </motion.p>

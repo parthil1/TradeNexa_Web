@@ -23,7 +23,6 @@ import {
 import { useCityFilter } from "@/hooks/useCityFilter";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
-import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
 
 function ProductsPageContent() {
   const router = useRouter();
@@ -133,7 +132,7 @@ function ProductsPageContent() {
 
   if (redirecting) {
     return (
-      <div className="flex min-h-[50vh] flex-col bg-slate-50">
+        <div className="flex min-h-[50vh] flex-col bg-background">
         <div className={MARKETPLACE_CONTAINER}>
           <MarketplaceProductGridSkeleton count={8} />
         </div>
@@ -142,30 +141,31 @@ function ProductsPageContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      <section className={`relative bg-gradient-to-br ${MARKETPLACE_NAVY} pb-8 pt-8 lg:pb-12 lg:pt-10`}>
+    <div className="flex min-h-screen flex-col bg-background">
+      <section className="relative overflow-hidden bg-navy pb-10 pt-8 lg:pb-12 lg:pt-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_-10%,rgb(21_101_192/0.3),transparent)]" />
         <div className={`${MARKETPLACE_CONTAINER} relative space-y-6`}>
-          <div className="mb-6 hidden lg:block lg:mb-8">
+          <div className="mb-6 hidden lg:mb-8 lg:block">
             <CatalogBreadcrumbs items={breadcrumbs} variant="light" />
           </div>
 
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/90">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
                 Marketplace
               </p>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
                 {pageTitle}
               </h1>
-              <p className="mt-3 hidden text-base text-blue-100/90 lg:block">
+              <p className="mt-3 hidden text-base text-white/70 lg:block">
                 Discover verified B2B listings from sellers across India.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:w-[280px] lg:shrink-0">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm lg:col-span-2 lg:py-5">
-                <p className="text-xs font-medium text-blue-100/80">Products Listed</p>
-                <p className="mt-1 text-3xl font-extrabold text-white">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm lg:col-span-2 lg:py-5">
+                <p className="text-xs font-medium text-white/55">Products Listed</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-white">
                   {loading && products.length === 0 ? "—" : pagination.total.toLocaleString()}
                 </p>
               </div>
@@ -202,16 +202,16 @@ function ProductsPageContent() {
               className="min-w-0 flex-1"
             />
             {!loading && products.length > 0 ? (
-              <p className="shrink-0 text-sm font-medium text-slate-500 sm:text-right">
+              <p className="shrink-0 text-sm font-medium text-muted-fg sm:text-right">
                 Showing{" "}
-                <span className="font-semibold text-slate-800">{products.length}</span> of{" "}
-                <span className="font-semibold text-slate-800">{pagination.total}</span> products
+                <span className="font-semibold text-navy">{products.length}</span> of{" "}
+                <span className="font-semibold text-navy">{pagination.total}</span> products
               </p>
             ) : null}
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
+            <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -265,7 +265,7 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-slate-50 py-12">
+        <div className="bg-background py-12">
           <div className={MARKETPLACE_CONTAINER}>
             <MarketplaceProductGridSkeleton count={8} />
           </div>

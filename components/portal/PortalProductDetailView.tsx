@@ -67,7 +67,7 @@ interface PortalProductDetailViewProps {
   compact?: boolean;
 }
 
-const cardClass = "rounded-2xl border border-[#E8ECF0] bg-white shadow-sm";
+const cardClass = "surface-card";
 
 function IconAction({
   onClick,
@@ -87,7 +87,7 @@ function IconAction({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`flex h-10 w-10 items-center justify-center rounded-xl border border-[#E8ECF0] bg-white text-[#546E7A] shadow-sm transition hover:border-[#1565C0]/30 hover:text-[#1565C0] ${
+      className={`flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-fg shadow-sm transition hover:border-primary/30 hover:text-primary ${
         danger && active ? "border-red-200 bg-red-50 text-red-500 hover:text-red-500" : ""
       }`}
     >
@@ -153,7 +153,7 @@ function ProductGallery({
         <>
           <Image src={thumbUrl} alt="" fill className="object-cover" unoptimized />
           <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[#1565C0] shadow">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-primary shadow">
               <Play className="ml-0.5 h-4 w-4 fill-current" />
             </span>
           </span>
@@ -201,8 +201,8 @@ function ProductGallery({
                 onClick={() => onSelect(item.id)}
                 className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${
                   isActive
-                    ? "border-[#1565C0] ring-2 ring-[#1565C0]/15"
-                    : "border-[#E8ECF0] hover:border-[#1565C0]/40"
+                    ? "border-primary ring-2 ring-primary/15"
+                    : "border-border hover:border-primary/40"
                 }`}
               >
                 {item.kind === "image" ? (
@@ -233,66 +233,69 @@ function SupplierCard({
   const { seller } = product;
   const location = formatSellerLocation(seller.location);
   const role = getSellerRole(product);
-  const logoUrl = resolveImageUrl(seller.company.logo);
+  const logoUrl = resolveImageUrl(seller.company?.logo);
   const contactPhone = getSellerContactPhone(product);
   const experienceLabel = getExperienceLabel(product);
   const locationLine = [location, role].filter(Boolean).join(" • ");
+  const companyName = seller.company?.name ?? "Supplier";
+  const contactPhoneDisplay = seller.contact?.phone;
+  const contactEmail = seller.contact?.email;
 
   return (
     <div className={`${cardClass} ${compact ? "p-4" : "p-5 lg:p-6"}`}>
       <div className="flex items-start justify-between gap-3">
-        <div
-          className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#E8EFF9] font-extrabold text-[#1565C0] ${
-            compact ? "h-10 w-10 text-sm" : "h-12 w-12 text-base"
-          }`}
-        >
+          <div
+            className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-soft font-extrabold text-primary ${
+              compact ? "h-10 w-10 text-sm" : "h-12 w-12 text-base"
+            }`}
+          >
           {logoUrl ? (
             <Image
               src={logoUrl}
-              alt={seller.company.name}
+              alt={companyName}
               width={48}
               height={48}
               className="h-full w-full object-cover"
               unoptimized
             />
           ) : (
-            getInitials(seller.company.name)
+            getInitials(companyName)
           )}
         </div>
-        <BadgeCheck className="h-5 w-5 shrink-0 text-[#1565C0]" />
+        <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />
       </div>
 
-      <p className={`mt-3 font-extrabold text-[#0D1B2A] ${compact ? "text-sm" : "mt-4 text-base lg:text-lg"}`}>
-        {seller.company.name}
+      <p className={`mt-3 font-extrabold text-foreground ${compact ? "text-sm" : "mt-4 text-base lg:text-lg"}`}>
+        {companyName}
       </p>
       {locationLine ? (
-        <p className="mt-1 flex items-start gap-1 text-sm text-[#546E7A]">
+        <p className="mt-1 flex items-start gap-1 text-sm text-muted-fg">
           <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {locationLine}
         </p>
       ) : null}
 
       <div className={`grid grid-cols-3 gap-2 ${compact ? "mt-3" : "mt-5"}`}>
-        <div className={`rounded-xl bg-[#F4F6F9] text-center ${compact ? "p-2" : "p-3"}`}>
-          <p className={`font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
+        <div className={`rounded-xl bg-muted text-center ${compact ? "p-2" : "p-3"}`}>
+          <p className={`font-extrabold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
             {experienceLabel}
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-[#546E7A]">Experience</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Experience</p>
         </div>
-        <div className={`rounded-xl bg-[#F4F6F9] text-center ${compact ? "p-2" : "p-3"}`}>
-          <p className={`font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
+        <div className={`rounded-xl bg-muted text-center ${compact ? "p-2" : "p-3"}`}>
+          <p className={`font-extrabold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
             {formatRating(seller.rating.average)}{" "}
             <Star className="inline h-3 w-3 fill-amber-400 text-amber-400" />
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-[#546E7A]">Seller Rating</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Seller Rating</p>
         </div>
-        <div className={`rounded-xl bg-[#F4F6F9] text-center ${compact ? "p-2" : "p-3"}`}>
-          <p className={`font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
+        <div className={`rounded-xl bg-muted text-center ${compact ? "p-2" : "p-3"}`}>
+          <p className={`font-extrabold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
             {seller.rating.total_reviews != null && seller.rating.total_reviews > 0
               ? seller.rating.total_reviews
               : "—"}
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-[#546E7A]">Reviews</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Reviews</p>
         </div>
       </div>
 
@@ -300,7 +303,7 @@ function SupplierCard({
         {supplierHref ? (
           <Link
             href={supplierHref(seller.id)}
-            className={`flex flex-1 items-center justify-center rounded-xl border border-[#E0E6ED] font-bold text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E8EFF9] ${
+            className={`flex flex-1 items-center justify-center rounded-xl border border-border font-bold text-primary transition hover:border-primary/40 hover:bg-primary-soft ${
               compact ? "py-2 text-xs" : "py-2.5 text-sm"
             }`}
           >
@@ -312,25 +315,25 @@ function SupplierCard({
             href={whatsAppHref(contactPhone, inquiryMessage)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E0E6ED] bg-emerald-50 text-emerald-600 transition hover:border-emerald-300"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-emerald-50 text-emerald-600 transition hover:border-emerald-300"
             aria-label="Contact on WhatsApp"
           >
             <MessageCircle className="h-5 w-5" />
           </a>
         ) : null}
-        {seller.contact.phone ? (
+        {contactPhoneDisplay ? (
           <a
-            href={`tel:${seller.contact.phone}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E0E6ED] bg-blue-50 text-[#1565C0] transition hover:border-[#1565C0]/30"
+            href={`tel:${contactPhoneDisplay}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-primary-soft text-primary transition hover:border-primary/30"
             aria-label="Call seller"
           >
             <Phone className="h-5 w-5" />
           </a>
         ) : null}
-        {seller.contact.email ? (
+        {contactEmail ? (
           <a
-            href={`mailto:${seller.contact.email}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E0E6ED] bg-orange-50 text-[#FF6D00] transition hover:border-orange-200"
+            href={`mailto:${contactEmail}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-orange-50 text-accent transition hover:border-orange-200"
             aria-label="Email seller"
           >
             <Mail className="h-5 w-5" />
@@ -436,7 +439,7 @@ export default function PortalProductDetailView({
           {links.back.href ? (
             <Link
               href={links.back.href}
-              className={`mb-2 inline-flex items-center gap-1.5 font-semibold text-[#546E7A] transition hover:text-[#1565C0] ${
+              className={`mb-2 inline-flex items-center gap-1.5 font-semibold text-muted-fg transition hover:text-primary ${
                 compact ? "text-xs" : "mb-3 text-sm"
               }`}
             >
@@ -447,7 +450,7 @@ export default function PortalProductDetailView({
             <button
               type="button"
               onClick={() => router.back()}
-              className={`mb-2 inline-flex items-center gap-1.5 font-semibold text-[#546E7A] transition hover:text-[#1565C0] ${
+              className={`mb-2 inline-flex items-center gap-1.5 font-semibold text-muted-fg transition hover:text-primary ${
                 compact ? "text-xs" : "mb-3 text-sm"
               }`}
             >
@@ -456,7 +459,7 @@ export default function PortalProductDetailView({
             </button>
           )}
           <h2
-            className={`font-extrabold text-[#0D1B2A] ${
+            className={`font-extrabold text-foreground ${
               compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl lg:text-3xl"
             }`}
           >
@@ -474,24 +477,24 @@ export default function PortalProductDetailView({
               </span>
             ) : null}
             {basic.brand ? (
-              <span className="inline-flex items-center gap-1 rounded-lg bg-[#F4F6F9] px-2 py-0.5 text-xs font-bold text-[#546E7A]">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-0.5 text-xs font-bold text-muted-fg">
                 <Tag className="h-3 w-3" />
                 {basic.brand.name}
               </span>
             ) : null}
             {basic.subcategory ? (
-              <span className="rounded-lg bg-[#E8EFF9] px-2 py-0.5 text-xs font-bold text-[#1565C0]">
+              <span className="rounded-lg bg-primary-soft px-2 py-0.5 text-xs font-bold text-primary">
                 {basic.subcategory.name}
               </span>
             ) : null}
             {isPremium ? (
-              <span className="inline-flex items-center gap-1 rounded-lg bg-[#E8EFF9] px-2 py-0.5 text-xs font-bold text-[#1565C0]">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-primary-soft px-2 py-0.5 text-xs font-bold text-primary">
                 <Sparkles className="h-3 w-3" />
                 Premium
               </span>
             ) : null}
             {marketplace.is_trending ? (
-              <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-0.5 text-xs font-bold text-[#FF6D00]">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-0.5 text-xs font-bold text-accent">
                 <TrendingUp className="h-3 w-3" />
                 Trending
               </span>
@@ -503,7 +506,7 @@ export default function PortalProductDetailView({
           {links.editProduct ? (
             <Link
               href={links.editProduct(product.id)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 transition hover:border-blue-500 hover:text-blue-600"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit
@@ -548,7 +551,7 @@ export default function PortalProductDetailView({
 
         <div className={`lg:col-span-7 ${compact ? "space-y-4" : "space-y-6"}`}>
           <div
-            className={`overflow-hidden rounded-2xl bg-gradient-to-br from-[#1565C0] to-[#5E92F3] text-white shadow-lg shadow-[#1565C0]/20 ${
+            className={`overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-hover text-white shadow-lg shadow-primary/20 ${
               compact ? "p-4" : "p-6"
             }`}
           >
@@ -577,15 +580,15 @@ export default function PortalProductDetailView({
               title="Min. Order"
               value={`${pricing.minimum_order_quantity} ${pricing.unit}`}
               icon={ShoppingBag}
-              color="text-[#1565C0]"
-              bg="bg-blue-50"
+              color="text-primary"
+              bg="bg-primary-soft"
               compact={compact}
             />
             <PortalStatCard
               title="Listed"
               value={listedDaysLabel(product.created_at)}
               icon={Clock}
-              color="text-[#2E7D32]"
+              color="text-success"
               bg="bg-emerald-50"
               compact={compact}
             />
@@ -593,7 +596,7 @@ export default function PortalProductDetailView({
               title={thirdStatTitle}
               value={thirdStatValue}
               icon={BadgeCheck}
-              color="text-[#FF6D00]"
+              color="text-accent"
               bg="bg-orange-50"
               compact={compact}
             />
@@ -605,7 +608,7 @@ export default function PortalProductDetailView({
                 href={whatsAppHref(contactPhone, inquiryMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E0E6ED] bg-white px-6 py-3 text-sm font-bold text-emerald-600 transition hover:border-emerald-300 hover:bg-emerald-50"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-bold text-emerald-600 transition hover:border-emerald-300 hover:bg-emerald-50"
               >
                 <MessageCircle className="h-4 w-4" />
                 WhatsApp Seller
@@ -615,16 +618,16 @@ export default function PortalProductDetailView({
 
           {keySpecs.length > 0 ? (
             <div className={`${cardClass} hidden lg:block ${compact ? "p-4" : "p-5"}`}>
-              <h3 className={`mb-3 font-extrabold text-[#0D1B2A] ${compact ? "text-sm" : "mb-4 text-base"}`}>
+              <h3 className={`mb-3 font-extrabold text-foreground ${compact ? "text-sm" : "mb-4 text-base"}`}>
                 Key Specifications
               </h3>
               <div className={`grid grid-cols-2 gap-2 xl:grid-cols-3 ${compact ? "gap-2" : "gap-3"}`}>
                 {keySpecs.map((spec) => (
-                  <div key={spec.label} className={`rounded-xl bg-[#F4F6F9] ${compact ? "px-3 py-2" : "px-4 py-3"}`}>
-                    <p className={`font-semibold text-[#546E7A] ${compact ? "text-[10px]" : "text-xs"}`}>
+                  <div key={spec.label} className={`rounded-xl bg-muted ${compact ? "px-3 py-2" : "px-4 py-3"}`}>
+                    <p className={`font-semibold text-muted-fg ${compact ? "text-[10px]" : "text-xs"}`}>
                       {spec.label}
                     </p>
-                    <p className={`mt-0.5 font-extrabold text-[#0D1B2A] ${compact ? "text-xs" : "text-sm"}`}>
+                    <p className={`mt-0.5 font-extrabold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
                       {spec.value}
                     </p>
                   </div>
@@ -642,8 +645,8 @@ export default function PortalProductDetailView({
               <div className="flex gap-3 overflow-x-auto pb-1 lg:hidden">
                 {keySpecs.map((spec) => (
                   <div key={spec.label} className={`${cardClass} shrink-0 px-4 py-3`}>
-                    <p className="text-xs font-semibold text-[#546E7A]">{spec.label}</p>
-                    <p className="mt-0.5 text-sm font-extrabold text-[#0D1B2A]">{spec.value}</p>
+                    <p className="text-xs font-semibold text-muted-fg">{spec.label}</p>
+                    <p className="mt-0.5 text-sm font-extrabold text-foreground">{spec.value}</p>
                   </div>
                 ))}
               </div>
@@ -654,7 +657,7 @@ export default function PortalProductDetailView({
             <div className={`${cardClass} ${compact ? "p-4" : "p-5 lg:p-6"}`}>
               {description ? (
                 <>
-                  <p className={`leading-relaxed text-[#546E7A] ${compact ? "text-xs" : "text-sm lg:text-base"}`}>
+                  <p className={`leading-relaxed text-muted-fg ${compact ? "text-xs" : "text-sm lg:text-base"}`}>
                     {displayDesc}
                     {!descExpanded && showReadMore ? "…" : ""}
                   </p>
@@ -662,7 +665,7 @@ export default function PortalProductDetailView({
                     <button
                       type="button"
                       onClick={() => setDescExpanded((v) => !v)}
-                      className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#1565C0]"
+                      className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary"
                     >
                       {descExpanded ? "Show less" : "Read More"}
                       <ChevronDown
@@ -672,7 +675,7 @@ export default function PortalProductDetailView({
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm text-[#90A4AE]">
+                <p className="text-sm text-muted-fg">
                   No description provided by the seller yet.
                 </p>
               )}
@@ -688,11 +691,11 @@ export default function PortalProductDetailView({
                     className={`grid grid-cols-2 gap-3 ${
                       compact ? "px-4 py-2.5" : "gap-4 px-5 py-3.5"
                     } ${
-                      i < fullSpecs.length - 1 ? "border-b border-[#E8ECF0]" : ""
-                    } ${i % 2 === 0 ? "bg-white" : "bg-[#FAFBFC]"}`}
+                      i < fullSpecs.length - 1 ? "border-b border-border" : ""
+                    } ${i % 2 === 0 ? "bg-card" : "bg-muted"}`}
                   >
-                    <span className="text-sm text-[#546E7A]">{spec.label}</span>
-                    <span className="text-sm font-bold text-[#0D1B2A]">{spec.value}</span>
+                    <span className="text-sm text-muted-fg">{spec.label}</span>
+                    <span className="text-sm font-bold text-foreground">{spec.value}</span>
                   </div>
                 ))}
               </div>
@@ -717,12 +720,12 @@ export default function PortalProductDetailView({
                       links.category ??
                       `/buyer/category/${product.basic_details.category!.id}`
                     }
-                    className="text-sm font-bold text-[#1565C0]"
+                    className="text-sm font-bold text-primary"
                   >
                     View all
                   </Link>
                 ) : (
-                  <Link href={links.search} className="text-sm font-bold text-[#1565C0]">
+                  <Link href={links.search} className="text-sm font-bold text-primary">
                     View all
                   </Link>
                 )
@@ -744,7 +747,7 @@ export default function PortalProductDetailView({
 
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-4">
-            <PortalSection title="Supplier" subtitle={product.seller.company.name} compact={compact}>
+            <PortalSection title="Supplier" subtitle={product.seller.company?.name} compact={compact}>
               <SupplierCard
                 product={product}
                 inquiryMessage={inquiryMessage}
@@ -757,7 +760,7 @@ export default function PortalProductDetailView({
       </div>
 
       <div
-        className={`fixed left-0 right-0 z-30 border-t border-[#E0E6ED] bg-white/95 px-4 py-3 backdrop-blur-md lg:hidden ${links.mobileBarClass}`}
+        className={`fixed left-0 right-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-md lg:hidden ${links.mobileBarClass}`}
       >
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <IconAction onClick={() => void handleShare()} label="Share">

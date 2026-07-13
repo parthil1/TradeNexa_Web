@@ -42,6 +42,9 @@ export interface CompleteProfileFormData {
   industry: string;
   gstNumber: string;
   address: string;
+  city: string;
+  state: string;
+  pincode: string;
   country: string;
   panNumber: string;
   cinNumber: string;

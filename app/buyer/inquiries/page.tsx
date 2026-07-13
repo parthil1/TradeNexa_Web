@@ -9,6 +9,7 @@ import PortalPagination from "@/components/portal/PortalPagination";
 import RfqListCard from "@/components/rfq/RfqListCard";
 import RfqListSidebar from "@/components/rfq/RfqListSidebar";
 import RfqListToolbar from "@/components/rfq/RfqListToolbar";
+import { Button } from "@/components/common/Button";
 import { useChat } from "@/context/ChatContext";
 import { fetchMyRfqs } from "@/services/rfqService";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
@@ -85,16 +86,15 @@ export default function BuyerInquiriesPage() {
         action={
           <div className="flex items-center gap-2">
             {newTodayCount > 0 ? (
-              <span className="inline-flex items-center rounded-full bg-[#E3F2FD] px-3 py-1 text-xs font-bold text-[#1565C0]">
+              <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">
                 {newTodayCount} new today
               </span>
             ) : null}
-            <Link
-              href="/buyer/post-requirement"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#1565C0] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1255A8] active:scale-[0.98]"
-            >
-              <Plus className="h-4 w-4" />
-              New RFQ
+            <Link href="/buyer/post-requirement">
+              <Button>
+                <Plus className="h-4 w-4" aria-hidden />
+                New RFQ
+              </Button>
             </Link>
           </div>
         }
@@ -117,8 +117,8 @@ export default function BuyerInquiriesPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
                   activeTab === tab
-                    ? "bg-[#1565C0] text-white shadow-sm"
-                    : "bg-white text-[#546E7A] ring-1 ring-[#E0E6ED] hover:ring-[#1565C0]/30"
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-white text-muted-fg ring-1 ring-border hover:ring-primary/30"
                 }`}
               >
                 {formatRfqStatusTabLabel(tab)}
@@ -135,8 +135,8 @@ export default function BuyerInquiriesPage() {
           ) : null}
 
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-sm text-[#546E7A]">
-              <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+            <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-fg">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Loading RFQs...
             </div>
           ) : items.length === 0 ? (
@@ -146,20 +146,15 @@ export default function BuyerInquiriesPage() {
               description={emptyDescription}
               action={
                 hasSearch ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="cursor-pointer rounded-xl border border-[#E0E6ED] px-4 py-2 text-sm font-bold text-[#546E7A]"
-                  >
+                  <Button variant="secondary" onClick={() => setSearch("")}>
                     Clear search
-                  </button>
+                  </Button>
                 ) : activeTab === "all" ? (
-                  <Link
-                    href="/buyer/post-requirement"
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Post Requirement
+                  <Link href="/buyer/post-requirement">
+                    <Button>
+                      <Plus className="h-4 w-4" aria-hidden />
+                      Post Requirement
+                    </Button>
                   </Link>
                 ) : undefined
               }
@@ -182,16 +177,15 @@ export default function BuyerInquiriesPage() {
           )}
 
           {showPostPrompt ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-[#E0E6ED] bg-[#FAFBFC] p-5 text-center">
-              <p className="text-sm font-bold text-[#0D1B2A]">Need more quotes?</p>
-              <p className="mt-1 text-xs text-[#546E7A]">
+            <div className="mt-6 rounded-2xl border border-dashed border-border bg-muted p-5 text-center">
+              <p className="text-sm font-bold text-foreground">Need more quotes?</p>
+              <p className="mt-1 text-xs text-muted-fg">
                 Post a new requirement or publish drafts so sellers can start quoting.
               </p>
-              <Link
-                href="/buyer/post-requirement"
-                className="mt-3 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-[#E0E6ED] bg-white px-4 py-2 text-xs font-bold text-[#546E7A] transition hover:border-[#1565C0]/40 hover:text-[#1565C0]"
-              >
-                Post requirement
+              <Link href="/buyer/post-requirement" className="mt-3 inline-block">
+                <Button variant="secondary" size="sm">
+                  Post requirement
+                </Button>
               </Link>
             </div>
           ) : null}

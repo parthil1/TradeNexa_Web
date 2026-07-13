@@ -19,7 +19,7 @@ export default function CatalogImage({
   alt,
   className = "h-full w-full object-cover",
   fallbackIcon: FallbackIcon = Layers,
-  fallbackClassName = "bg-gradient-to-br from-primary/10 via-primary/5 to-slate-50",
+  fallbackClassName = "bg-gradient-to-br from-primary/10 via-primary/5 to-muted",
   showInitials = false,
 }: CatalogImageProps) {
   const [failed, setFailed] = useState(false);

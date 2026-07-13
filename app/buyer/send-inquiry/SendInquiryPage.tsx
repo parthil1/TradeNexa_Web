@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import PortalBackLink from "@/components/portal/PortalBackLink";
+import { Button } from "@/components/common/Button";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 
 export default function SendInquiryPage() {
@@ -27,29 +28,29 @@ export default function SendInquiryPage() {
     <div className="mx-auto max-w-xl px-4 py-5 sm:px-6 lg:px-8">
       <PortalBackLink href={productId ? `/buyer/product/${productId}` : "/buyer/inquiries"} />
       <PortalPageHeader title="Send Inquiry" subtitle="Get a quote from the supplier" />
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-[#E8ECF0] bg-white p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-white p-6">
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-[#546E7A]">Quantity Required</label>
+          <label className="mb-1.5 block text-xs font-bold text-muted-fg">Quantity Required</label>
           <input
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="e.g. 500 units"
-            className="w-full rounded-xl border border-[#E0E6ED] px-4 py-3 text-sm outline-none focus:border-[#1565C0]"
+            className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-primary"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-[#546E7A]">Message</label>
+          <label className="mb-1.5 block text-xs font-bold text-muted-fg">Message</label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
             placeholder="Describe your requirement..."
-            className="w-full rounded-xl border border-[#E0E6ED] px-4 py-3 text-sm outline-none focus:border-[#1565C0]"
+            className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-primary"
           />
         </div>
-        <button type="submit" className="w-full rounded-2xl bg-[#1565C0] py-3.5 text-sm font-bold text-white">
+        <Button type="submit" variant="primary" size="lg" fullWidth>
           Send Inquiry
-        </button>
+        </Button>
       </form>
     </div>
   );

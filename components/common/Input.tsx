@@ -48,13 +48,13 @@ export const Input: React.FC<InputProps> = ({
       <div className="space-y-2">
         <label
           htmlFor={id}
-          className="block text-xs font-semibold uppercase tracking-wider text-slate-500"
+          className="block text-sm font-medium text-foreground"
         >
           {label}
         </label>
         <div className="relative">
           {Icon && (
-            <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-fg" aria-hidden />
           )}
           {inputEl}
         </div>
@@ -65,7 +65,7 @@ export const Input: React.FC<InputProps> = ({
   if (Icon) {
     return (
       <div className="relative">
-        <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-fg" aria-hidden />
         {inputEl}
       </div>
     );

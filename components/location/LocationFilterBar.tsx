@@ -42,7 +42,7 @@ export default function LocationFilterBar({
   const compactSelectClass =
     selectClassName ??
     (variant === "toolbar" || variant === "hero"
-      ? "!h-11 !w-full !max-w-[220px] !rounded-xl !border-slate-200 !bg-white !text-sm !text-slate-800 sm:!w-[200px]"
+      ? "!h-11 !w-full !max-w-[220px] !rounded-xl !border-border !bg-card !text-sm !text-foreground sm:!w-[200px]"
       : "!h-[3.25rem] !rounded-2xl");
 
   if (variant === "hero") {
@@ -70,7 +70,7 @@ export default function LocationFilterBar({
             type="button"
             onClick={onClear}
             disabled={clearDisabled}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 px-2 text-sm font-medium text-blue-100/85 underline-offset-4 transition hover:text-white hover:underline disabled:cursor-not-allowed disabled:text-blue-100/40 disabled:no-underline"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 px-2 text-sm font-medium text-white/85 underline-offset-4 transition hover:text-white hover:underline disabled:cursor-not-allowed disabled:text-white/40 disabled:no-underline"
           >
             <X className="h-3.5 w-3.5" />
             Clear filters
@@ -83,7 +83,7 @@ export default function LocationFilterBar({
   if (variant === "toolbar") {
     return (
       <div
-        className={`rounded-2xl border border-[#E0E6ED] bg-[#F7F8FA] px-3 py-3 sm:px-4 ${className}`}
+        className={`rounded-2xl border border-border bg-muted px-3 py-3 sm:px-4 ${className}`}
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -106,14 +106,14 @@ export default function LocationFilterBar({
               type="button"
               onClick={onClear}
               disabled={clearDisabled}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-[#E0E6ED] bg-white px-3 text-xs font-semibold text-[#0D1B2A] transition hover:border-[#1565C0]/30 hover:text-[#1565C0] disabled:cursor-not-allowed disabled:text-[#90A4AE] disabled:opacity-50 disabled:hover:border-[#E0E6ED] disabled:hover:text-[#90A4AE]"
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs font-semibold text-foreground transition hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:text-muted-fg disabled:opacity-50 disabled:hover:border-border disabled:hover:text-muted-fg"
             >
               <X className="h-3.5 w-3.5" />
               Clear filters
             </button>
           </div>
           {resultsLabel ? (
-            <p className="shrink-0 text-sm font-medium text-[#546E7A] lg:text-right">
+            <p className="shrink-0 text-sm font-medium text-muted-fg lg:text-right">
               {resultsLabel}
             </p>
           ) : null}
@@ -125,7 +125,7 @@ export default function LocationFilterBar({
   const clearButtonClass =
     variant === "onDark"
       ? "inline-flex h-[3.25rem] shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-medium text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-      : "inline-flex h-[3.25rem] shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-[#E0E6ED] bg-white px-4 text-sm font-medium text-[#546E7A] transition hover:border-[#1565C0]/40 hover:bg-[#1565C0]/5 hover:text-[#1565C0] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[#E0E6ED] disabled:hover:bg-white disabled:hover:text-[#546E7A]";
+      : "inline-flex h-[3.25rem] shrink-0 items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-4 text-sm font-medium text-muted-fg transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:bg-card disabled:hover:text-muted-fg";
 
   return (
     <div className={`flex flex-col gap-3 sm:flex-row sm:items-center ${className}`}>

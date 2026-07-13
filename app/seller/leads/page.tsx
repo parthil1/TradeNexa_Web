@@ -88,7 +88,7 @@ export default function SellerLeadsPage() {
         subtitle="Buyer requirements you can quote on"
         action={
           newTodayCount > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-[#E3F2FD] px-3 py-1 text-xs font-bold text-[#1565C0]">
+            <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">
               {newTodayCount} new today
             </span>
           ) : null
@@ -112,8 +112,8 @@ export default function SellerLeadsPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
                   activeTab === tab
-                    ? "bg-[#1565C0] text-white shadow-sm"
-                    : "bg-white text-[#546E7A] ring-1 ring-[#E0E6ED] hover:ring-[#1565C0]/30"
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-white text-muted-fg ring-1 ring-border hover:ring-primary/30"
                 }`}
               >
                 {formatRfqStatusTabLabel(tab)}
@@ -130,8 +130,8 @@ export default function SellerLeadsPage() {
           ) : null}
 
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-sm text-[#546E7A]">
-              <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+            <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-fg">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Loading RFQs...
             </div>
           ) : items.length === 0 ? (
@@ -144,7 +144,7 @@ export default function SellerLeadsPage() {
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="cursor-pointer rounded-xl border border-[#E0E6ED] px-4 py-2 text-sm font-bold text-[#546E7A]"
+                    className="cursor-pointer rounded-xl border border-border px-4 py-2 text-sm font-bold text-muted-fg"
                   >
                     Clear search
                   </button>
@@ -175,14 +175,14 @@ export default function SellerLeadsPage() {
           )}
 
           {showCatalogPrompt ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-[#E0E6ED] bg-[#FAFBFC] p-5 text-center">
-              <p className="text-sm font-bold text-[#0D1B2A]">Want more leads?</p>
-              <p className="mt-1 text-xs text-[#546E7A]">
+            <div className="mt-6 rounded-2xl border border-dashed border-border bg-muted p-5 text-center">
+              <p className="text-sm font-bold text-foreground">Want more leads?</p>
+              <p className="mt-1 text-xs text-muted-fg">
                 Keep your catalog up to date so buyers can find you for matching requirements.
               </p>
               <Link
                 href="/seller/catalog"
-                className="mt-3 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-[#E0E6ED] bg-white px-4 py-2 text-xs font-bold text-[#546E7A] transition hover:border-[#1565C0]/40 hover:text-[#1565C0]"
+                className="mt-3 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-muted-fg transition hover:border-primary/40 hover:text-primary"
               >
                 Manage catalog
               </Link>
@@ -205,12 +205,12 @@ export default function SellerLeadsPage() {
               aria-label={
                 unreadLabel ? `My Quotations, ${unreadLabel}` : "My Quotations"
               }
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[#E8ECF0] bg-white p-4 text-sm font-bold text-[#546E7A] transition hover:border-[#1565C0]/40 hover:text-[#1565C0]"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-white p-4 text-sm font-bold text-muted-fg transition hover:border-primary/40 hover:text-primary"
             >
               <span className="min-w-0">
                 <span className="block">My Quotations</span>
                 {unreadTotal > 0 ? (
-                  <span className="mt-0.5 block text-[11px] font-semibold text-[#128C7E]">
+                  <span className="mt-0.5 block text-[11px] font-semibold text-whatsapp-dark">
                     {formatChatBadgeCount(unreadTotal)} unread message
                     {unreadTotal === 1 ? "" : "s"}
                   </span>

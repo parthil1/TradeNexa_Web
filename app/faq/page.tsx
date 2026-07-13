@@ -36,7 +36,7 @@ export default function FAQ() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-background">
       <MarketplacePageHero
         eyebrow="Help Center"
         title="Frequently Asked Questions"
@@ -50,7 +50,7 @@ export default function FAQ() {
             title="General Queries"
             subtitle="Frequently asked questions about listing setup, buyer matching, and account trust."
           />
-          <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
             <FAQAccordion items={faqItems} />
           </div>
         </div>

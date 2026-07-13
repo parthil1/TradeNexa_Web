@@ -8,6 +8,7 @@ import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePag
 import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 import { useApp } from "@/app/context/AppContext";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/common/Button";
 import { Building, Upload, ShieldCheck, Mail, LineChart, Globe } from "lucide-react";
 
 export default function SellerBenefits() {
@@ -84,19 +85,16 @@ export default function SellerBenefits() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-background">
       <MarketplacePageHero
         eyebrow="For Sellers"
         title="Empowering Sellers to Scale Digital Trade"
         subtitle="List your business catalog on India's smart marketplace directory. Attract verified procurers and collect direct sales inquiries without paying commission."
       >
         {!isAuthenticated && (
-        <button
-          onClick={() => openRegisterModal("seller")}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
-        >
-          Get Started as a Seller
-        </button>
+          <Button onClick={() => openRegisterModal("seller")}>
+            Get Started as a Seller
+          </Button>
         )}
       </MarketplacePageHero>
 

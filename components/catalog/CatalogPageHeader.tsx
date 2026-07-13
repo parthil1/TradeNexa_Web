@@ -28,7 +28,7 @@ export default function CatalogPageHeader({
   children,
 }: CatalogPageHeaderProps) {
   return (
-    <section className="border-b border-slate-100 bg-white py-8 sm:py-10">
+    <section className="border-b border-border bg-card py-8 sm:py-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {breadcrumbs && <CatalogBreadcrumbs items={breadcrumbs} className="mb-3" />}
 
@@ -38,12 +38,12 @@ export default function CatalogPageHeader({
           </span>
         )}
 
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
           {title}
         </h1>
 
         {subtitle && (
-          <p className="mt-3 max-w-2xl text-base text-slate-500">{subtitle}</p>
+          <p className="mt-3 max-w-2xl text-base text-muted-fg">{subtitle}</p>
         )}
 
         {search && (

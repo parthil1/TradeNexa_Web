@@ -144,6 +144,9 @@ export function mapProfileToCompleteProfileForm(profile: ApiUserProfile): Comple
       addressObj?.address_line_1 ??
         (typeof profile.address === "string" ? profile.address : "")
     ),
+    city: String(profile.city ?? ""),
+    state: String(addressObj?.state ?? ""),
+    pincode: String(addressObj?.pincode ?? ""),
     country: String(addressObj?.country ?? "India"),
     panNumber: String(profile.pan_number ?? ""),
     cinNumber: String(profile.cin_number ?? ""),

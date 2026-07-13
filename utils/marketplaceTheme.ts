@@ -6,49 +6,49 @@ export interface MarketplaceTheme {
   pastel: string;
 }
 
-/** B2B palette — navy / slate / blue variants only (no consumer rainbow) */
+/** B2B palette — navy / muted / primary variants only (no consumer rainbow) */
 const THEMES: MarketplaceTheme[] = [
   {
-    iconBg: "bg-slate-100",
-    iconText: "text-slate-700",
-    productBadge: "bg-[#1a3a5c]",
+    iconBg: "bg-muted",
+    iconText: "text-navy",
+    productBadge: "bg-navy-mid",
     productBadgeText: "text-white",
-    pastel: "bg-slate-50",
+    pastel: "bg-muted",
   },
   {
-    iconBg: "bg-blue-50",
-    iconText: "text-blue-800",
-    productBadge: "bg-blue-800",
-    productBadgeText: "text-white",
-    pastel: "bg-blue-50/80",
-  },
-  {
-    iconBg: "bg-slate-100",
-    iconText: "text-[#234a73]",
-    productBadge: "bg-[#234a73]",
-    productBadgeText: "text-white",
-    pastel: "bg-slate-50",
-  },
-  {
-    iconBg: "bg-blue-100",
-    iconText: "text-blue-700",
+    iconBg: "bg-primary-soft",
+    iconText: "text-primary",
     productBadge: "bg-primary",
     productBadgeText: "text-white",
-    pastel: "bg-blue-50",
+    pastel: "bg-primary-soft/80",
   },
   {
-    iconBg: "bg-slate-100",
-    iconText: "text-slate-600",
-    productBadge: "bg-slate-700",
+    iconBg: "bg-muted",
+    iconText: "text-navy-mid",
+    productBadge: "bg-navy-mid",
     productBadgeText: "text-white",
-    pastel: "bg-slate-50",
+    pastel: "bg-muted",
   },
   {
-    iconBg: "bg-blue-50",
-    iconText: "text-[#1a3a5c]",
-    productBadge: "bg-[#1a2b4c]",
+    iconBg: "bg-primary-soft",
+    iconText: "text-primary-hover",
+    productBadge: "bg-primary",
     productBadgeText: "text-white",
-    pastel: "bg-slate-50",
+    pastel: "bg-primary-soft",
+  },
+  {
+    iconBg: "bg-muted",
+    iconText: "text-muted-fg",
+    productBadge: "bg-navy",
+    productBadgeText: "text-white",
+    pastel: "bg-muted",
+  },
+  {
+    iconBg: "bg-primary-soft",
+    iconText: "text-navy-mid",
+    productBadge: "bg-navy",
+    productBadgeText: "text-white",
+    pastel: "bg-muted",
   },
 ];
 
@@ -69,7 +69,7 @@ function hashString(value: string): number {
   return hash;
 }
 
-export const MARKETPLACE_NAVY = "from-[#1a3a5c] to-[#234a73]";
-export const B2B_HEADING = "#1a2b4c";
-export const B2B_NAVY = "#1a3a5c";
-export const B2B_NAVY_MID = "#234a73";
+export const MARKETPLACE_NAVY = "from-navy to-navy-mid";
+export const B2B_HEADING = "#0D1B2A";
+export const B2B_NAVY = "#0D1B2A";
+export const B2B_NAVY_MID = "#1a3a5c";

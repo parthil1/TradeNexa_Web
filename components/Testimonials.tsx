@@ -46,41 +46,40 @@ export default function Testimonials() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
-          className="relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-200"
+          className="surface-card-hover relative flex flex-col justify-between p-6 sm:p-8"
         >
-          {/* Quote Icon Overlay */}
-          <div className="absolute right-6 top-6 text-slate-100">
-            <Quote className="h-8 w-8" />
+          <div className="absolute right-6 top-6 text-border">
+            <Quote className="h-8 w-8" aria-hidden />
           </div>
 
           <div>
-            {/* Stars */}
-            <div className="mb-4 flex gap-1 text-slate-400">
+            <div className="mb-4 flex gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
-                  className={`h-4 w-4 fill-current ${i < t.rating ? "text-slate-600" : "text-slate-200"}`}
+                  className={`h-4 w-4 fill-current ${i < t.rating ? "text-warning" : "text-border"}`}
+                  aria-hidden
                 />
               ))}
             </div>
-            
-            {/* Feedback Content */}
-            <p className="mb-6 text-sm italic leading-relaxed text-slate-600">
+
+            <p className="mb-6 text-sm leading-relaxed text-muted-fg">
               &ldquo;{t.content}&rdquo;
             </p>
           </div>
 
-          {/* Business Owner Profile */}
-          <div className="flex items-center gap-3 pt-4 border-t border-slate-50">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-              {t.name.split(" ").map(n => n[0]).join("")}
+          <div className="flex items-center gap-3 border-t border-border pt-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
+              {t.name.split(" ").map((n) => n[0]).join("")}
             </div>
             <div>
               <div className="flex items-center gap-1">
-                <span className="text-sm font-bold text-slate-900">{t.name}</span>
-                <ShieldCheck className="h-4 w-4 text-primary fill-primary/10" />
+                <span className="text-sm font-semibold text-foreground">{t.name}</span>
+                <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
               </div>
-              <p className="text-xs text-slate-500">{t.role}, {t.company}</p>
+              <p className="text-xs text-muted-fg">
+                {t.role}, {t.company}
+              </p>
             </div>
           </div>
         </motion.div>

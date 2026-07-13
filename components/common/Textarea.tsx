@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { inputClassName } from "./FormField";
+import { textareaClassName } from "./FormField";
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   id: string;
@@ -13,7 +13,7 @@ export function Textarea({ id, error, className = "", ...rest }: TextareaProps) 
     <textarea
       id={id}
       aria-invalid={!!error}
-      className={`${inputClassName(error)} resize-none ${className}`}
+      className={`${textareaClassName(error)} ${className}`}
       {...rest}
     />
   );

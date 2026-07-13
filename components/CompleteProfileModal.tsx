@@ -2,10 +2,11 @@
 
 import React from "react";
 import { Modal } from "@/components/common/Modal";
+import { Button } from "@/components/common/Button";
 import CompleteProfileForm from "@/components/portal/CompleteProfileForm";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserRole } from "@/types/auth";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function CompleteProfileModal() {
   const {
@@ -33,28 +34,21 @@ export default function CompleteProfileModal() {
 
   const profileFooter = (
     <div className="space-y-3">
-      <button
+      <Button
         type="submit"
         form="complete-profile-form"
-        disabled={completeProfileState.loading}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-500 text-sm font-medium text-white transition hover:bg-blue-600 disabled:bg-slate-300"
+        fullWidth
+        size="lg"
+        loading={completeProfileState.loading}
+        loadingText="Saving Profile..."
       >
-        {completeProfileState.loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Saving Profile...
-          </>
-        ) : (
-          <>
-            Save Profile
-            <ArrowRight className="h-4 w-4" />
-          </>
-        )}
-      </button>
+        Save Profile
+        <ArrowRight className="h-4 w-4" aria-hidden />
+      </Button>
       <button
         type="button"
         onClick={skipCompleteProfile}
-        className="w-full text-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
+        className="w-full cursor-pointer text-center text-sm font-medium text-muted-fg transition-colors duration-200 hover:text-foreground"
       >
         Skip for now
       </button>
@@ -65,7 +59,7 @@ export default function CompleteProfileModal() {
     <Modal
       isOpen={isCompleteProfileOpen}
       onClose={skipCompleteProfile}
-      title={<span className="font-semibold text-slate-900">{title}</span>}
+      title={<span className="font-semibold text-foreground">{title}</span>}
       bodyClassName="px-6 py-6"
       footer={profileFooter}
       maxWidth="md"

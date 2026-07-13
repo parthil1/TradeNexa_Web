@@ -24,16 +24,17 @@ export default function MarketplaceSearchBar({
   return (
     <div className={`relative ${className}`}>
       <Search
-        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-fg ${
           isSmall ? "left-3 h-4 w-4" : "left-3.5 h-4 w-4"
         }`}
+        aria-hidden
       />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full border-0 bg-white text-slate-800 shadow-md shadow-slate-900/10 outline-none ring-1 ring-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/30 ${
+        className={`w-full border-0 bg-white text-foreground shadow-[var(--shadow-card)] outline-none ring-1 ring-border placeholder:text-muted-placeholder focus:ring-2 focus:ring-primary/30 ${
           isSmall
             ? "rounded-xl py-2.5 pl-9 pr-9 text-sm"
             : "rounded-xl py-3 pl-10 pr-10 text-sm"
@@ -44,11 +45,11 @@ export default function MarketplaceSearchBar({
           type="button"
           onClick={() => onChange("")}
           aria-label="Clear search"
-          className={`absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 ${
+          className={`absolute right-2 top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted-fg transition-colors duration-200 hover:bg-muted hover:text-foreground ${
             isSmall ? "h-6 w-6" : "h-7 w-7"
           }`}
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden />
         </button>
       )}
     </div>

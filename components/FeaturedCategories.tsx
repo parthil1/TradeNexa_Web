@@ -42,17 +42,17 @@ export default function FeaturedCategories() {
   }, []);
 
   return (
-    <section className="bg-slate-50 py-16 lg:py-20">
+    <section className="bg-background py-16 lg:py-20">
       <div className={MARKETPLACE_CONTAINER}>
         <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
               Industries
             </p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-[#1a2b4c] sm:text-4xl">
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
               Featured Categories
             </h2>
-            <p className="mt-2 max-w-xl text-sm text-slate-500">
+            <p className="mt-2 max-w-xl text-sm text-muted-fg">
               Discover products across major B2B manufacturing segments.
             </p>
           </div>

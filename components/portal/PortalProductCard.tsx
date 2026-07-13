@@ -52,7 +52,7 @@ export default function PortalProductCard({
 
   return (
     <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="h-full">
-      <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow duration-200 hover:border-slate-300 hover:shadow-sm">
+      <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow duration-200 hover:border-muted hover:shadow-sm">
         <Link href={link} className="flex flex-1 flex-col hover:cursor-pointer">
           <div className="relative aspect-[4/3] overflow-hidden">
             <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
@@ -76,15 +76,15 @@ export default function PortalProductCard({
             ) : null}
           </div>
           <div className="flex flex-1 flex-col p-4">
-            <h4 className="line-clamp-2 min-h-[2.5rem] truncate text-sm font-medium text-slate-900 transition-colors group-hover:text-blue-600">
+            <h4 className="line-clamp-2 min-h-[2.5rem] truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
               {product.name}
             </h4>
-            <p className="mt-2 text-sm font-semibold text-blue-600">
+            <p className="mt-2 text-sm font-semibold text-primary">
               {formatPrice(product.price, product.currency)}
-              <span className="text-xs font-normal text-slate-400"> / {product.unit}</span>
+              <span className="text-xs font-normal text-muted-fg"> / {product.unit}</span>
             </p>
-            <div className="mt-auto space-y-1 pt-3 text-xs text-slate-400">
-              <p className="truncate font-medium text-slate-600">{product.supplier_name}</p>
+            <div className="mt-auto space-y-1 pt-3 text-xs text-muted-fg">
+              <p className="truncate font-medium text-muted-fg">{product.supplier_name}</p>
               <p className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
                 {formatLocation(product.city, product.state)}
@@ -112,13 +112,13 @@ export default function PortalProductCard({
         ) : null}
         {editHref || showDelete ? (
           <div
-            className={`grid border-t border-slate-100 ${editHref && showDelete ? "grid-cols-2" : "grid-cols-1"}`}
+            className={`grid border-t border-border ${editHref && showDelete ? "grid-cols-2" : "grid-cols-1"}`}
           >
             {editHref ? (
               <Link
                 href={editHref}
-                className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-600 ${
-                  showDelete ? "border-r border-slate-100" : ""
+                className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-fg transition hover:bg-muted hover:text-primary ${
+                  showDelete ? "border-r border-border" : ""
                 }`}
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -130,7 +130,7 @@ export default function PortalProductCard({
                 productId={product.id}
                 productName={product.name}
                 onDeleted={onDeleted}
-                className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-error transition hover:bg-error/10"
               />
             ) : null}
           </div>

@@ -35,14 +35,14 @@ function SubItem({
       className={`group flex w-full items-center gap-2.5 rounded-xl border-l-[3px] py-2.5 pl-3 pr-2.5 text-left text-sm transition-all duration-200 ${
         active
           ? "border-portal-buyer bg-portal-buyer-light font-semibold text-portal-buyer shadow-sm shadow-portal-buyer/5"
-          : "border-transparent font-medium text-portal-muted hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-portal-fg"
+          : "border-transparent font-medium text-portal-muted hover:border-border hover:bg-background hover:text-portal-fg"
       }`}
     >
       <span className="min-w-0 flex-1 truncate leading-snug">{label}</span>
       {count !== undefined ? (
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
-            active ? "bg-portal-buyer/15 text-portal-buyer" : "bg-[#F1F5F9] text-[#94A3B8]"
+            active ? "bg-portal-buyer/15 text-portal-buyer" : "bg-muted text-muted-fg"
           }`}
         >
           {count}
@@ -93,7 +93,7 @@ export default function CategorySubcategorySidebar({
 
   const shellClass = embedded
     ? "flex h-full min-h-0 flex-col"
-    : "overflow-hidden rounded-xl border border-portal-border bg-white shadow-sm";
+    : "overflow-hidden rounded-xl border border-portal-border bg-card shadow-sm";
 
   if (loadingSubs && subcategories.length === 0) {
     return (
@@ -116,22 +116,22 @@ export default function CategorySubcategorySidebar({
     <aside className={shellClass}>
       <div
         className={`flex shrink-0 items-center justify-between gap-2 ${
-          embedded ? "px-1 pb-3" : "border-b border-portal-border bg-[#FAFBFC] px-4 py-3"
+          embedded ? "px-1 pb-3" : "border-b border-portal-border bg-background px-4 py-3"
         }`}
       >
         <div className="flex min-w-0 items-center gap-2">
           <Layers className="h-4 w-4 shrink-0 text-portal-buyer" />
           <p className="truncate text-sm font-bold text-portal-fg">Subcategories</p>
         </div>
-        <span className="shrink-0 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold text-[#94A3B8]">
+        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-fg">
           {groupCount}
         </span>
       </div>
       <div
         ref={listRef}
-        className={`min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain [scrollbar-color:#CBD5E1_transparent] [scrollbar-width:thin] ${
+        className={`min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin] ${
           embedded ? "max-h-[min(52vh,420px)] px-1 lg:max-h-[min(62vh,520px)]" : "max-h-[min(65vh,520px)] p-2"
-        } [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#CBD5E1]`}
+        } [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}
       >
         <SubItem
           label="All products"

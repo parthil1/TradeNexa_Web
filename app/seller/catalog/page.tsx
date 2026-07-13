@@ -8,6 +8,7 @@ import PortalProductCard from "@/components/portal/PortalProductCard";
 import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
 import PortalSearchBar from "@/components/portal/PortalSearchBar";
+import { Button } from "@/components/common/Button";
 import { fetchMyProducts } from "@/services/catalogService";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
@@ -56,12 +57,11 @@ export default function SellerCatalogPage() {
         title="My Catalog"
         subtitle="Manage your product listings"
         action={
-          <Link
-            href="/seller/add-product"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add Product
+          <Link href="/seller/add-product">
+            <Button>
+              <Plus className="h-4 w-4" aria-hidden />
+              Add Product
+            </Button>
           </Link>
         }
       />
@@ -73,7 +73,7 @@ export default function SellerCatalogPage() {
           placeholder="Search your products by name..."
         />
         {!loading && hasSearch ? (
-          <p className="mt-2 text-xs text-[#546E7A]">
+          <p className="mt-2 text-xs text-muted-fg">
             {pagination.total === 0
               ? "No matches"
               : `${pagination.total} product${pagination.total === 1 ? "" : "s"} found`}
@@ -88,8 +88,8 @@ export default function SellerCatalogPage() {
       ) : null}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           {hasSearch ? "Searching..." : "Loading catalog..."}
         </div>
       ) : products.length === 0 ? (
@@ -103,19 +103,12 @@ export default function SellerCatalogPage() {
           }
           action={
             hasSearch ? (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="rounded-xl border border-[#E0E6ED] bg-white px-4 py-2 text-sm font-semibold text-[#546E7A] transition hover:border-[#1565C0] hover:text-[#1565C0]"
-              >
+              <Button variant="secondary" onClick={() => setSearch("")}>
                 Clear search
-              </button>
+              </Button>
             ) : (
-              <Link
-                href="/seller/add-product"
-                className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
-              >
-                Add Product
+              <Link href="/seller/add-product">
+                <Button>Add Product</Button>
               </Link>
             )
           }

@@ -22,6 +22,9 @@ export function buildProfileFormData(payload: CompleteProfileData): FormData {
     appendIfPresent(formData, "gst_number", d.gstNumber);
     formData.append("industry", d.industry.trim());
     formData.append("address_line_1", d.address.trim());
+    appendIfPresent(formData, "city", d.city);
+    appendIfPresent(formData, "state", d.state);
+    appendIfPresent(formData, "pincode", d.pincode);
     formData.append("country", d.country.trim() || "India");
     appendFile(formData, "profile_image", d.profileImageFile);
     return formData;
@@ -47,6 +50,9 @@ export function buildProfileFormData(payload: CompleteProfileData): FormData {
   formData.append("pan_number", d.panNumber.trim());
   formData.append("business_description", d.businessDescription.trim());
   formData.append("address_line_1", d.address.trim());
+  appendIfPresent(formData, "city", d.city);
+  appendIfPresent(formData, "state", d.state);
+  appendIfPresent(formData, "pincode", d.pincode);
   appendFile(formData, "profile_image", d.profileImageFile);
   appendFile(formData, "company_logo", d.companyLogoFile);
   appendFile(formData, "company_banner", d.companyBannerFile);

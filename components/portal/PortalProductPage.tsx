@@ -101,7 +101,7 @@ export default function PortalProductPage({ links, browseHref }: PortalProductPa
           title="Invalid product"
           description="The product link is not valid."
           action={
-            <Link href={browseHref} className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white">
+            <Link href={browseHref} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
               Browse Products
             </Link>
           }
@@ -112,8 +112,8 @@ export default function PortalProductPage({ links, browseHref }: PortalProductPa
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-20 text-sm text-[#546E7A]">
-        <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+      <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-fg">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
         Loading product...
       </div>
     );
@@ -127,7 +127,7 @@ export default function PortalProductPage({ links, browseHref }: PortalProductPa
           title="Product not found"
           description={error || "This product may have been removed or is unavailable."}
           action={
-            <Link href={browseHref} className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white">
+            <Link href={browseHref} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
               Browse Products
             </Link>
           }

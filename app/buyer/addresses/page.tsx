@@ -12,9 +12,9 @@ export default function BuyerAddressesPage() {
     <div className="mx-auto max-w-xl px-4 py-5 sm:px-6 lg:px-8">
       <PortalBackLink href="/buyer/profile" />
       <PortalPageHeader title="Saved Addresses" />
-      <div className="rounded-2xl border border-[#E8ECF0] bg-white p-4">
-        <p className="text-sm font-extrabold text-[#0D1B2A]">Default Address</p>
-        <p className="mt-2 text-sm text-[#546E7A]">
+      <div className="rounded-2xl border border-border bg-white p-4">
+        <p className="text-sm font-extrabold text-foreground">Default Address</p>
+        <p className="mt-2 text-sm text-muted-fg">
           {[user?.address, user?.city, user?.state, user?.pincode].filter(Boolean).join(", ") ||
             "No address saved yet."}
         </p>

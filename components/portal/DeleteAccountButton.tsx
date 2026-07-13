@@ -40,7 +40,7 @@ export default function DeleteAccountButton({ compact = false }: DeleteAccountBu
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100 ${
+        className={`inline-flex items-center justify-center gap-2 rounded-xl border border-error/30 bg-error/10 px-4 py-2.5 text-sm font-bold text-error transition hover:bg-error/20 ${
           compact ? "shrink-0" : "w-full py-3.5"
         }`}
       >
@@ -51,9 +51,9 @@ export default function DeleteAccountButton({ compact = false }: DeleteAccountBu
   }
 
   return (
-    <div className={`rounded-2xl border border-red-200 bg-red-50 p-4 ${compact ? "w-full max-w-md" : ""}`}>
-      <p className="text-sm font-extrabold text-red-700">Delete your account?</p>
-      <p className="mt-1 text-xs text-red-600/80">
+    <div className={`rounded-2xl border border-error/30 bg-error/10 p-4 ${compact ? "w-full max-w-md" : ""}`}>
+      <p className="text-sm font-extrabold text-error">Delete your account?</p>
+      <p className="mt-1 text-xs text-error/80">
         This permanently removes your profile and cannot be undone.
       </p>
       <div className="mt-4 flex gap-2">
@@ -61,7 +61,7 @@ export default function DeleteAccountButton({ compact = false }: DeleteAccountBu
           type="button"
           onClick={() => setConfirmOpen(false)}
           disabled={loading}
-          className="flex-1 rounded-xl border border-red-200 bg-white py-2.5 text-sm font-semibold text-[#546E7A]"
+          className="flex-1 rounded-xl border border-border bg-card py-2.5 text-sm font-semibold text-muted-fg"
         >
           Cancel
         </button>
@@ -69,7 +69,7 @@ export default function DeleteAccountButton({ compact = false }: DeleteAccountBu
           type="button"
           onClick={() => void handleDelete()}
           disabled={loading}
-          className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+          className="flex-1 rounded-xl bg-error py-2.5 text-sm font-bold text-white disabled:opacity-50"
         >
           {loading ? "Deleting..." : "Confirm Delete"}
         </button>

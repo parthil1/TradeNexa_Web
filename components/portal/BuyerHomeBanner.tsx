@@ -48,12 +48,12 @@ function BannerContent({
               priority
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-blue-400" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-navy-mid" />
           )}
         </motion.div>
       </AnimatePresence>
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/75 via-slate-900/25 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-navy/75 via-navy/25 to-transparent" />
 
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 sm:p-4">
         <div className="min-w-0 flex-1">
@@ -113,7 +113,7 @@ export default function BuyerHomeBanner({ banners }: BuyerHomeBannerProps) {
     <div className="relative mb-5 sm:mb-6">
       <motion.div
         layout
-        className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100 shadow-sm sm:rounded-2xl"
+        className="relative overflow-hidden rounded-xl border border-border bg-muted shadow-sm sm:rounded-2xl"
       >
         <BannerContent banner={active} imageUrl={imageUrl} href={href} />
       </motion.div>
@@ -128,7 +128,7 @@ export default function BuyerHomeBanner({ banners }: BuyerHomeBannerProps) {
               className={`rounded-full transition-all ${
                 i === index
                   ? "h-1.5 w-5 bg-primary"
-                  : "h-1.5 w-1.5 bg-slate-300 hover:bg-slate-400"
+                  : "h-1.5 w-1.5 bg-muted-fg hover:bg-foreground"
               }`}
               aria-label={`Show banner: ${banner.title}`}
             />

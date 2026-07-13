@@ -64,12 +64,12 @@ export default function BuyerTrendingPage() {
       <PortalPageHeader title="Trending" subtitle="Most popular B2B listings this week" />
       <div className="mb-6 space-y-2.5">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#546E7A]" />
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-fg" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search trending products..."
-            className={`w-full rounded-2xl border border-[#E0E6ED] bg-white py-3.5 pl-12 text-sm outline-none transition focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 ${
+            className={`w-full rounded-2xl border border-border bg-white py-3.5 pl-12 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 ${
               query ? "pr-12" : "pr-4"
             }`}
           />
@@ -78,7 +78,7 @@ export default function BuyerTrendingPage() {
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#546E7A] transition hover:bg-[#F4F6F9] hover:text-[#0D1B2A]"
+              className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-fg transition hover:bg-muted hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -102,8 +102,8 @@ export default function BuyerTrendingPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading...
         </div>
       ) : products.length === 0 ? (
@@ -120,7 +120,7 @@ export default function BuyerTrendingPage() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="cursor-pointer rounded-xl border border-[#E0E6ED] px-4 py-2 text-sm font-bold text-[#546E7A]"
+                className="cursor-pointer rounded-xl border border-border px-4 py-2 text-sm font-bold text-muted-fg"
               >
                 Clear filters
               </button>

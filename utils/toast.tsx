@@ -16,20 +16,20 @@ function showToast(message: string, type: ToastType) {
           t.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
         } ${
           type === "success"
-            ? "border-green-200 bg-white text-slate-800"
-            : "border-red-200 bg-white text-slate-800"
+            ? "border-success/25 bg-white text-foreground"
+            : "border-error/25 bg-white text-foreground"
         }`}
         style={{ minWidth: 280, maxWidth: 360 }}
       >
         {type === "success" ? (
-          <CheckCircle className="h-5 w-5 flex-shrink-0 text-green-500" />
+          <CheckCircle className="h-5 w-5 flex-shrink-0 text-success" />
         ) : (
-          <XCircle className="h-5 w-5 flex-shrink-0 text-red-500" />
+          <XCircle className="h-5 w-5 flex-shrink-0 text-error" />
         )}
         <span className="flex-1 text-sm font-medium">{message}</span>
         <button
           onClick={() => toast.dismiss(t.id)}
-          className="ml-1 flex-shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          className="ml-1 flex-shrink-0 rounded-md p-1 text-muted-placeholder transition-colors hover:bg-muted hover:text-muted-fg"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

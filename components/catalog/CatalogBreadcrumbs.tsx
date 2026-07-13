@@ -30,7 +30,7 @@ export default function CatalogBreadcrumbs({
       <Link
         href="/"
         className={`inline-flex items-center gap-1 transition-colors ${
-          isLight ? "text-blue-200/80 hover:text-white" : "text-slate-400 hover:text-primary"
+          isLight ? "text-white/70 hover:text-white" : "text-muted-fg hover:text-primary"
         }`}
       >
         <Home className="h-3.5 w-3.5" />
@@ -39,19 +39,19 @@ export default function CatalogBreadcrumbs({
       {items.map((item, i) => (
         <React.Fragment key={`${item.label}-${i}`}>
           <ChevronRight
-            className={`h-3.5 w-3.5 shrink-0 ${isLight ? "text-blue-300/60" : "text-slate-300"}`}
+            className={`h-3.5 w-3.5 shrink-0 ${isLight ? "text-white/45" : "text-border"}`}
           />
           {item.href ? (
             <Link
               href={item.href}
               className={`font-medium transition-colors ${
-                isLight ? "text-blue-100 hover:text-white" : "text-slate-500 hover:text-primary"
+                isLight ? "text-white/85 hover:text-white" : "text-muted-fg hover:text-primary"
               }`}
             >
               {item.label}
             </Link>
           ) : (
-            <span className={`font-semibold ${isLight ? "text-white" : "text-slate-900"}`}>
+            <span className={`font-semibold ${isLight ? "text-white" : "text-foreground"}`}>
               {item.label}
             </span>
           )}

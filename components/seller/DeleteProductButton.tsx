@@ -56,7 +56,7 @@ export default function DeleteProductButton({
         onClick={() => setConfirmOpen(true)}
         className={
           className ||
-          "inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 px-3 text-xs font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
+          "inline-flex h-9 items-center gap-1.5 rounded-lg border border-error/30 px-3 text-xs font-medium text-error transition hover:border-error/50 hover:bg-error/10"
         }
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -65,9 +65,9 @@ export default function DeleteProductButton({
 
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-[#0D1B2A]">Delete product?</h3>
-            <p className="mt-2 text-sm text-[#546E7A]">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-foreground">Delete product?</h3>
+            <p className="mt-2 text-sm text-muted-fg">
               Are you sure you want to permanently delete &quot;{productName}&quot;? This cannot be
               undone.
             </p>
@@ -76,7 +76,7 @@ export default function DeleteProductButton({
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={loading}
-                className="rounded-xl px-4 py-2 text-sm font-semibold text-[#546E7A] hover:bg-[#F4F6F9] disabled:opacity-50"
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-fg hover:bg-muted disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -84,7 +84,7 @@ export default function DeleteProductButton({
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-sm font-bold text-white hover:bg-error/90 disabled:opacity-50"
               >
                 {loading ? (
                   <>

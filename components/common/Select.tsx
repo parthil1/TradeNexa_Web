@@ -246,12 +246,12 @@ export function Select({
     }
   }
 
-  const openRing = open ? "border-blue-500 ring-2 ring-blue-500/20" : "";
-  const errorRing = error ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "";
+  const openRing = open ? "border-primary ring-2 ring-primary/20" : "";
+  const errorRing = error ? "border-error/50 focus:border-error focus:ring-error/20" : "";
   const horizontalPad = leadingIcon ? "pl-9" : "pl-3";
 
-  const triggerClass = `flex h-12 w-full items-center rounded-lg border bg-white text-left text-sm outline-none transition-all duration-200 appearance-none ${horizontalPad} pr-10 ${
-    error ? errorRing : `border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${openRing}`
+  const triggerClass = `flex h-12 w-full items-center rounded-lg border bg-card text-left text-sm outline-none transition-all duration-200 appearance-none ${horizontalPad} pr-10 ${
+    error ? errorRing : `border-border focus:border-primary focus:ring-2 focus:ring-primary/20 ${openRing}`
   } ${disabled ? "cursor-not-allowed opacity-60" : ""} ${className}`;
 
   const menu =
@@ -266,7 +266,7 @@ export function Select({
           maxHeight: menuPosition.maxHeight,
           zIndex: 9999,
         }}
-        className={`flex flex-col overflow-hidden border border-slate-200 bg-white shadow-[0_12px_40px_-12px_rgba(15,23,42,0.22)] ${
+        className={`flex flex-col overflow-hidden border border-border bg-card shadow-[0_12px_40px_-12px_rgba(15,23,42,0.22)] ${
           menuPosition.placement === "bottom" ? "rounded-xl" : "rounded-xl"
         }`}
       >
@@ -276,10 +276,10 @@ export function Select({
           role="listbox"
           aria-labelledby={id}
           onScroll={(e) => maybeLoadMore(e.currentTarget)}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1 [scrollbar-color:#CBD5E1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#CBD5E1]"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1 [scrollbar-color:var(--border-strong)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border-strong"
         >
           {filteredOptions.length === 0 && !loadingMore ? (
-            <li className="px-3 py-2.5 text-sm text-slate-400">
+            <li className="px-3 py-2.5 text-sm text-muted-fg">
               {searchQuery.trim() ? "No results found" : placeholder}
             </li>
           ) : (
@@ -293,7 +293,7 @@ export function Select({
                       className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                         isSelected
                           ? "bg-primary/8 font-semibold text-primary"
-                          : "text-slate-700 hover:bg-slate-50"
+                          : "text-foreground hover:bg-muted"
                       }`}
                       onClick={() => selectOption(opt.value)}
                     >
@@ -304,7 +304,7 @@ export function Select({
                 );
               })}
               {(remoteSearch || !searchQuery.trim()) && (hasMore || loadingMore) ? (
-                <li className="flex items-center justify-center gap-2 px-3 py-2.5 text-xs text-slate-400">
+                <li className="flex items-center justify-center gap-2 px-3 py-2.5 text-xs text-muted-fg">
                   {loadingMore ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
@@ -325,7 +325,7 @@ export function Select({
     <div ref={triggerRef} className={`relative ${open ? "z-30" : ""}`}>
       <div className="relative">
         {leadingIcon ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400">
+          <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted-fg">
             {leadingIcon}
           </span>
         ) : null}
@@ -353,7 +353,7 @@ export function Select({
             }}
             onKeyDown={handleTriggerKeyDown}
             className={`${triggerClass} ${
-              !open && !selected ? "text-slate-400" : "text-slate-900"
+              !open && !selected ? "text-muted-fg" : "text-foreground"
             } ${open ? "cursor-text" : "cursor-pointer"}`}
           />
         ) : (
@@ -368,7 +368,7 @@ export function Select({
             aria-required={required}
             onClick={toggleMenu}
             className={`${triggerClass} ${
-              !selected ? "text-slate-400" : "text-slate-900"
+              !selected ? "text-muted-fg" : "text-foreground"
             } cursor-pointer`}
           >
             <span className="truncate">{selected?.label ?? placeholder}</span>
@@ -382,7 +382,7 @@ export function Select({
           aria-label={open ? "Close options" : "Open options"}
           onMouseDown={(e) => e.preventDefault()}
           onClick={toggleMenu}
-          className="absolute right-0 top-0 flex h-full w-10 items-center justify-center text-slate-400 transition hover:text-slate-600 disabled:pointer-events-none"
+          className="absolute right-0 top-0 flex h-full w-10 items-center justify-center text-muted-fg transition hover:text-foreground disabled:pointer-events-none"
         >
           <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </button>

@@ -17,6 +17,8 @@ interface CitySelectProps {
   className?: string;
   placeholder?: string;
   selectedLabel?: string;
+  /** Label for the empty/clear option. Defaults to "All cities". */
+  emptyLabel?: string;
 }
 
 const PAGE_LIMIT = 20;
@@ -31,6 +33,7 @@ export default function CitySelect({
   className,
   placeholder = "All cities",
   selectedLabel,
+  emptyLabel = "All cities",
 }: CitySelectProps) {
   const [cities, setCities] = useState<ApiCity[]>([]);
   const [loading, setLoading] = useState(false);
@@ -128,8 +131,8 @@ export default function CitySelect({
       items.unshift({ value, label: selectedLabel });
     }
 
-    return [{ value: "", label: "All cities" }, ...items];
-  }, [cities, selectedLabel, value]);
+    return [{ value: "", label: emptyLabel }, ...items];
+  }, [cities, emptyLabel, selectedLabel, value]);
 
   const resolvedPlaceholder = !hasState
     ? "Select state first"

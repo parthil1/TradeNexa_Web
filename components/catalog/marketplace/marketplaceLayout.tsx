@@ -25,13 +25,13 @@ export function MarketplaceCategoryGridSkeleton({ count = 9 }: { count?: number 
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse rounded-xl border border-slate-100 bg-white p-6 shadow-sm"
+          className="animate-pulse rounded-xl border border-border bg-card p-6 shadow-sm"
         >
           <div className="flex items-start gap-4">
-            <div className="h-20 w-20 rounded-full bg-slate-200" />
+            <div className="h-20 w-20 rounded-full bg-muted" />
             <div className="flex-1 space-y-2 pt-1">
-              <div className="h-5 w-3/4 rounded bg-slate-200" />
-              <div className="h-6 w-40 rounded-lg bg-slate-100" />
+              <div className="h-5 w-3/4 rounded bg-muted" />
+              <div className="h-6 w-40 rounded-lg bg-muted/70" />
             </div>
           </div>
         </div>

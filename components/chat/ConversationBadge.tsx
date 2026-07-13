@@ -85,7 +85,7 @@ export default function ConversationBadge({
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full bg-[#25D366] font-bold tabular-nums leading-none text-white shadow-sm ${sizeClass} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-whatsapp font-bold tabular-nums leading-none text-white shadow-sm ${sizeClass} ${className}`}
       aria-label={`${count} unread message${count === 1 ? "" : "s"}`}
       title={`${count} unread`}
     >

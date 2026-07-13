@@ -109,7 +109,7 @@ export default function CategoryProductsLayout({
                 className="max-w-md lg:max-w-sm lg:flex-1"
               />
               {resultsLabel && products.length > 0 && (
-                <p className="shrink-0 text-sm font-medium text-slate-500">{resultsLabel}</p>
+                <p className="shrink-0 text-sm font-medium text-muted-fg">{resultsLabel}</p>
               )}
             </div>
             <LocationFilterBar

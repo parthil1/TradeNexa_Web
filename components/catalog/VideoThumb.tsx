@@ -69,10 +69,10 @@ export default function VideoThumb({ src, poster, alt = "" }: VideoThumbProps) {
       {frameUrl ? (
         <Image src={frameUrl} alt={alt} fill className="object-cover" unoptimized />
       ) : (
-        <span className="absolute inset-0 bg-gradient-to-br from-[#1a2b4c] to-[#234a73]" />
+        <span className="absolute inset-0 bg-gradient-to-br from-foreground to-navy-mid" />
       )}
       <span className="absolute inset-0 flex items-center justify-center bg-black/20">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[#1565C0] shadow">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-card/95 text-primary shadow">
           <Play className="ml-0.5 h-4 w-4 fill-current" />
         </span>
       </span>

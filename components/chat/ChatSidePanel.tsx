@@ -44,7 +44,6 @@ export default function ChatSidePanel({
       paddingRight: body.style.paddingRight,
     };
 
-    // Lock background scroll without breaking sticky/fixed portal chrome.
     const scrollbarGap = window.innerWidth - document.documentElement.clientWidth;
     body.style.overflow = "hidden";
     body.style.position = "fixed";
@@ -77,24 +76,24 @@ export default function ChatSidePanel({
       <button
         type="button"
         aria-label="Close chat"
-        className="absolute inset-0 bg-[#0D1B2A]/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-navy/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <aside
-        className="relative flex h-full w-full max-w-[min(100vw,32rem)] flex-col bg-white shadow-2xl animate-in slide-in-from-right sm:max-w-[36rem]"
+        className="relative flex h-full w-full max-w-[min(100vw,32rem)] flex-col bg-white shadow-[var(--shadow-elevated)] sm:max-w-[36rem]"
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8ECF0] px-4 py-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#90A4AE]">{title}</p>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-placeholder">{title}</p>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#E0E6ED] text-[#546E7A] transition hover:bg-[#F4F6F9]"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border text-muted-fg transition-colors duration-200 hover:bg-muted"
             aria-label="Close"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
         <ChatPanel

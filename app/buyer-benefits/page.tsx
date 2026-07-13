@@ -7,6 +7,7 @@ import BenefitCard from "@/components/BenefitCard";
 import CTABanner from "@/components/CTABanner";
 import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePageHero";
 import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
+import { Button } from "@/components/common/Button";
 import { Search, CheckCircle, List, Zap, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 
 export default function BuyerBenefits() {
@@ -80,18 +81,17 @@ export default function BuyerBenefits() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-background">
       <MarketplacePageHero
         eyebrow="For Buyers"
         title="Streamlined Bulk Sourcing for Buyers"
         subtitle="Find the right wholesale partner. Source raw materials, machinery, finished goods, and commercial products directly from verified sellers across India."
       >
-        <Link
-          href="/categories"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
-        >
-          Start Sourcing Products
-          <ArrowRight className="h-4 w-4" />
+        <Link href="/categories">
+          <Button>
+            Start Sourcing Products
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </Link>
       </MarketplacePageHero>
 

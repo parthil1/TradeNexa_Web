@@ -24,10 +24,10 @@ export default function FeatureCard({ icon: Icon, title, description, delay = 0 
       <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/8 text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-white">
         <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
-      <h3 className="mb-2 text-base font-semibold tracking-tight text-slate-900 transition-colors group-hover:text-primary">
+      <h3 className="mb-2 text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
         {title}
       </h3>
-      <p className="text-sm leading-relaxed text-slate-500">
+      <p className="text-sm leading-relaxed text-muted-fg">
         {description}
       </p>
     </motion.div>

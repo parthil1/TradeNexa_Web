@@ -42,7 +42,7 @@ export default function Timeline() {
   return (
     <div className="relative mx-auto max-w-4xl py-8">
       {/* Central Line */}
-      <div className="absolute left-4 top-0 h-full w-0.5 bg-slate-200 sm:left-1/2 sm:-translate-x-1/2" />
+      <div className="absolute left-4 top-0 h-full w-0.5 bg-border sm:left-1/2 sm:-translate-x-1/2" />
 
       <div className="space-y-12">
         {items.map((item, index) => {
@@ -50,7 +50,7 @@ export default function Timeline() {
           return (
             <div key={index} className="relative flex flex-col sm:flex-row items-start sm:items-center">
               {/* Dot Icon */}
-              <div className="absolute left-4 top-1.5 z-10 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border-4 border-white bg-primary text-white shadow sm:left-1/2">
+              <div className="absolute left-4 top-1.5 z-10 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border-4 border-card bg-primary text-white shadow sm:left-1/2">
                 {item.icon}
               </div>
 
@@ -61,13 +61,13 @@ export default function Timeline() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+                  className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary mb-2">
                     {item.year}
                   </span>
-                  <h4 className="text-lg font-bold text-slate-900 mb-1">{item.title}</h4>
-                  <p className="text-sm text-slate-500 leading-relaxed">{item.description}</p>
+                  <h4 className="text-lg font-bold text-foreground mb-1">{item.title}</h4>
+                  <p className="text-sm text-muted-fg leading-relaxed">{item.description}</p>
                 </motion.div>
               </div>
             </div>

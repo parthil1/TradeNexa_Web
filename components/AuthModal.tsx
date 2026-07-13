@@ -12,6 +12,7 @@ import { fetchBusinessTypesPage } from "@/services/businessTypesService";
 import { ensureRolesLoaded, userRoleToRoleId } from "@/utils/authHelpers";
 import type { ApiBusinessType } from "@/types/businessType";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
+import { Button } from "@/components/common/Button";
 import {
   Smartphone,
   ShieldCheck,
@@ -71,8 +72,8 @@ function StepHeader({
       >
         <Icon className="h-6 w-6" strokeWidth={1.75} />
       </motion.div>
-      <h4 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h4>
-      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">{description}</p>
+      <h4 className="text-xl font-semibold tracking-tight text-foreground">{title}</h4>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-fg">{description}</p>
     </div>
   );
 }
@@ -133,7 +134,7 @@ function PrimaryButton({
       whileHover={!disabled && !loading ? { scale: 1.01 } : undefined}
       whileTap={!disabled && !loading ? { scale: 0.98 } : undefined}
       transition={{ duration: 0.15 }}
-      className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_1px_2px_rgba(29,78,216,0.2),0_8px_20px_-4px_rgba(29,78,216,0.35)] transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+      className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_1px_2px_rgba(29,78,216,0.2),0_8px_20px_-4px_rgba(29,78,216,0.35)] transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-fg disabled:shadow-none"
     >
       {loading ? (
         <>
@@ -163,7 +164,7 @@ function GhostButton({
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/5 hover:text-primary-hover disabled:cursor-not-allowed disabled:text-slate-400"
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/5 hover:text-primary-hover disabled:cursor-not-allowed disabled:text-muted-fg"
     >
       {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
       {children}
@@ -182,7 +183,7 @@ function TextLinkButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-800"
+      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-fg transition-colors hover:text-foreground"
     >
       {children}
     </button>
@@ -219,7 +220,7 @@ function FloatingInput({
   return (
     <div className={`relative ${className}`}>
       {Icon && (
-        <Icon className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Icon className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-fg" />
       )}
       <input
         id={id}
@@ -230,15 +231,15 @@ function FloatingInput({
         maxLength={maxLength}
         inputMode={inputMode}
         placeholder=" "
-        className={`peer h-12 w-full rounded-xl border bg-white text-sm text-slate-900 outline-none transition-all duration-200 ${
-          Icon ? "pl-11 pr-4" : "px-4"
-        } ${
-          readOnly
-            ? "cursor-not-allowed border-slate-200 bg-slate-50/80 text-slate-600"
-            : error
-              ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-              : "border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
-        }`}
+      className={`peer h-12 w-full rounded-xl border bg-white text-sm text-foreground outline-none transition-all duration-200 ${
+        Icon ? "pl-11 pr-4" : "px-4"
+      } ${
+        readOnly
+          ? "cursor-not-allowed border-border bg-muted text-muted-fg"
+          : error
+            ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+            : "border-border focus:border-primary focus:ring-4 focus:ring-primary/10"
+      }`}
       />
       <label
         htmlFor={id}
@@ -246,8 +247,8 @@ function FloatingInput({
           Icon ? "left-11" : "left-4"
         } ${
           hasValue
-            ? "top-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500"
-            : "top-1/2 -translate-y-1/2 text-sm text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider peer-focus:text-primary"
+            ? "top-2 text-[10px] font-semibold uppercase tracking-wider text-muted-fg"
+            : "top-1/2 -translate-y-1/2 text-sm text-muted-fg peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider peer-focus:text-primary"
         }`}
       >
         {label}
@@ -259,10 +260,10 @@ function FloatingInput({
 function BusinessTypeSkeleton() {
   return (
     <div className="space-y-2" aria-hidden>
-      <div className="h-3 w-24 animate-pulse rounded bg-slate-200" />
-      <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4">
-        <div className="h-4 w-4 animate-pulse rounded bg-slate-200" />
-        <div className="h-3 flex-1 animate-pulse rounded bg-slate-200" />
+      <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+      <div className="flex h-12 items-center gap-3 rounded-xl border border-border bg-muted px-4">
+        <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+        <div className="h-3 flex-1 animate-pulse rounded bg-muted" />
       </div>
     </div>
   );
@@ -270,9 +271,9 @@ function BusinessTypeSkeleton() {
 
 function EmptyBusinessTypes({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3">
-      <Shapes className="h-4 w-4 shrink-0 text-slate-400" />
-      <p className="text-sm text-slate-500">{message}</p>
+    <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted px-4 py-3">
+      <Shapes className="h-4 w-4 shrink-0 text-muted-fg" />
+      <p className="text-sm text-muted-fg">{message}</p>
     </div>
   );
 }
@@ -639,7 +640,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
             />
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-fg">
                 Phone number <span className="text-red-500">*</span>
               </label>
 
@@ -648,11 +649,11 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                   <button
                     type="button"
                     disabled
-                    className="flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-medium text-slate-700 shadow-sm cursor-not-allowed"
+                    className="flex h-12 items-center gap-2 rounded-xl border border-border bg-muted px-3 text-sm font-medium text-foreground shadow-sm cursor-not-allowed"
                   >
-                    <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
+                    <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-border" />
                     <span>+91</span>
-                    <ChevronDown className="h-4 w-4 text-slate-300" />
+                    <ChevronDown className="h-4 w-4 text-muted-fg" />
                   </button>
                 </div>
 
@@ -668,10 +669,10 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                     }}
                     maxLength={10}
                     placeholder="10-digit mobile number"
-                    className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 outline-none transition-all duration-200 ${
+                    className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-foreground shadow-sm placeholder:text-muted-fg outline-none transition-all duration-200 ${
                       errors.phone
                         ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                        : "border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                        : "border-border focus:border-primary focus:ring-4 focus:ring-primary/10"
                     }`}
                   />
                 </div>
@@ -712,13 +713,13 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
               description={
                 <>
                   We sent a 6-digit code to{" "}
-                  <span className="font-semibold text-slate-700">{phoneDisplay}</span>
+                  <span className="font-semibold text-foreground">{phoneDisplay}</span>
                 </>
               }
             />
 
             <div className="space-y-4">
-              <label className="block text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <label className="block text-center text-xs font-semibold uppercase tracking-wider text-muted-fg">
                 Security code
               </label>
 
@@ -741,12 +742,12 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04, duration: 0.2 }}
-                    className={`h-12 w-10 sm:h-14 sm:w-12 rounded-xl border bg-white text-center text-lg font-semibold text-slate-900 shadow-sm outline-none transition-all duration-200 ${
+                    className={`h-12 w-10 sm:h-14 sm:w-12 rounded-xl border bg-white text-center text-lg font-semibold text-foreground shadow-sm outline-none transition-all duration-200 ${
                       errors.otp || verifyOtpState.error
                         ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
                         : digit
                           ? "border-primary/40 bg-primary/[0.03] focus:border-primary focus:ring-4 focus:ring-primary/10"
-                          : "border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                          : "border-border focus:border-primary focus:ring-4 focus:ring-primary/10"
                     }`}
                   />
                 ))}
@@ -759,9 +760,9 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
               <ErrorBanner message={verifyOtpState.error} centered />
             )}
 
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-4">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-muted px-4 py-4">
               {timerActive ? (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-fg">
                   Resend code in{" "}
                   <span className="font-mono font-semibold tabular-nums text-primary">
                     {formatTime(timeLeft)}
@@ -806,7 +807,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
               description="Select how you want to use TradeNexa. You can update details later."
             />
 
-            <div className="rounded-2xl border border-slate-100 bg-slate-50/40 p-4 shadow-sm sm:p-5">
+            <div className="rounded-2xl border border-border bg-muted p-4 shadow-sm sm:p-5">
               <FormField
                 label="Account type"
                 htmlFor="role-select"
@@ -825,10 +826,10 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
             </div>
 
             <div className="space-y-3">
-              <PrimaryButton type="button" onClick={handleRoleContinue}>
+              <Button type="button" onClick={handleRoleContinue} size="lg" fullWidth>
                 Continue
                 <ArrowRight className="h-4 w-4" />
-              </PrimaryButton>
+              </Button>
 
               <div className="flex justify-center">
                 <TextLinkButton onClick={() => setAuthModalStep("verify")}>
@@ -854,7 +855,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
             className="space-y-5"
           >
             <div className="mb-2">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-fg">
                 Complete your profile to get started on TradeNexa.
               </p>
             </div>
@@ -875,8 +876,8 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
 
             <FormField label="Mobile number" htmlFor="reg-mobile" required>
               <div className="flex gap-2">
-                <div className="flex h-12 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-medium text-slate-700 shadow-sm">
-                  <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-slate-200/60" />
+                <div className="flex h-12 shrink-0 items-center gap-2 rounded-xl border border-border bg-muted px-3 text-sm font-medium text-foreground shadow-sm">
+                  <IndianFlag className="h-4 w-6 shrink-0 rounded-sm shadow-sm ring-1 ring-border" />
                   <span>+91</span>
                 </div>
                 <input
@@ -888,7 +889,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                       ? sessionMobileNumber.replace(/^\+91/, "")
                       : authModalPhone
                   }
-                  className="h-12 min-w-0 flex-1 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50/80 px-4 text-sm font-medium text-slate-600 shadow-sm"
+                  className="h-12 min-w-0 flex-1 cursor-not-allowed rounded-xl border border-border bg-muted px-4 text-sm font-medium text-muted-fg shadow-sm"
                 />
               </div>
             </FormField>
@@ -927,7 +928,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
                   />
                 ) : (
                   <>
-                    <Shapes className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Shapes className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-fg" />
                     <Select
                       id="reg-business-type"
                       value={regForm.businessTypeId}
@@ -972,7 +973,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
     const step = authModalStep as AuthStep;
 
     return (
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
         {subtitles[step] ?? "TradeNexa"}
       </p>
     );
@@ -989,7 +990,7 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
             ? "border-primary/20 bg-primary/[0.03] shadow-sm"
             : errors.terms
               ? "border-red-200 bg-red-50/40"
-              : "border-slate-100 bg-slate-50/50 hover:border-slate-200"
+              : "border-border bg-muted hover:border-border"
         }`}
       >
         <div className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
@@ -1005,13 +1006,13 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
           />
           <div
             className={`flex h-5 w-5 items-center justify-center rounded-md border bg-white transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 ${
-              agreedTerms ? "border-primary bg-primary" : "border-slate-300"
+              agreedTerms ? "border-primary bg-primary" : "border-border"
             }`}
           >
             {agreedTerms && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
           </div>
         </div>
-        <span className="text-sm leading-relaxed text-slate-600">
+        <span className="text-sm leading-relaxed text-muted-fg">
           I agree to the{" "}
           <span className="font-semibold text-primary">Terms of Service</span> and{" "}
           <span className="font-semibold text-primary">Privacy Policy</span>
@@ -1020,15 +1021,17 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
 
       {errors.terms && <FieldError message={errors.terms} />}
 
-      <PrimaryButton
+      <Button
         type="submit"
         form="register-form"
         loading={registerState.loading}
         loadingText="Creating account..."
+        size="lg"
+        fullWidth
       >
         Continue
         <ArrowRight className="h-4 w-4" />
-      </PrimaryButton>
+      </Button>
     </div>
   );
 

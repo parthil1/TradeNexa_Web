@@ -39,7 +39,7 @@ export default function Counter({ value, suffix = "+", title, duration = 2 }: Co
   }, [isInView, value, duration]);
 
   return (
-    <div ref={ref} className="text-center p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+    <div ref={ref} className="surface-card p-6 text-center">
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         whileInView={{ opacity: 1, scale: 1 }}
@@ -49,7 +49,7 @@ export default function Counter({ value, suffix = "+", title, duration = 2 }: Co
         {count.toLocaleString()}
         {suffix}
       </motion.div>
-      <p className="mt-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+      <p className="mt-2 text-sm font-semibold uppercase tracking-wider text-muted-fg">
         {title}
       </p>
     </div>

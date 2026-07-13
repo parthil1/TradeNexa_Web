@@ -22,24 +22,24 @@ export default function MediaStatusBar({
   const atLimit = remaining <= 0;
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3.5">
+    <div className="rounded-2xl border border-border bg-muted px-4 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          <span className="text-slate-600">
+          <span className="text-muted-fg">
             Images:{" "}
-            <span className="font-semibold text-slate-900">
+            <span className="font-semibold text-foreground">
               {imageCount}/{maxTotal}
             </span>
           </span>
-          <span className="text-slate-600">
+          <span className="text-muted-fg">
             Videos:{" "}
-            <span className="font-semibold text-slate-900">
+            <span className="font-semibold text-foreground">
               {videoCount}/{maxTotal}
             </span>
           </span>
-          <span className={atLimit ? "font-semibold text-amber-700" : "text-slate-600"}>
+          <span className={atLimit ? "font-semibold text-amber-700" : "text-muted-fg"}>
             Remaining:{" "}
-            <span className="font-semibold text-slate-900">{remaining}</span>
+            <span className="font-semibold text-foreground">{remaining}</span>
           </span>
         </div>
 
@@ -51,7 +51,7 @@ export default function MediaStatusBar({
         ) : null}
       </div>
 
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200/80">
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
         <motion.div
           className={`h-full rounded-full ${atLimit ? "bg-amber-500" : "bg-primary"}`}
           initial={{ width: 0 }}
@@ -60,7 +60,7 @@ export default function MediaStatusBar({
         />
       </div>
 
-      <p className="mt-2 text-[11px] text-slate-400">
+      <p className="mt-2 text-[11px] text-muted-fg">
         Up to {maxTotal} photos + videos combined. Thumbnail is separate.
       </p>
     </div>

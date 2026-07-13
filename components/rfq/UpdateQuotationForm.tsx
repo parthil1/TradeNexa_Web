@@ -130,8 +130,8 @@ export function UpdateQuotationFormModal({
       bodyClassName="px-5 py-5 sm:px-6"
       title={
         <div className="min-w-0">
-          <p className="text-lg font-extrabold text-[#0D1B2A]">Update quotation</p>
-          <p className="mt-0.5 truncate text-sm font-medium text-[#546E7A]">
+          <p className="text-lg font-extrabold text-foreground">Update quotation</p>
+          <p className="mt-0.5 truncate text-sm font-medium text-muted-fg">
             Quote #{quotation.id}
             {quotation.quantity != null
               ? ` · ${quotation.quantity} ${quotation.unit ?? ""}`

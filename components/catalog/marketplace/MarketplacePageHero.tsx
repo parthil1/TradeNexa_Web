@@ -2,7 +2,6 @@
 
 import React from "react";
 import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
-import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
 
 export interface MarketplaceHeroStat {
   label: string;
@@ -29,9 +28,10 @@ export default function MarketplacePageHero({
   children,
 }: MarketplacePageHeroProps) {
   return (
-    <section className={`relative bg-gradient-to-br ${MARKETPLACE_NAVY} pb-10 pt-8 lg:pb-14 lg:pt-10`}>
+    <section className="relative overflow-hidden bg-navy pb-12 pt-10 lg:pb-16 lg:pt-12">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_-10%,rgb(21_101_192/0.3),transparent)]" />
       <div className={`${MARKETPLACE_CONTAINER} relative`}>
-        {breadcrumbs && <div className="mb-6 hidden lg:block lg:mb-8">{breadcrumbs}</div>}
+        {breadcrumbs && <div className="mb-6 hidden lg:mb-8 lg:block">{breadcrumbs}</div>}
 
         <div
           className={`flex flex-col gap-8 ${
@@ -44,17 +44,19 @@ export default function MarketplacePageHero({
         >
           <div className={centered ? "max-w-3xl space-y-4" : "max-w-2xl space-y-3"}>
             {eyebrow && (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/90">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
                 {eyebrow}
               </p>
             )}
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-base leading-relaxed text-blue-100/90 sm:text-lg">{subtitle}</p>
+              <p className="text-base leading-relaxed text-white/70 sm:text-lg">{subtitle}</p>
             )}
-            {children && <div className={centered ? "flex justify-center pt-2" : "pt-2"}>{children}</div>}
+            {children && (
+              <div className={centered ? "flex justify-center pt-2" : "pt-2"}>{children}</div>
+            )}
           </div>
 
           {stats && stats.length > 0 && (
@@ -66,10 +68,12 @@ export default function MarketplacePageHero({
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm lg:py-5"
+                  className="rounded-xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm lg:py-5"
                 >
-                  <p className="text-xs font-medium text-blue-100/80">{stat.label}</p>
-                  <p className="mt-1 text-2xl font-extrabold text-white sm:text-3xl">{stat.value}</p>
+                  <p className="text-xs font-medium text-white/55">{stat.label}</p>
+                  <p className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                    {stat.value}
+                  </p>
                 </div>
               ))}
             </div>

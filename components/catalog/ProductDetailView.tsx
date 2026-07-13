@@ -52,14 +52,14 @@ function StarRating({ rating, reviews }: { rating: number; reviews?: number | nu
           <Star
             key={i}
             className={`h-4 w-4 ${
-              i < fullStars ? "fill-slate-500 text-slate-500" : "fill-slate-200 text-slate-200"
+              i < fullStars ? "fill-muted-fg text-muted-fg" : "fill-border text-border"
             }`}
           />
         ))}
       </div>
-      <span className="text-sm font-bold text-[#1a2b4c]">{formatRating(rating)}</span>
+      <span className="text-sm font-bold text-foreground">{formatRating(rating)}</span>
       {reviews != null && reviews > 0 && (
-        <span className="text-sm text-slate-500">({reviews} reviews)</span>
+        <span className="text-sm text-muted-fg">({reviews} reviews)</span>
       )}
     </div>
   );
@@ -74,58 +74,60 @@ function SellerProfileCard({
 }) {
   const { seller } = product;
   const location = formatLocation(
-    seller.location.city,
-    seller.location.state,
-    seller.location.country
+    seller.location?.city,
+    seller.location?.state,
+    seller.location?.country
   );
-  const role = seller.company.business_type ?? "Seller";
-  const logoUrl = resolveImageUrl(seller.company.logo);
+  const role = seller.company?.business_type ?? "Seller";
+  const logoUrl = resolveImageUrl(seller.company?.logo);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm lg:sticky lg:top-24">
       <div className="flex items-start gap-4">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary text-lg font-bold text-white shadow-md">
           {logoUrl ? (
             <Image
               src={logoUrl}
-              alt={seller.company.name}
+              alt={seller.company?.name ?? "Supplier"}
               width={56}
               height={56}
               className="h-full w-full object-cover"
               unoptimized
             />
           ) : (
-            getInitials(seller.company.name)
+            getInitials(seller.company?.name)
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <h3 className="text-base font-bold text-[#1a2b4c]">{seller.company.name}</h3>
+            <h3 className="text-base font-bold text-foreground">
+              {seller.company?.name ?? "Supplier"}
+            </h3>
             <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-fg">
             {location} • {role}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-3 border-y border-slate-100 py-5">
+      <div className="mt-6 grid grid-cols-3 gap-3 border-y border-border py-5">
         <div className="text-center">
           <p className="text-lg font-extrabold text-primary">
-            {seller.company.experience_years > 0
+            {seller.company?.experience_years && seller.company.experience_years > 0
               ? `${seller.company.experience_years} Yrs`
-              : seller.company.year_established
+              : seller.company?.year_established
                 ? `${new Date().getFullYear() - seller.company.year_established}+ Yrs`
                 : "—"}
           </p>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-400">Active Since</p>
+          <p className="mt-0.5 text-[11px] font-medium text-muted-fg">Active Since</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-extrabold text-primary">
             {formatRating(seller.rating.average)}{" "}
-            <Star className="inline h-3.5 w-3.5 fill-slate-500 text-slate-500" />
+            <Star className="inline h-3.5 w-3.5 fill-muted-fg text-muted-fg" />
           </p>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-400">Rating</p>
+          <p className="mt-0.5 text-[11px] font-medium text-muted-fg">Rating</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-extrabold text-primary">
@@ -133,7 +135,7 @@ function SellerProfileCard({
               ? seller.rating.total_reviews
               : "—"}
           </p>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-400">Reviews</p>
+          <p className="mt-0.5 text-[11px] font-medium text-muted-fg">Reviews</p>
         </div>
       </div>
 
@@ -211,9 +213,9 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
   ];
 
   const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
-  const contactHref = `/contact?product=${encodeURIComponent(basic.name)}&seller=${encodeURIComponent(seller.company.name)}`;
-  const phone = seller.contact.phone;
-  const whatsapp = seller.contact.whatsapp || seller.contact.phone;
+  const contactHref = `/contact?product=${encodeURIComponent(basic.name)}&seller=${encodeURIComponent(seller.company?.name ?? "Supplier")}`;
+  const phone = seller.contact?.phone;
+  const whatsapp = seller.contact?.whatsapp || seller.contact?.phone;
 
   const handleShare = async () => {
     const url = marketplace.share_url || window.location.href;
@@ -264,9 +266,9 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
   const isPremium = marketplace.is_featured || marketplace.is_recommended;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur-md lg:hidden">
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/95 px-4 py-3 backdrop-blur-md lg:hidden">
         <Link
           href="/products"
           className="flex h-10 w-10 items-center justify-center rounded-full text-primary"
@@ -339,7 +341,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                       className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition lg:h-20 lg:w-20 ${
                         activeImage === url
                           ? "border-primary ring-2 ring-primary/20"
-                          : "border-slate-200 hover:border-slate-300"
+                          : "border-border hover:border-muted-fg"
                       }`}
                     >
                       <Image src={url} alt="" fill className="object-cover" unoptimized />
@@ -361,7 +363,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                   </span>
                 )}
                 {marketplace.is_trending && (
-                  <span className="rounded-lg bg-[#1a3a5c]/10 px-2.5 py-1 text-xs font-bold text-[#1a3a5c]">
+                  <span className="rounded-lg bg-foreground/10 px-2.5 py-1 text-xs font-bold text-foreground">
                     Trending
                   </span>
                 )}
@@ -370,14 +372,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                 <button
                   type="button"
                   onClick={() => void handleShare()}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-primary shadow-sm transition hover:bg-slate-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm transition hover:bg-muted"
                   aria-label="Share"
                 >
                   <Share2 className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-primary shadow-sm transition hover:bg-slate-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm transition hover:bg-muted"
                   aria-label="Wishlist"
                 >
                   <Heart className="h-4 w-4" />
@@ -385,30 +387,30 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               </div>
             </div>
 
-            <h1 className="text-2xl font-extrabold leading-tight text-[#1a2b4c] sm:text-3xl lg:text-4xl">
+            <h1 className="text-2xl font-extrabold leading-tight text-foreground sm:text-3xl lg:text-4xl">
               {basic.name}
             </h1>
 
             <p className="mt-4 text-3xl font-extrabold text-primary lg:text-4xl">
               {formatPrice(pricing.price)}
-              <span className="text-lg font-semibold text-slate-400 lg:text-xl"> / {pricing.unit}</span>
+              <span className="text-lg font-semibold text-muted-fg lg:text-xl"> / {pricing.unit}</span>
             </p>
 
-            <div className="mt-5 grid grid-cols-2 gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:max-w-md">
+            <div className="mt-5 grid grid-cols-2 gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:max-w-md">
               <div className="flex items-center gap-2.5">
-                <ShoppingBag className="h-5 w-5 shrink-0 text-slate-400" />
+                <ShoppingBag className="h-5 w-5 shrink-0 text-muted-fg" />
                 <div>
-                  <p className="text-[11px] font-medium text-slate-400">Min. Order</p>
-                  <p className="text-sm font-bold text-[#1a2b4c]">
+                  <p className="text-[11px] font-medium text-muted-fg">Min. Order</p>
+                  <p className="text-sm font-bold text-foreground">
                     {pricing.minimum_order_quantity} {pricing.unit}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <Clock className="h-5 w-5 shrink-0 text-slate-400" />
+                <Clock className="h-5 w-5 shrink-0 text-muted-fg" />
                 <div>
-                  <p className="text-[11px] font-medium text-slate-400">Listed</p>
-                  <p className="text-sm font-bold text-[#1a2b4c]">
+                  <p className="text-[11px] font-medium text-muted-fg">Listed</p>
+                  <p className="text-sm font-bold text-foreground">
                     {formatListedAgo(product.created_at).replace("Listed ", "")}
                   </p>
                 </div>
@@ -421,27 +423,27 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
             {keySpecs.length > 0 && (
               <div className="mt-8">
-                <h2 className="mb-3 text-base font-bold text-[#1a2b4c] lg:text-lg">Key Specifications</h2>
+                <h2 className="mb-3 text-base font-bold text-foreground lg:text-lg">Key Specifications</h2>
                 <div className="flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-2 lg:gap-3 lg:overflow-visible lg:pb-0">
                   {keySpecs.map((spec) => {
                     const inner = (
                       <>
-                        <span className="text-xs font-medium text-slate-400">{spec.label}: </span>
-                        <span className="text-sm font-bold text-[#1a2b4c]">{spec.value}</span>
+                        <span className="text-xs font-medium text-muted-fg">{spec.label}: </span>
+                        <span className="text-sm font-bold text-foreground">{spec.value}</span>
                       </>
                     );
                     return spec.href ? (
                       <Link
                         key={spec.label}
                         href={spec.href}
-                        className="shrink-0 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm transition hover:border-primary/30 hover:bg-primary/5 lg:shrink"
+                        className="shrink-0 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition hover:border-primary/30 hover:bg-primary/5 lg:shrink"
                       >
                         {inner}
                       </Link>
                     ) : (
                       <div
                         key={spec.label}
-                        className="shrink-0 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm lg:shrink"
+                        className="shrink-0 rounded-xl border border-border bg-card px-4 py-3 shadow-sm lg:shrink"
                       >
                         {inner}
                       </div>
@@ -464,7 +466,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                   href={whatsAppHref(whatsapp, inquiryMessage)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-6 py-3.5 text-sm font-bold text-[#1a2b4c] transition hover:border-primary/30 hover:bg-white"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-muted px-6 py-3.5 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-card"
                 >
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp
@@ -473,7 +475,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               {phone && (
                 <a
                   href={`tel:${phone}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-[#1a2b4c] transition hover:bg-slate-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-sm font-bold text-foreground transition hover:bg-muted"
                 >
                   <Phone className="h-4 w-4" />
                   Call
@@ -487,9 +489,9 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
         <div className="mt-10 grid grid-cols-1 gap-8 lg:mt-14 lg:grid-cols-12 lg:gap-10">
           <div className="space-y-8 lg:col-span-8">
             {description && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                <h2 className="text-lg font-bold text-[#1a2b4c]">About this Product</h2>
-                <p className="mt-4 text-sm leading-relaxed text-slate-600 lg:text-base">
+              <section className="rounded-2xl border border-border bg-card p-6 shadow-sm lg:p-8">
+                <h2 className="text-lg font-bold text-foreground">About this Product</h2>
+                <p className="mt-4 text-sm leading-relaxed text-muted-fg lg:text-base">
                   {displayDesc}
                   {!descExpanded && showReadMore && "…"}
                 </p>
@@ -508,16 +510,16 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               </section>
             )}
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-              <h2 className="text-lg font-bold text-[#1a2b4c]">Product Specifications</h2>
-              <dl className="mt-5 divide-y divide-slate-100">
+            <section className="rounded-2xl border border-border bg-card p-6 shadow-sm lg:p-8">
+              <h2 className="text-lg font-bold text-foreground">Product Specifications</h2>
+              <dl className="mt-5 divide-y divide-border">
                 {fullSpecs.map((spec) => (
                   <div
                     key={spec.label}
                     className="grid grid-cols-2 gap-4 py-3.5 sm:grid-cols-[minmax(140px,35%)_1fr]"
                   >
-                    <dt className="text-sm font-medium text-slate-400">{spec.label}</dt>
-                    <dd className="text-sm font-semibold text-[#1a2b4c]">
+                    <dt className="text-sm font-medium text-muted-fg">{spec.label}</dt>
+                    <dd className="text-sm font-semibold text-foreground">
                       {spec.href ? (
                         <Link href={spec.href} className="text-primary hover:underline">
                           {spec.value}
@@ -549,7 +551,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
       </div>
 
       {/* Mobile wishlist bar */}
-      <div className="sticky bottom-0 border-t border-slate-100 bg-white px-4 py-3 lg:hidden">
+      <div className="sticky bottom-0 border-t border-border bg-card px-4 py-3 lg:hidden">
         <button
           type="button"
           className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-primary"

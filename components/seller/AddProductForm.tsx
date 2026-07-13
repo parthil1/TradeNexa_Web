@@ -163,10 +163,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="border-b border-slate-100 pb-2 text-sm font-semibold text-slate-800">
+    <section className="surface-card space-y-4 p-5">
+      <h2 className="border-b border-border pb-2 text-sm font-semibold text-foreground">
         {title}
-        {optional ? <span className="ml-2 text-xs font-normal text-slate-400">(Optional)</span> : null}
+        {optional ? <span className="ml-2 text-xs font-normal text-muted-fg">(Optional)</span> : null}
       </h2>
       {children}
     </section>
@@ -185,13 +185,13 @@ function ToggleField({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+    <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/30"
+        className="h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
       />
       {label}
     </label>
@@ -923,7 +923,7 @@ export default function AddProductForm({ productId }: { productId?: number } = {
 
   if (sellerLoading || productLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
+      <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-fg">
         <Loader2 className="h-5 w-5 animate-spin" />
         Loading...
       </div>
@@ -1306,7 +1306,7 @@ export default function AddProductForm({ productId }: { productId?: number } = {
         />
 
         <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-700">Specifications</p>
+          <p className="text-sm font-medium text-foreground">Specifications</p>
           {form.specifications.map((row, index) => (
               <div key={index} className="flex gap-2">
                 <Input
@@ -1326,7 +1326,7 @@ export default function AddProductForm({ productId }: { productId?: number } = {
                 <button
                   type="button"
                   onClick={() => removeSpecRow(index)}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-red-500"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border text-muted-fg hover:text-error"
                   aria-label="Remove specification"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -1346,8 +1346,8 @@ export default function AddProductForm({ productId }: { productId?: number } = {
 
       {isEditMode && productId ? (
         <div className="rounded-2xl border border-red-100 bg-red-50/50 p-4">
-          <p className="text-sm font-semibold text-red-700">Danger zone</p>
-          <p className="mt-1 text-xs text-red-600/80">
+          <p className="text-sm font-semibold text-error">Danger zone</p>
+          <p className="mt-1 text-xs text-error/80">
             Permanently remove this listing from your catalog.
           </p>
           <div className="mt-3">
@@ -1355,7 +1355,7 @@ export default function AddProductForm({ productId }: { productId?: number } = {
               productId={productId}
               productName={form.name || "this product"}
               label="Delete Product"
-              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-error transition hover:bg-red-50"
             />
           </div>
         </div>

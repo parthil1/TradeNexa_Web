@@ -42,8 +42,8 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
 
   if (loading || !isAuthenticated || !user) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#F4F6F9]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1565C0]" />
+      <div className="flex min-h-dvh items-center justify-center bg-muted">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

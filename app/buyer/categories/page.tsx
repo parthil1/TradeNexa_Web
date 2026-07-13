@@ -58,27 +58,27 @@ export default function BuyerCategoriesPage() {
       ) : null}
 
       {!loading && categories.length > 0 ? (
-        <p className="mb-4 text-sm text-[#546E7A]">
-          Showing <span className="font-semibold text-[#0D1B2A]">{categories.length}</span>
+        <p className="mb-4 text-sm text-muted-fg">
+          Showing <span className="font-semibold text-foreground">{categories.length}</span>
           {pagination.total > categories.length ? (
             <>
               {" "}
-              of <span className="font-semibold text-[#0D1B2A]">{pagination.total}</span>
+              of <span className="font-semibold text-foreground">{pagination.total}</span>
             </>
           ) : null}{" "}
           categories
           {debouncedSearch ? (
             <>
               {" "}
-              for &ldquo;<span className="font-semibold text-[#1565C0]">{debouncedSearch}</span>&rdquo;
+              for &ldquo;<span className="font-semibold text-primary">{debouncedSearch}</span>&rdquo;
             </>
           ) : null}
         </p>
       ) : null}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading categories...
         </div>
       ) : categories.length === 0 ? (
@@ -100,14 +100,14 @@ export default function BuyerCategoriesPage() {
                 <Link
                   key={cat.id}
                   href={`/buyer/category/${cat.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:cursor-pointer hover:border-slate-300 hover:shadow-sm"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-white p-4 transition-shadow hover:cursor-pointer hover:border-muted-fg hover:shadow-sm"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                    <Icon className="h-5 w-5 text-blue-500" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">{cat.name}</p>
-                    <p className="text-xs text-slate-400">{cat.product_count ?? 0} products</p>
+                    <p className="truncate text-sm font-medium text-foreground">{cat.name}</p>
+                    <p className="text-xs text-muted-fg">{cat.product_count ?? 0} products</p>
                   </div>
                 </Link>
               );

@@ -9,6 +9,7 @@ import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { RoleSelector } from "@/components/common/RoleSelector";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
+import { Button } from "@/components/common/Button";
 
 const categoryOptions = [
   { value: "electronics", label: "Electronics & Electricals" },
@@ -132,7 +133,7 @@ export default function RegistrationModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-navy/60 backdrop-blur-sm"
           />
 
           <motion.div
@@ -144,7 +145,7 @@ export default function RegistrationModal() {
           >
             <button
               onClick={handleClose}
-              className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              className="absolute right-4 top-4 rounded-full p-1.5 text-muted-fg transition hover:bg-muted hover:text-foreground"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -155,8 +156,8 @@ export default function RegistrationModal() {
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <CheckCircle2 className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Registration Successful!</h3>
-                <p className="mt-2 text-sm text-slate-500">
+                <h3 className="text-xl font-bold text-foreground">Registration Successful!</h3>
+                <p className="mt-2 text-sm text-muted-fg">
                   Our team will review your profile and contact you within 24 hours.
                 </p>
               </div>
@@ -167,10 +168,10 @@ export default function RegistrationModal() {
                     <UserPlus className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">
+                    <h3 className="text-xl font-bold text-foreground">
                       {activeRole ? roleTitles[activeRole] : "Join TradeNexa"}
                     </h3>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-fg">
                       {activeRole
                         ? roleDescriptions[activeRole]
                         : "Choose your role and start connecting with businesses nationwide."}
@@ -265,20 +266,16 @@ export default function RegistrationModal() {
                     </FormField>
                   )}
 
-                  <button
+                  <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white shadow-md shadow-primary/10 transition hover:bg-primary-hover disabled:bg-slate-400"
+                    loading={isSubmitting}
+                    loadingText="Submitting..."
+                    size="lg"
+                    fullWidth
                   >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      "Complete Free Registration"
-                    )}
-                  </button>
+                    Complete Free Registration
+                  </Button>
                 </form>
               </>
             )}

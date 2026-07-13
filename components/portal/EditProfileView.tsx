@@ -42,6 +42,9 @@ export default function EditProfileView({ variant, backHref }: EditProfileViewPr
         ...EMPTY_COMPLETE_PROFILE_FORM,
         companyName: user?.company ?? "",
         address: user?.address ?? "",
+        city: user?.city ?? "",
+        state: user?.state ?? "",
+        pincode: user?.pincode ?? "",
       });
     } finally {
       setLoadingProfile(false);
@@ -70,16 +73,16 @@ export default function EditProfileView({ variant, backHref }: EditProfileViewPr
       <PortalPageHeader title={title} subtitle="Update your business profile details" />
 
       {saveSuccess ? (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm font-medium text-success">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           Profile updated successfully. Your changes are saved.
         </div>
       ) : null}
 
-      <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <div className="mx-auto max-w-xl surface-card p-5 sm:p-6">
         {loadingProfile || !initialForm ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
-            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+          <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
             Loading profile...
           </div>
         ) : (

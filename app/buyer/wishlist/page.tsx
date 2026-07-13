@@ -58,7 +58,7 @@ export default function BuyerWishlistPage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
         <PortalPageHeader title="Wishlist" subtitle="Products you've saved" />
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading wishlist...
         </div>
@@ -111,15 +111,15 @@ export default function BuyerWishlistPage() {
       {confirmRemove ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900">Remove from Wishlist?</h3>
-            <p className="mt-2 text-sm text-slate-500">
+            <h3 className="text-lg font-bold text-foreground">Remove from Wishlist?</h3>
+            <p className="mt-2 text-sm text-muted-fg">
               Are you sure you want to remove &quot;{confirmRemove.name}&quot; from your wishlist?
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setConfirmRemove(null)}
-                className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50"
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-fg hover:bg-muted"
               >
                 Cancel
               </button>

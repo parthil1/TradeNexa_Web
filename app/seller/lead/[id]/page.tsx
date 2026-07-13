@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Calendar, Clock, Loader2, MapPin, MessageSquare, Package, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/common/Button";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import QuotationCard from "@/components/rfq/QuotationCard";
 import RfqStatusBadge from "@/components/rfq/RfqStatusBadge";
@@ -38,17 +39,17 @@ function MetaPill({
   value: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F4F6F9] px-3 py-1 text-xs font-semibold text-[#546E7A]">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-fg">
       <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className="text-[#90A4AE]">{label}</span>
-      <span className="text-[#0D1B2A]">{value}</span>
+      <span className="text-muted-fg">{label}</span>
+      <span className="text-foreground">{value}</span>
     </span>
   );
 }
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-full bg-[#F7F8FA]">
+    <div className="min-h-full bg-background">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
     </div>
   );
@@ -123,11 +124,11 @@ export default function SellerLeadDetailPage() {
   if (loading) {
     return (
       <PageShell>
-        <div className="border-b border-[#E8ECF0] pb-4">
+        <div className="border-b border-border pb-4">
           <PortalBackLink href="/seller/leads" label="RFQ Feed" />
         </div>
-        <div className="flex items-center justify-center gap-2 py-20 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading RFQ...
         </div>
       </PageShell>
@@ -137,11 +138,11 @@ export default function SellerLeadDetailPage() {
   if (!rfq) {
     return (
       <PageShell>
-        <div className="border-b border-[#E8ECF0] pb-4">
+        <div className="border-b border-border pb-4">
           <PortalBackLink href="/seller/leads" label="RFQ Feed" />
         </div>
-        <p className="mt-6 text-sm text-[#546E7A]">RFQ not found or no longer available.</p>
-        <Link href="/seller/leads" className="mt-4 inline-block cursor-pointer text-sm font-semibold text-[#1565C0]">
+        <p className="mt-6 text-sm text-muted-fg">RFQ not found or no longer available.</p>
+        <Link href="/seller/leads" className="mt-4 inline-block cursor-pointer text-sm font-semibold text-primary">
           Back to feed
         </Link>
       </PageShell>
@@ -149,6 +150,7 @@ export default function SellerLeadDetailPage() {
   }
 
   const canSubmit = canSellerSubmitQuotation(existingQuotation);
+  const hasSentQuote = existingQuotation != null;
   const revisionPending =
     existingQuotation != null ? isQuotationRevisionPending(existingQuotation, rfq.status) : false;
   const quantity = formatRfqQuantity(rfq);
@@ -157,66 +159,69 @@ export default function SellerLeadDetailPage() {
 
   return (
     <PageShell>
-      <div className="mb-5 border-b border-[#E8ECF0] pb-4">
+      <div className="mb-5 border-b border-border pb-4">
         <PortalBackLink href="/seller/leads" label="RFQ Feed" />
       </div>
 
-      <article className="rounded-2xl border border-[#E8ECF0] bg-white p-5 shadow-sm sm:p-6">
+      <article className="surface-card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <RfqStatusBadge status={rfq.status} />
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F4F6F9] px-3 py-1 text-xs font-semibold text-[#546E7A]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-fg">
               <Calendar className="h-3.5 w-3.5" />
               Posted {formatRfqDate(rfq.created_at)}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            aria-label={
-              chatUnread > 0
-                ? `Chat with buyer, ${chatUnread} unread message${chatUnread === 1 ? "" : "s"}`
-                : "Chat with buyer"
-            }
-            className="relative inline-flex items-center gap-2 rounded-xl border border-[#E0E6ED] bg-white px-3 py-2 text-xs font-bold text-[#1565C0] transition hover:border-[#1565C0]/40 hover:bg-[#E3F2FD]"
-          >
-            <span className="relative">
-              <MessageSquare className="h-4 w-4" />
-              {chatUnread > 0 ? (
-                <ConversationBadge
-                  count={chatUnread}
-                  size="md"
-                  className="absolute -right-2.5 -top-2.5"
-                />
-              ) : null}
-            </span>
-            Chat with buyer
-            {chatUnread > 0 ? (
-              <span className="rounded-full bg-[#E8F8EE] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[#128C7E]">
-                {chatUnread > 99 ? "99+" : chatUnread} unread
+          {hasSentQuote ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setChatOpen(true)}
+              aria-label={
+                chatUnread > 0
+                  ? `Chat with buyer, ${chatUnread} unread message${chatUnread === 1 ? "" : "s"}`
+                  : "Chat with buyer"
+              }
+              className="relative"
+            >
+              <span className="relative">
+                <MessageSquare className="h-4 w-4" />
+                {chatUnread > 0 ? (
+                  <ConversationBadge
+                    count={chatUnread}
+                    size="md"
+                    className="absolute -right-2.5 -top-2.5"
+                  />
+                ) : null}
               </span>
-            ) : null}
-          </button>
+              Chat with buyer
+              {chatUnread > 0 ? (
+                <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-success">
+                  {chatUnread > 99 ? "99+" : chatUnread} unread
+                </span>
+              ) : null}
+            </Button>
+          ) : null}
         </div>
 
         <div className="mt-4">
-          <h1 className="text-xl font-extrabold text-[#0D1B2A] sm:text-2xl">{rfq.title}</h1>
+          <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">{rfq.title}</h1>
           {buyerLine ? (
-            <p className="mt-1 text-sm font-semibold text-[#546E7A]">
+            <p className="mt-1 text-sm font-semibold text-muted-fg">
               {buyerLine}
               {locationLine ? ` · ${locationLine}` : ""}
             </p>
           ) : null}
           {rfq.category_name || rfq.subcategory_name ? (
-            <p className="mt-0.5 text-xs font-medium text-[#90A4AE]">
+            <p className="mt-0.5 text-xs font-medium text-muted-fg">
               {[rfq.category_name, rfq.subcategory_name].filter(Boolean).join(" · ")}
             </p>
           ) : null}
         </div>
 
-        <div className="mt-5 border-t border-[#F0F2F5] pt-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#90A4AE]">Requirement</p>
-          <p className="mt-2 text-sm leading-relaxed text-[#546E7A]">
+        <div className="mt-5 border-t border-border pt-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-fg">Requirement</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-fg">
             {rfq.description || "No description provided."}
           </p>
         </div>
@@ -239,17 +244,18 @@ export default function SellerLeadDetailPage() {
         </div>
 
         {canSubmit ? (
-          <button
+          <Button
             type="button"
             onClick={() => setShowQuoteForm(true)}
-            className="mt-6 w-full cursor-pointer rounded-2xl bg-[#1565C0] py-3.5 text-sm font-bold text-white transition hover:bg-[#1255A8]"
+            className="mt-6 w-full py-3.5 text-sm"
+            fullWidth
           >
             Send Quote
-          </button>
+          </Button>
         ) : null}
 
         {!canSubmit && existingQuotation ? (
-          <div className="mt-6 border-t border-[#F0F2F5] pt-6">
+          <div className="mt-6 border-t border-border pt-6">
             <QuotationCard
               quotation={existingQuotation}
               showSellerInfo={false}
@@ -257,37 +263,34 @@ export default function SellerLeadDetailPage() {
               actions={
                 <>
                   {revisionPending ? (
-                    <button
-                      type="button"
+                    <Button
+                      size="sm"
                       onClick={() => setShowReviseForm(true)}
-                      className="cursor-pointer rounded-lg bg-[#1565C0] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1255A8]"
                     >
                       Revise quote
-                    </button>
+                    </Button>
                   ) : canSellerUpdateQuotation(existingQuotation.status) ? (
-                    <button
-                      type="button"
+                    <Button
+                      size="sm"
                       onClick={() => setShowUpdateForm(true)}
-                      className="cursor-pointer rounded-lg bg-[#1565C0] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1255A8]"
                     >
                       Update quote
-                    </button>
+                    </Button>
                   ) : null}
-                  <Link
-                    href="/seller/quotations"
-                    className="cursor-pointer rounded-lg border border-[#E0E6ED] px-3 py-1.5 text-xs font-bold text-[#546E7A]"
-                  >
-                    View in My Quotations
+                  <Link href="/seller/quotations">
+                    <Button size="sm" variant="secondary">
+                      View in My Quotations
+                    </Button>
                   </Link>
                   {canSellerWithdrawQuotation(existingQuotation.status, rfq.status) ? (
-                    <button
-                      type="button"
+                    <Button
+                      size="sm"
+                      variant="danger"
                       disabled={withdrawing}
                       onClick={() => void handleWithdraw(existingQuotation.id)}
-                      className="cursor-pointer rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Withdraw
-                    </button>
+                    </Button>
                   ) : null}
                 </>
               }
@@ -296,17 +299,19 @@ export default function SellerLeadDetailPage() {
         ) : null}
       </article>
 
-      <ChatSidePanel
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-        title="Chat with Buyer"
-        rfqId={rfq.id}
-        role="seller"
-        rfqTitle={rfq.title}
-        rfqStatus={rfq.status}
-        otherPartyName={buyerLine}
-        quotations={existingQuotation ? [existingQuotation] : []}
-      />
+      {hasSentQuote ? (
+        <ChatSidePanel
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          title="Chat with Buyer"
+          rfqId={rfq.id}
+          role="seller"
+          rfqTitle={rfq.title}
+          rfqStatus={rfq.status}
+          otherPartyName={buyerLine}
+          quotations={existingQuotation ? [existingQuotation] : []}
+        />
+      ) : null}
 
       {canSubmit ? (
         <SubmitQuotationFormModal
@@ -346,7 +351,7 @@ export default function SellerLeadDetailPage() {
 
       <Link
         href="/seller/leads"
-        className="mt-4 block cursor-pointer text-center text-sm font-semibold text-[#546E7A] transition hover:text-[#1565C0]"
+        className="mt-4 block cursor-pointer text-center text-sm font-semibold text-muted-fg transition hover:text-primary"
       >
         Back to inbox
       </Link>

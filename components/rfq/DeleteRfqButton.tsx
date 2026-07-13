@@ -66,8 +66,8 @@ export default function DeleteRfqButton({
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-[#0D1B2A]">Delete draft RFQ?</h3>
-            <p className="mt-2 text-sm text-[#546E7A]">
+            <h3 className="text-lg font-bold text-foreground">Delete draft RFQ?</h3>
+            <p className="mt-2 text-sm text-muted-fg">
               Permanently delete &quot;{rfqTitle}&quot;? This only works for draft requirements and
               cannot be undone.
             </p>
@@ -76,7 +76,7 @@ export default function DeleteRfqButton({
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={loading}
-                className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold text-[#546E7A] hover:bg-[#F4F6F9] disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold text-muted-fg hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>

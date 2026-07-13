@@ -3,7 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { FormField } from "@/components/common/FormField";
 import { Textarea } from "@/components/common/Textarea";
+import StateSelect from "@/components/location/StateSelect";
+import CitySelect from "@/components/location/CitySelect";
 import type { CompleteProfileFormData, UserRole } from "@/types/auth";
+import { fetchCities, fetchStates } from "@/services/locationService";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import {
   Building2,
@@ -23,6 +26,9 @@ export const EMPTY_COMPLETE_PROFILE_FORM: CompleteProfileFormData = {
   industry: "",
   gstNumber: "",
   address: "",
+  city: "",
+  state: "",
+  pincode: "",
   country: "India",
   panNumber: "",
   cinNumber: "",
@@ -49,11 +55,11 @@ function IconInput({
 }) {
   return (
     <div className="relative">
-      <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-fg" />
       <input
         id={id}
-        className={`h-11 w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500 ${
-          error ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-slate-200"
+        className={`h-11 w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-fg outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+          error ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-border"
         } ${className}`}
         {...props}
       />
@@ -80,7 +86,7 @@ function ImageUploadField({
     <div className="space-y-1.5">
       <label
         htmlFor={htmlFor}
-        className="block text-xs font-semibold uppercase tracking-wider text-slate-500"
+        className="block text-sm font-medium text-foreground"
       >
         {label}
         {required && <span className="ml-0.5 text-red-500">*</span>}
@@ -88,7 +94,7 @@ function ImageUploadField({
       <div className={align === "center" ? "flex justify-center" : ""}>{children}</div>
       {error && (
         <p
-          className={`flex items-center gap-1 text-xs font-medium text-red-500 ${
+          className={`flex items-center gap-1 text-xs font-medium text-error ${
             align === "center" ? "justify-center" : ""
           }`}
         >
@@ -132,7 +138,7 @@ function UploadTile({
   }, [blobPreview]);
 
   const previewUrl = blobPreview ?? (existingUrl?.trim() ? existingUrl : null);
-  const borderClass = error ? "border-red-400" : "border-slate-200 hover:border-blue-500/40";
+  const borderClass = error ? "border-red-400" : "border-border hover:border-primary/40";
   const imageFitClass =
     fit === "contain" ? "object-contain object-center p-2" : "object-cover object-center";
 
@@ -146,7 +152,7 @@ function UploadTile({
   if (previewUrl) {
     return (
       <div
-        className={`relative h-36 w-full overflow-hidden rounded-xl border bg-slate-50 ${borderClass} ${className}`}
+        className={`relative h-36 w-full overflow-hidden rounded-xl border bg-muted ${borderClass} ${className}`}
       >
         <label
           htmlFor={inputId}
@@ -158,8 +164,8 @@ function UploadTile({
             alt={label}
             className={`h-full w-full ${imageFitClass}`}
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 transition-colors group-hover:bg-slate-900/30">
-            <span className="rounded-lg bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-700 opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+          <div className="absolute inset-0 flex items-center justify-center bg-navy/0 transition-colors group-hover:bg-navy/30">
+            <span className="rounded-lg bg-white/95 px-2.5 py-1 text-xs font-semibold text-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
               Click to change
             </span>
           </div>
@@ -167,7 +173,7 @@ function UploadTile({
         <button
           type="button"
           onClick={handleRemove}
-          className="absolute right-2 top-2 z-10 rounded-lg bg-white/95 p-1 text-slate-500 shadow-sm transition-colors hover:bg-white hover:text-red-500"
+          className="absolute right-2 top-2 z-10 rounded-lg bg-white/95 p-1 text-muted-fg shadow-sm transition-colors hover:bg-white hover:text-error"
           aria-label={`Remove ${label}`}
         >
           <X className="h-4 w-4" />
@@ -186,11 +192,11 @@ function UploadTile({
   return (
     <label
       htmlFor={inputId}
-      className={`flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-slate-50/80 px-3 text-center transition-colors hover:bg-blue-50/80 ${borderClass} ${className}`}
+      className={`flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted px-3 text-center transition-colors hover:bg-primary-soft ${borderClass} ${className}`}
     >
-      <ImagePlus className="h-6 w-6 shrink-0 text-blue-500" />
-      <span className="text-xs font-semibold leading-tight text-slate-700">{label}</span>
-      <span className="text-[11px] leading-tight text-slate-400">PNG, JPG up to 5MB</span>
+      <ImagePlus className="h-6 w-6 shrink-0 text-primary" />
+      <span className="text-xs font-semibold leading-tight text-foreground">{label}</span>
+      <span className="text-[11px] leading-tight text-muted-fg">PNG, JPG up to 5MB</span>
       <input
         id={inputId}
         type="file"
@@ -231,14 +237,74 @@ export default function CompleteProfileForm({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<CompleteProfileFormData>(EMPTY_COMPLETE_PROFILE_FORM);
+  const [stateId, setStateId] = useState("");
+  const [cityId, setCityId] = useState("");
 
   const MAX_IMAGE_SIZE_MB = 5;
   const id = (key: string) => `${fieldIdPrefix}-${key}`;
 
   useEffect(() => {
-    if (initialValues) {
-      setForm(initialValues);
+    if (!initialValues) return;
+    setForm(initialValues);
+    setStateId("");
+    setCityId("");
+
+    const stateName = initialValues.state?.trim();
+    const cityName = initialValues.city?.trim();
+    if (!stateName) return;
+
+    let cancelled = false;
+
+    async function resolveLocationIds() {
+      try {
+        const { results: states } = await fetchStates({
+          search: stateName,
+          limit: 20,
+          sort_by: "name",
+          sort_order: "asc",
+          is_active: true,
+        });
+        if (cancelled) return;
+        const q = stateName!.toLowerCase();
+        const matchedState =
+          states.find((s) => s.name.toLowerCase() === q) ??
+          states.find((s) => s.name.toLowerCase().startsWith(q)) ??
+          states.find((s) => s.name.toLowerCase().includes(q)) ??
+          null;
+        if (!matchedState) return;
+
+        setStateId(String(matchedState.id));
+        setForm((prev) => ({ ...prev, state: matchedState.name }));
+
+        if (!cityName) return;
+        const { results: cities } = await fetchCities({
+          state_id: matchedState.id,
+          search: cityName,
+          limit: 20,
+          sort_by: "name",
+          sort_order: "asc",
+          is_active: true,
+        });
+        if (cancelled) return;
+        const cq = cityName.toLowerCase();
+        const matchedCity =
+          cities.find((c) => c.name.toLowerCase() === cq) ??
+          cities.find((c) => c.name.toLowerCase().startsWith(cq)) ??
+          cities.find((c) => c.name.toLowerCase().includes(cq)) ??
+          null;
+        if (matchedCity) {
+          setCityId(String(matchedCity.id));
+          setForm((prev) => ({ ...prev, city: matchedCity.name }));
+        }
+      } catch {
+        /* keep name-only city/state from profile */
+      }
     }
+
+    void resolveLocationIds();
+    return () => {
+      cancelled = true;
+    };
   }, [initialValues]);
 
   const updateForm = (patch: Partial<CompleteProfileFormData>) => {
@@ -278,6 +344,11 @@ export default function CompleteProfileForm({
     if (showBuyerFields) {
       if (!form.industry.trim()) next.industry = "Industry is required";
       if (!form.address.trim()) next.address = "Address is required";
+      if (!form.state.trim()) next.state = "State is required";
+      if (!form.city.trim()) next.city = "City is required";
+      const pincode = form.pincode.trim();
+      if (!pincode) next.pincode = "Pincode is required";
+      else if (!/^\d{6}$/.test(pincode)) next.pincode = "Enter a valid 6-digit pincode";
     }
 
     if (showSellerFields) {
@@ -298,11 +369,14 @@ export default function CompleteProfileForm({
                 "companyName",
                 "industry",
                 "address",
+                "state",
+                "city",
+                "pincode",
                 "gstNumber",
                 "panNumber",
                 "businessDescription",
               ]
-            : ["companyName", "industry", "address", "gstNumber"];
+            : ["companyName", "industry", "address", "state", "city", "pincode", "gstNumber"];
 
       scrollToFirstFormError(next, {
         fieldOrder,
@@ -310,6 +384,9 @@ export default function CompleteProfileForm({
           companyName: id("company"),
           industry: id("industry"),
           address: id("address"),
+          state: id("state"),
+          city: id("city"),
+          pincode: id("pincode"),
           gstNumber: id("gst"),
           panNumber: id("pan"),
           businessDescription: id("description"),
@@ -329,7 +406,7 @@ export default function CompleteProfileForm({
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-5">
       {showIntro ? (
-        <p className="text-sm leading-relaxed text-slate-600">
+        <p className="text-sm leading-relaxed text-muted-fg">
           Update your business details. Fields match your account profile on TradeNexa.
         </p>
       ) : null}
@@ -438,15 +515,76 @@ export default function CompleteProfileForm({
               />
             </FormField>
 
-            <FormField label="Country" htmlFor={id("country")}>
-              <IconInput
-                id={id("country")}
-                icon={Globe}
-                value={form.country}
-                readOnly
-                className="cursor-not-allowed bg-slate-50 text-slate-700"
-              />
-            </FormField>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="State" htmlFor={id("state")} required error={errors.state}>
+                <StateSelect
+                  id={id("state")}
+                  value={stateId}
+                  selectedLabel={form.state}
+                  placeholder="Select state"
+                  emptyLabel="Select state"
+                  error={Boolean(errors.state)}
+                  className="!h-11"
+                  onChange={(nextId, label) => {
+                    setStateId(nextId);
+                    setCityId("");
+                    updateForm({
+                      state: nextId && label ? label : "",
+                      city: "",
+                    });
+                    setErrors((prev) => ({ ...prev, state: "", city: "" }));
+                  }}
+                />
+              </FormField>
+
+              <FormField label="City" htmlFor={id("city")} required error={errors.city}>
+                <CitySelect
+                  id={id("city")}
+                  value={cityId}
+                  selectedLabel={form.city}
+                  stateId={stateId}
+                  placeholder={stateId ? "Select city" : "Select state first"}
+                  emptyLabel="Select city"
+                  disabled={!stateId}
+                  error={Boolean(errors.city)}
+                  className="!h-11"
+                  onChange={(nextId, label) => {
+                    setCityId(nextId);
+                    updateForm({ city: nextId && label ? label : "" });
+                    setErrors((prev) => ({ ...prev, city: "" }));
+                  }}
+                />
+              </FormField>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Pincode" htmlFor={id("pincode")} required error={errors.pincode}>
+                <IconInput
+                  id={id("pincode")}
+                  icon={MapPin}
+                  inputMode="numeric"
+                  pattern="\d{6}"
+                  placeholder="6-digit pincode"
+                  value={form.pincode}
+                  error={!!errors.pincode}
+                  onChange={(e) =>
+                    updateForm({
+                      pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
+                    })
+                  }
+                />
+              </FormField>
+
+              <FormField label="Country" htmlFor={id("country")}>
+                <IconInput
+                  id={id("country")}
+                  icon={Globe}
+                  value={form.country}
+                  readOnly
+                  className="cursor-not-allowed bg-muted text-foreground"
+                />
+              </FormField>
+            </div>
           </>
         )}
 
@@ -523,14 +661,14 @@ export default function CompleteProfileForm({
       </div>
 
       {error ? (
-        <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-600">{error}</div>
+        <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-error">{error}</div>
       ) : null}
 
       {!hideSubmitButton ? (
         <button
           type="submit"
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-muted"
         >
           {loading ? (
             <>

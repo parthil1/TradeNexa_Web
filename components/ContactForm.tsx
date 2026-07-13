@@ -88,16 +88,16 @@ export default function ContactForm() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <CheckCircle2 className="h-10 w-10" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900">Inquiry Sent Successfully!</h3>
-          <p className="mt-2 text-sm text-slate-500">
+          <h3 className="text-xl font-bold text-foreground">Inquiry Sent Successfully!</h3>
+          <p className="mt-2 text-sm text-muted-fg">
             Thank you for reaching out. A platform representative will contact you within 24 hours.
           </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
-          <h3 className="text-lg font-semibold tracking-tight text-slate-900">Send a direct message</h3>
-            <p className="mt-1 text-sm text-slate-500">
+          <h3 className="text-lg font-semibold tracking-tight text-foreground">Send a direct message</h3>
+            <p className="mt-1 text-sm text-muted-fg">
               Tell us about your business and how we can help you connect.
             </p>
           </div>

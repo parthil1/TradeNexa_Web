@@ -91,7 +91,7 @@ export default function MediaPreviewModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex flex-col bg-slate-950/95 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex flex-col bg-navy/95 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Media preview"
@@ -99,7 +99,7 @@ export default function MediaPreviewModal({
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">{item.name}</p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-white/50">
                 {activeIndex + 1} of {items.length}
               </p>
             </div>
@@ -109,7 +109,7 @@ export default function MediaPreviewModal({
                   <IconButton label="Zoom out" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}>
                     <ZoomOut className="h-4 w-4" />
                   </IconButton>
-                  <span className="min-w-[3rem] text-center text-xs text-slate-400">
+                  <span className="min-w-[3rem] text-center text-xs text-white/50">
                     {Math.round(zoom * 100)}%
                   </span>
                   <IconButton label="Zoom in" onClick={() => setZoom((z) => Math.min(3, z + 0.25))}>
@@ -198,7 +198,7 @@ function IconButton({
       className={`flex h-9 w-9 items-center justify-center rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
         danger
           ? "text-red-400 hover:bg-red-500/20"
-          : "text-slate-300 hover:bg-white/10 hover:text-white"
+          : "text-white/70 hover:bg-white/10 hover:text-white"
       }`}
       aria-label={label}
     >

@@ -14,7 +14,6 @@ import {
 import { fetchCategories } from "@/services/catalogService";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLoadMoreList } from "@/hooks/useLoadMoreList";
-import { MARKETPLACE_NAVY } from "@/utils/marketplaceTheme";
 
 export default function CategoriesPage() {
   const [filterQuery, setFilterQuery] = useState("");
@@ -45,37 +44,38 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      <section className={`relative bg-gradient-to-br ${MARKETPLACE_NAVY} pb-8 pt-8 lg:pb-12 lg:pt-10`}>
+    <div className="flex min-h-screen flex-col bg-background">
+      <section className="relative overflow-hidden bg-navy pb-10 pt-8 lg:pb-12 lg:pt-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_-10%,rgb(21_101_192/0.3),transparent)]" />
         <div className={`${MARKETPLACE_CONTAINER} relative`}>
-          <div className="mb-6 hidden lg:block lg:mb-8">
+          <div className="mb-6 hidden lg:mb-8 lg:block">
             <CatalogBreadcrumbs items={[{ label: "Categories" }]} variant="light" />
           </div>
 
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-200/90">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
                 Global Supply Marketplace
               </p>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
                 Browse Categories
               </h1>
-              <p className="mt-3 hidden text-base text-blue-100/90 lg:block">
+              <p className="mt-3 hidden text-base text-white/70 lg:block">
                 Explore industries, open subcategories, and discover verified B2B products from
                 sellers across India.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:w-[420px] lg:shrink-0">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm lg:py-5">
-                <p className="text-xs font-medium text-blue-100/80">Industries</p>
-                <p className="mt-1 text-3xl font-extrabold text-white lg:text-4xl">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm lg:py-5">
+                <p className="text-xs font-medium text-white/55">Industries</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-white lg:text-4xl">
                   {loading && categories.length === 0 ? "—" : pagination.total}
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm lg:py-5">
-                <p className="text-xs font-medium text-blue-100/80">Total Products</p>
-                <p className="mt-1 text-3xl font-extrabold text-white lg:text-4xl">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm lg:py-5">
+                <p className="text-xs font-medium text-white/55">Total Products</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-white lg:text-4xl">
                   {loading && categories.length === 0 ? "—" : totalProducts.toLocaleString()}
                 </p>
               </div>
@@ -95,17 +95,17 @@ export default function CategoriesPage() {
 
       <section className={`${MARKETPLACE_CONTAINER} flex-1 py-8 lg:py-12`}>
         {error && (
-          <div className="mb-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-600">
+          <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-medium text-red-700">
             {error}
           </div>
         )}
 
         {!loading && categories.length > 0 && (
           <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-muted-fg">
               Showing{" "}
-              <span className="font-semibold text-slate-800">{categories.length}</span> of{" "}
-              <span className="font-semibold text-slate-800">{pagination.total}</span> categories
+              <span className="font-semibold text-navy">{categories.length}</span> of{" "}
+              <span className="font-semibold text-navy">{pagination.total}</span> categories
             </p>
           </div>
         )}
@@ -137,7 +137,7 @@ export default function CategoriesPage() {
             />
           </>
         ) : (
-          <div className="rounded-2xl bg-white shadow-sm">
+          <div className="rounded-2xl bg-card shadow-card">
             <CatalogEmptyState
               title="No categories match your search"
               description="Try a different keyword or clear the search to browse all categories."

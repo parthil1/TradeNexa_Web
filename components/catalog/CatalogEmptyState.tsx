@@ -25,11 +25,11 @@ export default function CatalogEmptyState({
       transition={{ duration: 0.35 }}
       className="mx-auto max-w-md py-20 text-center"
     >
-      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/60">
-        <Package className="h-7 w-7 text-slate-400" />
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted ring-1 ring-border">
+        <Package className="h-7 w-7 text-muted-fg" />
       </div>
-      <h3 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
+      <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-fg">{description}</p>
       {onReset && (
         <div className="mt-6">
           <Button variant="outline" onClick={onReset}>

@@ -6,7 +6,7 @@ export default function BuyerPaymentsPage() {
     <div className="mx-auto max-w-xl px-4 py-5 sm:px-6 lg:px-8">
       <PortalBackLink href="/buyer/profile" />
       <PortalPageHeader title="Payments" subtitle="Transaction history" />
-      <div className="rounded-2xl border border-[#E8ECF0] bg-white p-6 text-sm text-[#546E7A]">
+      <div className="rounded-2xl border border-border bg-white p-6 text-sm text-muted-fg">
         No payment history yet. Payments are handled directly between buyer and seller on TradeNexa.
       </div>
     </div>

@@ -17,6 +17,8 @@ interface StateSelectProps {
   className?: string;
   placeholder?: string;
   selectedLabel?: string;
+  /** Label for the empty/clear option. Defaults to "All states". */
+  emptyLabel?: string;
 }
 
 const PAGE_LIMIT = 20;
@@ -31,6 +33,7 @@ export default function StateSelect({
   className,
   placeholder = "All states",
   selectedLabel,
+  emptyLabel = "All states",
 }: StateSelectProps) {
   const [states, setStates] = useState<ApiState[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,8 +118,8 @@ export default function StateSelect({
       items.unshift({ value, label: selectedLabel });
     }
 
-    return [{ value: "", label: "All states" }, ...items];
-  }, [selectedLabel, states, value]);
+    return [{ value: "", label: emptyLabel }, ...items];
+  }, [emptyLabel, selectedLabel, states, value]);
 
   return (
     <Select

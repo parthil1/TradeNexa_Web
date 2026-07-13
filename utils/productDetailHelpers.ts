@@ -6,9 +6,10 @@ export interface ProductSpecRow {
   value: string;
 }
 
-export function formatSellerLocation(
-  location: ApiProductDetail["seller"]["location"]
-): string {
+type SellerLocation = ApiProductDetail["seller"]["location"] | null | undefined;
+
+export function formatSellerLocation(location: SellerLocation): string {
+  if (!location) return "India";
   const parts = [
     location.address?.trim(),
     location.city,
@@ -24,12 +25,13 @@ export function getProductDescription(product: ApiProductDetail): string {
 }
 
 export function getSellerContactPhone(product: ApiProductDetail): string | null {
-  const { contact } = product.seller;
+  const contact = product.seller?.contact;
+  if (!contact) return null;
   return contact.whatsapp || contact.phone || null;
 }
 
 export function getSellerRole(product: ApiProductDetail): string | null {
-  return product.seller.company.business_type?.trim() || null;
+  return product.seller?.company?.business_type?.trim() || null;
 }
 
 export function buildProductSpecs(product: ApiProductDetail): {
@@ -42,6 +44,10 @@ export function buildProductSpecs(product: ApiProductDetail): {
     basic.product_condition ?? product.product_condition;
   const stockStatus = inventory?.stock_status ?? product.stock_status;
   const stockQuantity = inventory?.stock_quantity ?? product.stock_quantity;
+  const companyName = seller?.company?.name;
+  const locationAddress = seller?.location?.address;
+  const contactEmail = seller?.contact?.email;
+  const contactPhone = seller?.contact?.phone;
 
   const keySpecs: ProductSpecRow[] = [
     basic.brand && { label: "Brand", value: basic.brand.name },
@@ -70,17 +76,18 @@ export function buildProductSpecs(product: ApiProductDetail): {
     product.warranty && { label: "Warranty", value: product.warranty },
     { label: "Listed", value: formatListedAgo(product.created_at) },
     { label: "Last Updated", value: formatListedAgo(product.updated_at) },
-    seller.company.name && { label: "Supplier", value: seller.company.name },
-    seller.location.address && { label: "Supplier Address", value: seller.location.address },
-    seller.contact.email && { label: "Supplier Email", value: seller.contact.email },
-    seller.contact.phone && { label: "Supplier Phone", value: seller.contact.phone },
+    companyName && { label: "Supplier", value: companyName },
+    locationAddress && { label: "Supplier Address", value: locationAddress },
+    contactEmail && { label: "Supplier Email", value: contactEmail },
+    contactPhone && { label: "Supplier Phone", value: contactPhone },
   ].filter(Boolean) as ProductSpecRow[];
 
   return { keySpecs, fullSpecs };
 }
 
 export function getExperienceLabel(product: ApiProductDetail): string {
-  const { company } = product.seller;
+  const company = product.seller?.company;
+  if (!company) return "New";
   if (company.experience_years > 0) return `${company.experience_years} Yrs`;
   if (company.year_established) {
     return `${new Date().getFullYear() - company.year_established}+ Yrs`;

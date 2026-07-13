@@ -195,7 +195,7 @@ export default function WebsiteCategoryView({
 
   if (metaError && !metaLoading) {
     return (
-      <div className="min-h-screen bg-[#F4F6F9]">
+      <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <PortalBackLink href="/categories" label="All Categories" />
           <PortalEmptyState icon={Search} title="Not found" description={metaError} />
@@ -205,26 +205,26 @@ export default function WebsiteCategoryView({
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9]">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <PortalBackLink href={backHref} label={backLabel} />
 
         {metaLoading ? (
-          <div className="flex items-center gap-2 py-8 text-sm text-[#546E7A]">
-            <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+          <div className="flex items-center gap-2 py-8 text-sm text-muted-fg">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
             Loading category...
           </div>
         ) : (
           <>
             <div>
-              <h1 className="text-2xl font-extrabold text-[#0D1B2A] sm:text-3xl">
+              <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
                 {initialSubSlug ? selectedSub?.name ?? category?.name : category?.name}
               </h1>
-              <p className="mt-1 text-sm text-[#546E7A]">
+              <p className="mt-1 text-sm text-muted-fg">
                 {initialSubSlug && category ? (
                   <>
-                    <span className="font-semibold text-[#1565C0]">{category.name}</span>
-                    <span className="mx-1.5 text-[#B0BEC5]">/</span>
+                    <span className="font-semibold text-primary">{category.name}</span>
+                    <span className="mx-1.5 text-border">/</span>
                   </>
                 ) : null}
                 {productCountLabel}
@@ -243,12 +243,12 @@ export default function WebsiteCategoryView({
             />
 
             <div className="relative mt-5">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#546E7A]" />
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-fg" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={`Search in ${selectedSub?.name ?? category?.name ?? "category"}...`}
-                className="w-full rounded-2xl border border-[#E0E6ED] bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20"
+                className="w-full rounded-2xl border border-border bg-card py-3 pl-11 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -259,8 +259,8 @@ export default function WebsiteCategoryView({
             ) : null}
 
             {loadingProducts ? (
-              <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
-                <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+              <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 Loading products...
               </div>
             ) : products.length === 0 ? (

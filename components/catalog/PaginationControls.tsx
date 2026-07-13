@@ -20,10 +20,10 @@ export default function PaginationControls({
 
   return (
     <div className="mt-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
-      <p className="text-sm text-slate-500">
-        Page <span className="font-semibold text-slate-800">{page}</span> of{" "}
-        <span className="font-semibold text-slate-800">{totalPages}</span>
-        <span className="mx-2 text-slate-300">·</span>
+      <p className="text-sm text-muted-fg">
+        Page <span className="font-semibold text-foreground">{page}</span> of{" "}
+        <span className="font-semibold text-foreground">{totalPages}</span>
+        <span className="mx-2 text-border">·</span>
         {total.toLocaleString()} total
       </p>
       <div className="flex items-center gap-2">
@@ -31,7 +31,7 @@ export default function PaginationControls({
           type="button"
           disabled={page <= 1 || loading}
           onClick={() => onPageChange(page - 1)}
-          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronLeft className="h-4 w-4" />
           Previous
@@ -40,7 +40,7 @@ export default function PaginationControls({
           type="button"
           disabled={page >= totalPages || loading}
           onClick={() => onPageChange(page + 1)}
-          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next
           <ChevronRight className="h-4 w-4" />

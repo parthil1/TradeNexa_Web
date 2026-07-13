@@ -56,7 +56,7 @@ function ImageCard({ file, url, index, onRemove, onReplace, onPreview }: ImageCa
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 380, damping: 28 }}
-      className="group absolute inset-0 cursor-grab overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm active:cursor-grabbing hover:shadow-md"
+      className="group absolute inset-0 cursor-grab overflow-hidden rounded-2xl border border-border bg-card shadow-sm active:cursor-grabbing hover:shadow-md"
     >
       <button
         type="button"
@@ -72,7 +72,7 @@ function ImageCard({ file, url, index, onRemove, onReplace, onPreview }: ImageCa
         />
       </button>
 
-      <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-bold text-white">
+      <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-md bg-navy/75 px-1.5 py-0.5 text-[10px] font-bold text-white">
         #{index + 1}
       </span>
 
@@ -82,13 +82,13 @@ function ImageCard({ file, url, index, onRemove, onReplace, onPreview }: ImageCa
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md transition hover:text-red-600 lg:opacity-0 lg:group-hover:opacity-100"
+        className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-muted-fg shadow-md transition hover:text-error lg:opacity-0 lg:group-hover:opacity-100"
         aria-label={`Remove ${file.name}`}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-900/80 to-transparent px-2 pb-2 pt-7 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-navy/80 to-transparent px-2 pb-2 pt-7 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="pointer-events-auto flex items-center justify-center gap-1.5">
           <OverlayBtn label="Preview" onClick={onPreview}>
             <Eye className="h-3.5 w-3.5" />
@@ -125,8 +125,8 @@ function OverlayBtn({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 w-7 items-center justify-center rounded-full shadow-sm ${
-        danger ? "bg-red-500 text-white" : "bg-white/95 text-slate-700"
+        className={`flex h-7 w-7 items-center justify-center rounded-full shadow-sm ${
+        danger ? "bg-error text-white" : "bg-white/95 text-foreground"
       }`}
       aria-label={label}
     >
@@ -151,7 +151,7 @@ function VideoCard({ file, url, onRemove, onPreview }: VideoCardProps) {
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -2 }}
-      className="group absolute inset-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-sm hover:shadow-md"
+      className="group absolute inset-0 overflow-hidden rounded-2xl border border-border bg-navy shadow-sm hover:shadow-md"
     >
       <video src={url} className="h-full w-full object-cover opacity-90" muted playsInline />
       <button
@@ -175,7 +175,7 @@ function VideoCard({ file, url, onRemove, onPreview }: VideoCardProps) {
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md transition hover:text-red-600 lg:opacity-0 lg:group-hover:opacity-100"
+        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-muted-fg shadow-md transition hover:text-error lg:opacity-0 lg:group-hover:opacity-100"
         aria-label={`Remove ${file.name}`}
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -221,7 +221,7 @@ function UploadTile({ variant, disabled, onClick, onDrop }: UploadTileProps) {
         className={`absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed p-2 text-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40 ${
           active
             ? "border-primary bg-primary/5 shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
-            : "border-slate-300 bg-slate-50 hover:border-primary/50 hover:bg-primary/[0.03]"
+            : "border-muted-fg bg-muted hover:border-primary/50 hover:bg-primary/[0.03]"
         }`}
         aria-label={isPhoto ? "Add photos — JPG, PNG, WebP" : "Add videos — MP4, MOV, WebM"}
       >
@@ -232,7 +232,7 @@ function UploadTile({ variant, disabled, onClick, onDrop }: UploadTileProps) {
             <Film className="h-4 w-4 text-primary" />
           )}
         </div>
-        <p className="text-[11px] font-semibold leading-tight text-slate-800">
+        <p className="text-[11px] font-semibold leading-tight text-foreground">
           {isPhoto ? "Add Photos" : "Add Videos"}
         </p>
       </motion.button>
@@ -256,7 +256,7 @@ function ExistingUrlImageCard({
       layout
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="group absolute inset-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md"
+      className="group absolute inset-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm hover:shadow-md"
     >
       <button
         type="button"
@@ -274,7 +274,7 @@ function ExistingUrlImageCard({
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md transition hover:text-red-600"
+          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-muted-fg shadow-md transition hover:text-error"
           aria-label={`Remove existing image ${index + 1}`}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -300,7 +300,7 @@ function ExistingUrlVideoCard({
       layout
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="group absolute inset-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-sm hover:shadow-md"
+      className="group absolute inset-0 overflow-hidden rounded-2xl border border-border bg-navy shadow-sm hover:shadow-md"
     >
       <video src={url} className="h-full w-full object-cover opacity-90" muted playsInline />
       <button
@@ -320,7 +320,7 @@ function ExistingUrlVideoCard({
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-md transition hover:text-red-600"
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-muted-fg shadow-md transition hover:text-error"
           aria-label={`Remove existing video ${index + 1}`}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -428,8 +428,8 @@ export default function GalleryGrid({
   return (
     <div className="min-w-0 flex-1" data-form-field="gallery">
       <div className="mb-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Gallery</p>
-        <p className="mt-0.5 text-xs text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-fg">Gallery</p>
+        <p className="mt-0.5 text-xs text-muted-fg">
           {hasMedia
             ? "Product photos and demo videos"
             : "Add photos or videos to your product listing"}
@@ -517,7 +517,7 @@ export default function GalleryGrid({
       />
 
       {galleryError ? (
-        <p role="alert" className="mt-3 text-xs font-medium text-red-600">
+        <p role="alert" className="mt-3 text-xs font-medium text-error">
           {galleryError}
         </p>
       ) : null}

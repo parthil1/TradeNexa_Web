@@ -19,10 +19,10 @@ export default function BuyerNotificationsPage() {
       ) : (
         <div className="space-y-3">
           {demoNotifications.map((n) => (
-            <div key={n.id} className="rounded-2xl border border-[#E8ECF0] bg-white p-4">
-              <p className="font-extrabold text-[#0D1B2A]">{n.title}</p>
-              <p className="mt-1 text-sm text-[#546E7A]">{n.body}</p>
-              <p className="mt-2 text-xs text-[#B0BEC5]">{n.time}</p>
+            <div key={n.id} className="rounded-2xl border border-border bg-white p-4">
+              <p className="font-extrabold text-foreground">{n.title}</p>
+              <p className="mt-1 text-sm text-muted-fg">{n.body}</p>
+              <p className="mt-2 text-xs text-muted-fg">{n.time}</p>
             </div>
           ))}
         </div>

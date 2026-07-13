@@ -8,6 +8,7 @@ import MarketplacePageHero from "@/components/catalog/marketplace/MarketplacePag
 import { MARKETPLACE_CONTAINER } from "@/components/catalog/marketplace/marketplaceLayout";
 import { useApp } from "@/app/context/AppContext";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/common/Button";
 import { motion } from "framer-motion";
 import {
   UserPlus,
@@ -92,32 +93,28 @@ export default function HowItWorks() {
   const renderCta = () => {
     if (activeTab === "buyers") {
       return (
-        <Link
-          href="/categories"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
-        >
-          Browse Product Catalog
-          <ArrowRight className="h-4 w-4" />
+        <Link href="/categories">
+          <Button>
+            Browse Product Catalog
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </Link>
       );
     }
     if (isAuthenticated) return null;
     const role = activeTab === "sellers" ? "seller" : "both";
     return (
-      <button
-        onClick={() => openRegisterModal(role)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
-      >
+      <Button onClick={() => openRegisterModal(role)}>
         {config.cta.label}
         <ArrowRight className="h-4 w-4" />
-      </button>
+      </Button>
     );
   };
 
   const cta = renderCta();
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-background">
       <MarketplacePageHero
         eyebrow="Ecosystem"
         title="How Our Marketplace Connects Businesses"
@@ -130,8 +127,8 @@ export default function HowItWorks() {
               onClick={() => setActiveTab(tab.id)}
               className={`rounded-lg px-5 py-2.5 text-sm font-semibold transition-all sm:px-6 ${
                 activeTab === tab.id
-                  ? "bg-white text-[#1a2b4c] shadow"
-                  : "text-blue-100/90 hover:bg-white/10 hover:text-white"
+                  ? "bg-white text-navy shadow"
+                  : "text-white/85 hover:bg-white/10 hover:text-white"
               }`}
             >
               {tab.label}
@@ -146,8 +143,8 @@ export default function HowItWorks() {
             <span className="mb-2 inline-block rounded bg-primary/15 px-2.5 py-0.5 text-xs font-bold uppercase text-primary">
               {config.badge}
             </span>
-            <h2 className="text-2xl font-bold text-[#1a2b4c]">{config.title}</h2>
-            <p className="mt-1 text-sm text-slate-500">{config.subtitle}</p>
+            <h2 className="text-2xl font-bold text-navy">{config.title}</h2>
+            <p className="mt-1 text-sm text-muted-fg">{config.subtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
@@ -160,19 +157,19 @@ export default function HowItWorks() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: idx * 0.08 }}
-                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-lg"
+                  className="group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-6 shadow-card transition hover:-translate-y-0.5 hover:border-border hover:shadow-elevated"
                 >
                   <div>
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                         <Icon className="h-5 w-5" />
                       </div>
-                      <span className="text-2xl font-black text-slate-200 transition-colors group-hover:text-primary/20">
+                      <span className="text-2xl font-black text-border transition-colors group-hover:text-primary/20">
                         0{idx + 1}
                       </span>
                     </div>
-                    <h3 className="mb-2 text-base font-bold text-[#1a2b4c]">{step.title}</h3>
-                    <p className="text-xs leading-relaxed text-slate-500">{step.desc}</p>
+                    <h3 className="mb-2 text-base font-bold text-navy">{step.title}</h3>
+                    <p className="text-xs leading-relaxed text-muted-fg">{step.desc}</p>
                   </div>
                 </motion.div>
               );

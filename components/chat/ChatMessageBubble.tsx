@@ -50,9 +50,9 @@ function DocumentTypeIcon({ fileName }: { fileName?: string | null }) {
     return <FileSpreadsheet className="h-5 w-5 text-emerald-600" />;
   }
   if (lower.endsWith(".doc") || lower.endsWith(".docx")) {
-    return <FileText className="h-5 w-5 text-[#1565C0]" />;
+    return <FileText className="h-5 w-5 text-primary" />;
   }
-  return <FileText className="h-5 w-5 text-[#546E7A]" />;
+  return <FileText className="h-5 w-5 text-muted-fg" />;
 }
 
 function SystemEventIcon({ content }: { content?: string | null }) {
@@ -69,22 +69,22 @@ function SystemEventIcon({ content }: { content?: string | null }) {
 function ReadTicks({ message }: { message: ApiChatMessage }) {
   if (!message.is_mine) return null;
   if (message.send_status === "sending") {
-    return <Clock className="h-3.5 w-3.5 text-[#90A4AE]" aria-label="Sending" />;
+    return <Clock className="h-3.5 w-3.5 text-muted-fg" aria-label="Sending" />;
   }
   if (message.send_status === "failed") {
     return <RotateCcw className="h-3.5 w-3.5 text-red-500" aria-label="Failed" />;
   }
   if (message.read_at) {
-    return <CheckCheck className="h-3.5 w-3.5 text-[#1565C0]" aria-label="Read" />;
+    return <CheckCheck className="h-3.5 w-3.5 text-primary" aria-label="Read" />;
   }
-  return <Check className="h-3.5 w-3.5 text-[#90A4AE]" aria-label="Sent" />;
+  return <Check className="h-3.5 w-3.5 text-muted-fg" aria-label="Sent" />;
 }
 
 function MetaCell({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-wide text-[#90A4AE]">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold text-[#0D1B2A]">{value}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -240,17 +240,17 @@ export default function ChatMessageBubble({
     const label = message.content?.trim() || "Status update";
     return (
       <div className={`flex justify-center px-2 ${className}`}>
-        <div className="inline-flex max-w-[95%] items-center gap-1.5 rounded-full bg-[#EEF1F4] px-3 py-1.5 text-[12px] font-semibold text-[#546E7A]">
+        <div className="inline-flex max-w-[95%] items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-[12px] font-semibold text-muted-fg">
           <SystemEventIcon content={label} />
           <span className="min-w-0 whitespace-normal break-words text-center leading-snug">
             {label}
           </span>
           {timeLabel ? (
             <>
-              <span className="text-[#CFD8DC]" aria-hidden>
+              <span className="text-muted-fg" aria-hidden>
                 ·
               </span>
-              <span className="shrink-0 tabular-nums text-[#90A4AE]">{timeLabel}</span>
+              <span className="shrink-0 tabular-nums text-muted-fg">{timeLabel}</span>
             </>
           ) : null}
         </div>
@@ -260,13 +260,13 @@ export default function ChatMessageBubble({
 
   const bubbleShell = mine
     ? isText
-      ? "bg-[#1565C0] text-white"
+      ? "bg-primary text-white"
       : isImage
         ? "bg-transparent p-0 shadow-none ring-0"
-        : "bg-white text-[#0D1B2A] ring-1 ring-[#E8ECF0]"
+        : "bg-white text-foreground ring-1 ring-border"
     : isImage
       ? "bg-transparent p-0 shadow-none ring-0"
-      : "bg-[#F4F6F9] text-[#0D1B2A] ring-1 ring-[#E8ECF0]/80";
+      : "bg-card text-foreground ring-1 ring-border";
 
   return (
     <div
@@ -276,7 +276,7 @@ export default function ChatMessageBubble({
         {!mine ? (
           showAvatar ? (
             <span
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E3F2FD] text-[11px] font-bold text-[#1565C0]"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-soft text-[11px] font-bold text-primary"
               title={avatarName || message.sender_name || "Seller"}
             >
               {getInitials(avatarName || message.sender_name || "?")}
@@ -289,7 +289,7 @@ export default function ChatMessageBubble({
 
       <div className={`flex min-w-0 flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
         {showAvatar && !mine ? (
-          <p className="px-1 text-[11px] font-semibold text-[#546E7A]">
+          <p className="px-1 text-[11px] font-semibold text-muted-fg">
             {avatarName || message.sender_name || "Seller"}
           </p>
         ) : null}
@@ -298,7 +298,7 @@ export default function ChatMessageBubble({
           className={`rounded-2xl text-sm shadow-sm ${
             isImage ? "overflow-hidden p-0" : "px-3.5 py-2.5"
           } ${bubbleShell} ${
-            message.message_type === "QUOTATION" ? "border-l-[3px] border-l-[#1565C0] pl-3" : ""
+            message.message_type === "QUOTATION" ? "border-l-[3px] border-l-primary pl-3" : ""
           }`}
         >
           {isText ? (
@@ -307,7 +307,7 @@ export default function ChatMessageBubble({
 
           {message.message_type === "PRODUCT" && message.product ? (
             <div className="flex gap-3">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#E8ECF0]">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-border">
                 {message.product.thumbnail ? (
                   <Image
                     src={resolveImageUrl(message.product.thumbnail) || ""}
@@ -318,19 +318,19 @@ export default function ChatMessageBubble({
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
-                    <Package className="h-5 w-5 text-[#90A4AE]" />
+                    <Package className="h-5 w-5 text-muted-fg" />
                   </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-[#0D1B2A]">
+                <p className="truncate text-sm font-bold text-foreground">
                   {message.product.name ?? `Product #${message.product.id}`}
                 </p>
                 {message.product.price != null ? (
-                  <p className="mt-0.5 text-sm font-semibold text-[#1565C0]">
+                  <p className="mt-0.5 text-sm font-semibold text-primary">
                     {formatPrice(message.product.price, message.product.currency)}
                     {message.product.unit ? (
-                      <span className="text-xs font-medium text-[#546E7A]">
+                      <span className="text-xs font-medium text-muted-fg">
                         {" "}
                         / {message.product.unit}
                       </span>
@@ -339,7 +339,7 @@ export default function ChatMessageBubble({
                 ) : null}
                 <Link
                   href={`/buyer/product/${message.product.id}`}
-                  className="mt-1.5 inline-flex items-center gap-0.5 text-xs font-semibold text-[#1565C0] hover:underline"
+                  className="mt-1.5 inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
                 >
                   View Product
                   <ChevronRight className="h-3.5 w-3.5" />
@@ -350,7 +350,7 @@ export default function ChatMessageBubble({
 
           {message.message_type === "QUOTATION" && quote ? (
             <div className="min-w-[200px]">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#90A4AE]">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">
                 Quotation #{quote.id}
               </p>
               <div className="mt-2.5 grid grid-cols-2 gap-2.5">
@@ -385,8 +385,8 @@ export default function ChatMessageBubble({
           ) : null}
 
           {message.message_type === "IMAGE" ? (
-            <div className="w-[min(240px,75vw)] rounded-2xl bg-white shadow-sm ring-1 ring-[#E8ECF0]">
-              <div className="relative overflow-hidden rounded-t-2xl bg-[#F4F6F9]">
+            <div className="w-[min(240px,75vw)] rounded-2xl bg-white shadow-sm ring-1 ring-border">
+              <div className="relative overflow-hidden rounded-t-2xl bg-muted">
                 {canShowImage ? (
                   <button
                     type="button"
@@ -403,12 +403,12 @@ export default function ChatMessageBubble({
                     />
                   </button>
                 ) : imageLoading || isUploadingImage ? (
-                  <div className="flex h-28 flex-col items-center justify-center gap-2 text-xs text-[#546E7A]">
-                    <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+                  <div className="flex h-28 flex-col items-center justify-center gap-2 text-xs text-muted-fg">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     {isUploadingImage ? "Uploading..." : "Loading image..."}
                   </div>
                 ) : (
-                  <div className="flex h-28 flex-col items-center justify-center gap-1 px-3 text-center text-xs text-[#546E7A]">
+                  <div className="flex h-28 flex-col items-center justify-center gap-1 px-3 text-center text-xs text-muted-fg">
                     <ImageIcon className="h-5 w-5" />
                     <span>Preview unavailable</span>
                   </div>
@@ -422,7 +422,7 @@ export default function ChatMessageBubble({
                         e.stopPropagation();
                         setImageMenuOpen((open) => !open);
                       }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[#0D1B2A] shadow-md ring-1 ring-[#E8ECF0] transition hover:bg-white"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-foreground shadow-md ring-1 ring-border transition hover:bg-white"
                       aria-label="Image options"
                       aria-expanded={imageMenuOpen}
                       aria-haspopup="menu"
@@ -433,13 +433,13 @@ export default function ChatMessageBubble({
                 ) : null}
               </div>
 
-              <div className="flex items-center gap-2 rounded-b-2xl border-t border-[#E8ECF0] px-3 py-2">
+              <div className="flex items-center gap-2 rounded-b-2xl border-t border-border px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-semibold text-[#0D1B2A]">
+                  <p className="truncate text-[11px] font-semibold text-foreground">
                     {imageFileName}
                   </p>
                   {formatFileSize(message.file_size) ? (
-                    <p className="text-[10px] text-[#90A4AE]">
+                    <p className="text-[10px] text-muted-fg">
                       {formatFileSize(message.file_size)}
                     </p>
                   ) : null}
@@ -454,7 +454,7 @@ export default function ChatMessageBubble({
                     >
                       <div
                         role="menu"
-                        className="absolute w-40 overflow-hidden rounded-xl border border-[#E8ECF0] bg-white py-1 shadow-xl shadow-slate-900/15"
+                        className="absolute w-40 overflow-hidden rounded-xl border border-border bg-white py-1 shadow-xl shadow-slate-900/15"
                         style={imageMenuStyle}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -465,18 +465,18 @@ export default function ChatMessageBubble({
                             setImageMenuOpen(false);
                             setLightboxOpen(true);
                           }}
-                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs font-semibold text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs font-semibold text-foreground transition hover:bg-muted"
                         >
-                          <Eye className="h-4 w-4 shrink-0 text-[#546E7A]" />
+                          <Eye className="h-4 w-4 shrink-0 text-muted-fg" />
                           Preview
                         </button>
                         <button
                           type="button"
                           role="menuitem"
                           onClick={() => void downloadImage()}
-                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs font-semibold text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs font-semibold text-foreground transition hover:bg-muted"
                         >
-                          <Download className="h-4 w-4 shrink-0 text-[#546E7A]" />
+                          <Download className="h-4 w-4 shrink-0 text-muted-fg" />
                           Download
                         </button>
                       </div>
@@ -497,28 +497,28 @@ export default function ChatMessageBubble({
               }
               target="_blank"
               rel="noreferrer"
-              className="flex min-w-[180px] items-center gap-2.5 rounded-xl bg-[#FAFBFC] px-2.5 py-2 ring-1 ring-[#E8ECF0]"
+              className="flex min-w-[180px] items-center gap-2.5 rounded-xl bg-muted px-2.5 py-2 ring-1 ring-border"
             >
               <DocumentTypeIcon fileName={getChatFileDisplayName(message)} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-[#0D1B2A]">
+                <span className="block truncate text-xs font-semibold text-foreground">
                   {getChatFileDisplayName(message)}
                 </span>
                 {formatFileSize(message.file_size) ? (
-                  <span className="mt-0.5 block text-[10px] text-[#90A4AE]">
+                  <span className="mt-0.5 block text-[10px] text-muted-fg">
                     {formatFileSize(message.file_size)}
                   </span>
                 ) : null}
               </span>
-              <Download className="h-4 w-4 shrink-0 text-[#546E7A]" />
+              <Download className="h-4 w-4 shrink-0 text-muted-fg" />
             </a>
           ) : null}
 
           {message.message_type === "PRODUCT" && !message.product ? (
-            <p className="text-xs text-[#546E7A]">Product #{message.product_id}</p>
+            <p className="text-xs text-muted-fg">Product #{message.product_id}</p>
           ) : null}
           {message.message_type === "QUOTATION" && !message.quotation ? (
-            <p className="text-xs text-[#546E7A]">Quotation #{message.quotation_id}</p>
+            <p className="text-xs text-muted-fg">Quotation #{message.quotation_id}</p>
           ) : null}
         </div>
 
@@ -527,7 +527,7 @@ export default function ChatMessageBubble({
             showTimestamp ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           }`}
         >
-          <span className="text-[11px] tabular-nums text-[#90A4AE]">{timeLabel || "—"}</span>
+          <span className="text-[11px] tabular-nums text-muted-fg">{timeLabel || "—"}</span>
           <ReadTicks message={message} />
           {message.send_status === "failed" && onRetry ? (
             <button
@@ -544,7 +544,7 @@ export default function ChatMessageBubble({
       {mounted && lightboxOpen && canShowImage && imageUrl
         ? createPortal(
             <div
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0D1B2A]/75 p-4"
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-foreground/75 p-4"
               role="dialog"
               aria-modal="true"
               aria-label="Image preview"
@@ -557,14 +557,14 @@ export default function ChatMessageBubble({
                 <button
                   type="button"
                   onClick={() => void downloadImage()}
-                  className="flex h-9 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-semibold text-[#0D1B2A] shadow-sm"
+                  className="flex h-9 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-semibold text-foreground shadow-sm"
                 >
                   <Download className="h-4 w-4" />
                   Download
                 </button>
                 <button
                   type="button"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#0D1B2A] shadow-sm"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-foreground shadow-sm"
                   aria-label="Close preview"
                   onClick={() => setLightboxOpen(false)}
                 >

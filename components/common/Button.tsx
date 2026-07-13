@@ -3,7 +3,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "accent";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -16,20 +16,22 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.98]",
+  primary:
+    "bg-primary text-white shadow-[var(--shadow-button)] hover:bg-primary-hover active:scale-[0.98]",
   secondary:
-    "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]",
-  ghost:
-    "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-  danger: "bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]",
+    "bg-white text-foreground border border-border hover:bg-muted hover:border-border-strong active:scale-[0.98]",
+  ghost: "bg-transparent text-muted-fg hover:bg-primary-soft hover:text-primary",
+  danger: "bg-error text-white hover:bg-error-hover active:scale-[0.98]",
   outline:
-    "bg-transparent text-blue-600 border border-blue-500/25 hover:bg-blue-500/5 hover:border-blue-500/40 active:scale-[0.98]",
+    "bg-transparent text-primary border border-primary/25 hover:bg-primary-soft hover:border-primary/40 active:scale-[0.98]",
+  accent:
+    "bg-accent text-white shadow-sm hover:bg-accent-hover active:scale-[0.98]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5 rounded-lg font-medium",
-  md: "h-10 px-4 py-2.5 text-sm gap-2 rounded-lg font-medium",
-  lg: "px-4 py-2.5 text-sm gap-2 rounded-lg font-medium",
+  sm: "h-8 px-3 text-xs gap-1.5 rounded-lg font-semibold",
+  md: "h-10 px-4 text-sm gap-2 rounded-lg font-semibold",
+  lg: "h-11 px-5 text-sm gap-2 rounded-lg font-semibold",
 };
 
 export function Button({
@@ -50,12 +52,12 @@ export function Button({
     <button
       type={type}
       disabled={isDisabled}
-      className={`inline-flex items-center justify-center cursor-pointer transition-all duration-150 focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={`inline-flex items-center justify-center cursor-pointer transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? "w-full" : ""} ${className}`}
       {...rest}
     >
       {loading ? (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
           {loadingText ?? children}
         </>
       ) : (

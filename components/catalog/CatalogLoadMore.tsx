@@ -54,7 +54,7 @@ export default function CatalogLoadMore({
           type="button"
           onClick={handleLoadMore}
           disabled={loading || loadingMore}
-          className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground shadow-sm transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loadingMore ? (
             <>

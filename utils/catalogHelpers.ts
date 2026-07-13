@@ -396,12 +396,12 @@ export function getInitials(name: string | null | undefined): string {
 
 export function productGradient(id: number): string {
   const gradients = [
-    "from-[#1a3a5c] to-[#234a73]",
-    "from-slate-700 to-slate-900",
-    "from-blue-900 to-[#1a3a5c]",
-    "from-[#234a73] to-[#1a2b4c]",
-    "from-slate-600 to-blue-900",
-    "from-blue-800 to-slate-800",
+    "from-navy-mid to-navy",
+    "from-navy to-foreground",
+    "from-primary to-navy-mid",
+    "from-navy-mid to-navy",
+    "from-muted-fg to-navy",
+    "from-primary-hover to-navy",
   ];
   return gradients[id % gradients.length];
 }

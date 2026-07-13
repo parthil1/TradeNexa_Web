@@ -156,8 +156,8 @@ export function mapQuotationApiErrorsToForm(apiErrors: Record<string, string>): 
 
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-[#FAFBFC] p-4 ring-1 ring-[#E8ECF0]/80">
-      <p className="mb-4 text-xs font-bold uppercase tracking-wide text-[#90A4AE]">{title}</p>
+    <div className="rounded-xl bg-muted p-4 ring-1 ring-border/80">
+      <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-fg">{title}</p>
       {children}
     </div>
   );
@@ -203,7 +203,7 @@ export function useQuotationFormState({
     const base = "w-full rounded-xl border px-4 py-3 text-sm outline-none";
     return fieldError(name)
       ? `${base} border-red-300 focus:border-red-500`
-      : `${base} border-[#E0E6ED] focus:border-[#1565C0]`;
+      : `${base} border-border focus:border-primary`;
   }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -315,24 +315,24 @@ export function QuotationTotalSummary({
 }) {
   return (
     <div
-      className={`rounded-xl bg-[#E3F2FD]/60 ring-1 ring-[#1565C0]/10 ${
+      className={`rounded-xl bg-primary-soft/60 ring-1 ring-primary/10 ${
         compact ? "px-3 py-2.5" : "px-4 py-3"
       }`}
     >
-      <p className="text-[10px] font-bold uppercase tracking-wide text-[#90A4AE]">Total amount</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">Total amount</p>
       {liveTotal ? (
         <>
-          <p className={`mt-0.5 font-extrabold text-[#1565C0] ${compact ? "text-xl" : "text-2xl"}`}>
+          <p className={`mt-0.5 font-extrabold text-primary ${compact ? "text-xl" : "text-2xl"}`}>
             {formatPrice(liveTotal.total)}
           </p>
-          <p className="mt-0.5 text-xs text-[#546E7A]">
+          <p className="mt-0.5 text-xs text-muted-fg">
             {formatPrice(liveTotal.subtotal)} subtotal
             {liveTotal.gstAmount > 0 ? ` + ${formatPrice(liveTotal.gstAmount)} GST` : ""}
             {liveTotal.transport > 0 ? ` + ${formatPrice(liveTotal.transport)} transport` : ""}
           </p>
         </>
       ) : (
-        <p className={`mt-0.5 text-[#546E7A] ${compact ? "text-xs" : "text-sm"}`}>
+        <p className={`mt-0.5 text-muted-fg ${compact ? "text-xs" : "text-sm"}`}>
           Enter unit price and quantity to see the quoted total.
         </p>
       )}
@@ -358,7 +358,7 @@ export function QuotationFormActions({
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="cursor-pointer rounded-2xl border border-[#E0E6ED] bg-white px-4 py-3.5 text-sm font-bold text-[#546E7A] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
+          className="cursor-pointer rounded-2xl border border-border bg-white px-4 py-3.5 text-sm font-bold text-muted-fg disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
         >
           Cancel
         </button>
@@ -367,7 +367,7 @@ export function QuotationFormActions({
         type="submit"
         form={formId}
         disabled={submitting}
-        className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#1565C0] py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {submitLabel}
@@ -385,8 +385,8 @@ export function QuotationFormFields({
   vm: QuotationFormViewModel;
   hideHeader?: boolean;
 }) {
-  const labelClass = "mb-1.5 block text-xs font-bold text-[#546E7A]";
-  const hintClass = "mt-1 text-[11px] text-[#90A4AE]";
+  const labelClass = "mb-1.5 block text-xs font-bold text-muted-fg";
+  const hintClass = "mt-1 text-[11px] text-muted-fg";
 
   function RequiredLabel({ children }: { children: React.ReactNode }) {
     return (
@@ -400,13 +400,13 @@ export function QuotationFormFields({
     <>
       {!hideHeader ? (
         <div>
-          <p className="text-lg font-extrabold text-[#0D1B2A]">Submit your quotation</p>
-          <p className="mt-1 text-xs text-[#546E7A]">
+          <p className="text-lg font-extrabold text-foreground">Submit your quotation</p>
+          <p className="mt-1 text-xs text-muted-fg">
             Fields marked with <span className="font-semibold text-red-500">*</span> are required.
           </p>
         </div>
       ) : (
-        <p className="text-xs text-[#546E7A]">
+        <p className="text-xs text-muted-fg">
           Fields marked with <span className="font-semibold text-red-500">*</span> are required.
         </p>
       )}
@@ -444,7 +444,7 @@ export function QuotationFormFields({
                 <input
                   readOnly
                   value={vm.form.unit}
-                  className={`${vm.inputClass("unit")} cursor-not-allowed bg-[#F4F6F9] text-[#546E7A]`}
+                  className={`${vm.inputClass("unit")} cursor-not-allowed bg-muted text-muted-fg`}
                 />
                 <p className={hintClass}>Matches the buyer&apos;s RFQ requirement.</p>
               </>
@@ -560,8 +560,8 @@ export function SubmitQuotationFormModal({
       bodyClassName="px-5 py-5 sm:px-6"
       title={
         <div className="min-w-0">
-          <p className="text-lg font-extrabold text-[#0D1B2A]">Submit your quotation</p>
-          <p className="mt-0.5 truncate text-sm font-medium text-[#546E7A]">{rfqTitle}</p>
+          <p className="text-lg font-extrabold text-foreground">Submit your quotation</p>
+          <p className="mt-0.5 truncate text-sm font-medium text-muted-fg">{rfqTitle}</p>
         </div>
       }
       footer={

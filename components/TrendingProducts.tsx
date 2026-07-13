@@ -35,7 +35,7 @@ export default function TrendingProducts() {
   }, []);
 
   return (
-    <section className="border-y border-slate-100 bg-slate-50 py-16">
+    <section className="border-y border-border bg-background py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="max-w-2xl">
@@ -48,7 +48,7 @@ export default function TrendingProducts() {
           </div>
           <Link
             href="/products?trending=true"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary shadow-sm ring-1 ring-slate-200 transition hover:bg-primary hover:text-white hover:ring-primary"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-card px-5 py-2.5 text-sm font-semibold text-primary shadow-sm ring-1 ring-border transition hover:bg-primary hover:text-white hover:ring-primary"
           >
             View All Products
             <ArrowRight className="h-4 w-4" />
@@ -68,7 +68,7 @@ export default function TrendingProducts() {
             ))}
           </div>
         ) : (
-          <p className="text-center text-sm text-slate-500">No trending products available right now.</p>
+          <p className="text-center text-sm text-muted-fg">No trending products available right now.</p>
         )}
       </div>
     </section>

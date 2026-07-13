@@ -32,21 +32,21 @@ export function FormField({
     >
       <label
         htmlFor={htmlFor}
-        className="block text-xs font-semibold uppercase tracking-wider text-slate-500"
+        className="mb-0 block text-sm font-medium text-foreground"
       >
         {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {required && <span className="ml-1 text-error">*</span>}
       </label>
       {children}
       {hint && !error && (
-        <p className="text-xs text-slate-400">{hint}</p>
+        <p className="text-xs text-muted-fg">{hint}</p>
       )}
       {error ? (
         <p
           role="alert"
-          className="flex items-center gap-1.5 text-xs font-medium text-red-600"
+          className="flex items-center gap-1.5 text-xs font-medium text-error"
         >
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {error}
         </p>
       ) : null}
@@ -55,10 +55,17 @@ export function FormField({
 }
 
 export const inputClassName = (hasError?: boolean) =>
-  `w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 ${
+  `h-11 w-full rounded-lg border bg-white px-4 text-sm text-foreground placeholder:text-muted-placeholder outline-none transition-all duration-200 ${
     hasError
-      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-      : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+      ? "border-red-300 focus:border-error focus:ring-2 focus:ring-error/15"
+      : "border-border hover:border-border-hover focus:border-primary focus:ring-2 focus:ring-primary/15"
+  }`;
+
+export const textareaClassName = (hasError?: boolean) =>
+  `min-h-[7.5rem] w-full resize-y rounded-lg border bg-white px-4 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-placeholder outline-none transition-all duration-200 ${
+    hasError
+      ? "border-red-300 focus:border-error focus:ring-2 focus:ring-error/15"
+      : "border-border hover:border-border-hover focus:border-primary focus:ring-2 focus:ring-primary/15"
   }`;
 
 export const dateInputClassName = (hasError?: boolean, className = "") =>

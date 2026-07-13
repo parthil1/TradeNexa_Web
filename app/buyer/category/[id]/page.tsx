@@ -178,14 +178,14 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
       <PortalBackLink href="/buyer/categories" label="All Categories" />
 
       {metaLoading ? (
-        <div className="flex items-center gap-2 py-8 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center gap-2 py-8 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading category...
         </div>
       ) : (
         <>
           <div className="mb-5 flex items-center gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#E8EFF9] sm:h-14 sm:w-14">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-soft sm:h-14 sm:w-14">
               {logoUrl ? (
                 <Image
                   src={logoUrl}
@@ -196,14 +196,14 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
                   unoptimized
                 />
               ) : (
-                <FallbackIcon className="h-6 w-6 text-[#1565C0]" strokeWidth={1.75} />
+                <FallbackIcon className="h-6 w-6 text-primary" strokeWidth={1.75} />
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-xl font-extrabold text-[#0D1B2A] sm:text-2xl">
+              <h2 className="truncate text-xl font-extrabold text-foreground sm:text-2xl">
                 {category?.name}
               </h2>
-              <p className="mt-0.5 text-sm text-[#546E7A]">{productCountLabel}</p>
+              <p className="mt-0.5 text-sm text-muted-fg">{productCountLabel}</p>
             </div>
           </div>
 
@@ -243,13 +243,13 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
           ) : null}
 
           {!loadingProducts && products.length > 0 ? (
-            <p className="mt-4 text-sm text-[#546E7A]">
-              Showing <span className="font-semibold text-[#0D1B2A]">{products.length}</span>
+            <p className="mt-4 text-sm text-muted-fg">
+              Showing <span className="font-semibold text-foreground">{products.length}</span>
               {pagination.total > products.length ? (
                 <>
                   {" "}
                   of{" "}
-                  <span className="font-semibold text-[#0D1B2A]">
+                  <span className="font-semibold text-foreground">
                     {pagination.total.toLocaleString()}
                   </span>
                 </>
@@ -258,15 +258,15 @@ function BuyerCategoryContent({ categoryId }: { categoryId: number }) {
               {selectedSub ? (
                 <>
                   {" "}
-                  in <span className="font-semibold text-[#1565C0]">{selectedSub.name}</span>
+                  in <span className="font-semibold text-primary">{selectedSub.name}</span>
                 </>
               ) : null}
             </p>
           ) : null}
 
           {loadingProducts ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
-              <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+            <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Loading products...
             </div>
           ) : products.length === 0 ? (

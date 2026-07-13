@@ -112,7 +112,7 @@ export interface ApiProductDetail {
   seller: {
     id: number;
     user_id?: number;
-    company: {
+    company?: {
       name: string;
       logo: string | null;
       business_type: string | null;
@@ -120,7 +120,7 @@ export interface ApiProductDetail {
       experience_years: number;
     };
     rating: { average: number; total_reviews: number | null };
-    contact: {
+    contact?: {
       show_phone: boolean | null;
       show_email: boolean | null;
       phone: string | null;
@@ -128,7 +128,7 @@ export interface ApiProductDetail {
       email: string | null;
       website: string | null;
     };
-    location: {
+    location?: {
       address: string | null;
       city: string | null;
       state: string | null;

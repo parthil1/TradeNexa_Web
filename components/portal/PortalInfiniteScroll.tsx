@@ -43,8 +43,8 @@ export default function PortalInfiniteScroll({
   return (
     <div className="mt-6 flex flex-col items-center gap-2 py-4">
       {loadingMore ? (
-        <div className="flex items-center gap-2 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center gap-2 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading more...
         </div>
       ) : null}

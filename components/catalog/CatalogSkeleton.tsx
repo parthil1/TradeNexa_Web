@@ -8,7 +8,7 @@ export function CatalogGridSkeleton({ count = 8 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="overflow-hidden rounded-xl border border-slate-100 bg-white p-6"
+          className="overflow-hidden rounded-xl border border-border bg-card p-6"
         >
           <div className="skeleton mb-4 h-12 w-12 rounded-xl" />
           <div className="skeleton mb-2 h-5 w-3/4 rounded" />

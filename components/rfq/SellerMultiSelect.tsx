@@ -93,14 +93,14 @@ export default function SellerMultiSelect({
           {selectedSellers.map((seller) => (
             <span
               key={seller.id}
-              className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#E3F2FD] px-2.5 py-1 text-xs font-semibold text-[#1565C0]"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary"
             >
               <span className="truncate">{seller.company_name}</span>
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => removeSeller(seller.id)}
-                className="shrink-0 rounded-full p-0.5 transition hover:bg-[#1565C0]/15 disabled:opacity-50"
+                className="shrink-0 rounded-full p-0.5 transition hover:bg-primary/15 disabled:opacity-50"
                 aria-label={`Remove ${seller.company_name}`}
               >
                 <X className="h-3.5 w-3.5" />
@@ -112,25 +112,25 @@ export default function SellerMultiSelect({
 
       <div
         className={`overflow-hidden rounded-xl border bg-white ${
-          error ? "border-red-400" : "border-[#E0E6ED]"
+          error ? "border-red-400" : "border-border"
         }`}
       >
-        <div className="flex items-center gap-2 border-b border-[#E8ECF0] px-3 py-2">
-          <Search className="h-4 w-4 shrink-0 text-[#90A4AE]" />
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+          <Search className="h-4 w-4 shrink-0 text-muted-fg" />
           <input
             type="search"
             value={query}
             disabled={disabled}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search sellers by company name..."
-            className="w-full bg-transparent text-sm text-[#0D1B2A] outline-none placeholder:text-[#90A4AE] disabled:opacity-50"
+            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-fg disabled:opacity-50"
           />
-          {loading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#1565C0]" /> : null}
+          {loading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" /> : null}
         </div>
 
         <ul className="max-h-56 overflow-y-auto py-1">
           {results.length === 0 && !loading ? (
-            <li className="px-3 py-4 text-center text-xs text-[#90A4AE]">
+            <li className="px-3 py-4 text-center text-xs text-muted-fg">
               {debouncedQuery.trim() ? "No sellers found" : "No sellers available"}
             </li>
           ) : (
@@ -142,15 +142,15 @@ export default function SellerMultiSelect({
                     type="button"
                     disabled={disabled}
                     onClick={() => toggleSeller(seller)}
-                    className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-[#F5F9FC] disabled:opacity-50 ${
-                      checked ? "bg-[#E3F2FD]/50" : ""
+                    className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-muted disabled:opacity-50 ${
+                      checked ? "bg-primary-soft/50" : ""
                     }`}
                   >
                     <span
                       className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                         checked
-                          ? "border-[#1565C0] bg-[#1565C0] text-white"
-                          : "border-[#CFD8DC] bg-white"
+                          ? "border-primary bg-primary text-white"
+                          : "border-border bg-white"
                       }`}
                       aria-hidden
                     >
@@ -161,10 +161,10 @@ export default function SellerMultiSelect({
                       ) : null}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-[#0D1B2A]">
+                      <span className="block truncate text-sm font-semibold text-foreground">
                         {seller.company_name}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-[#90A4AE]">
+                      <span className="mt-0.5 block truncate text-[11px] text-muted-fg">
                         {sellerLabel(seller)}
                         {seller.verified ? " · Verified" : ""}
                       </span>
@@ -175,12 +175,12 @@ export default function SellerMultiSelect({
             })
           )}
           {hasMore ? (
-            <li className="border-t border-[#E8ECF0] px-3 py-2">
+            <li className="border-t border-border px-3 py-2">
               <button
                 type="button"
                 disabled={loadingMore || disabled}
                 onClick={() => void loadPage(page + 1, true)}
-                className="w-full rounded-lg py-1.5 text-xs font-bold text-[#1565C0] transition hover:bg-[#E3F2FD] disabled:opacity-50"
+                className="w-full rounded-lg py-1.5 text-xs font-bold text-primary transition hover:bg-primary-soft disabled:opacity-50"
               >
                 {loadingMore ? "Loading..." : "Load more"}
               </button>

@@ -77,7 +77,7 @@ export function Modal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-navy/50 backdrop-blur-sm"
           />
 
           <motion.div
@@ -85,7 +85,9 @@ export function Modal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            className={`relative flex max-h-[92dvh] w-full sm:max-h-[88dvh] ${maxWidthClasses[maxWidth]} flex-col overflow-hidden rounded-t-2xl border border-slate-200/80 bg-white shadow-[0_24px_64px_-12px_rgba(15,23,42,0.18)] sm:rounded-2xl`}
+            className={`relative flex max-h-[92dvh] w-full sm:max-h-[88dvh] ${maxWidthClasses[maxWidth]} flex-col overflow-hidden rounded-t-2xl border border-border bg-white shadow-[var(--shadow-elevated)] sm:rounded-2xl`}
+            role="dialog"
+            aria-modal="true"
           >
             {headerSlot && <div className="shrink-0">{headerSlot}</div>}
 
@@ -93,17 +95,18 @@ export function Modal({
               <div
                 className={`flex shrink-0 items-center justify-between border-b px-6 py-4 transition-all duration-200 ${
                   isScrolled
-                    ? "z-10 border-slate-100 bg-white/95 shadow-sm backdrop-blur-md"
+                    ? "z-10 border-border bg-white/95 shadow-sm backdrop-blur-md"
                     : "border-transparent bg-white"
                 }`}
               >
                 <div className="mr-4 min-w-0 flex-1">{title}</div>
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-fg transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
                   aria-label="Close modal"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden />
                 </button>
               </div>
             )}
@@ -117,7 +120,7 @@ export function Modal({
             </div>
 
             {footer && (
-              <div className="shrink-0 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+              <div className="shrink-0 border-t border-border bg-muted/40 px-6 py-4">
                 {footer}
               </div>
             )}

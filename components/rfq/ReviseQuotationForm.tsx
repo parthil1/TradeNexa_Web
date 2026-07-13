@@ -107,7 +107,7 @@ function ReviseQuotationForm({
     setFieldErrors({});
   }, [quotation.id]);
 
-  const labelClass = "mb-1.5 block text-xs font-bold text-[#546E7A]";
+  const labelClass = "mb-1.5 block text-xs font-bold text-muted-fg";
 
   function fieldError(name: keyof FormState): string | undefined {
     return fieldErrors[name];
@@ -117,7 +117,7 @@ function ReviseQuotationForm({
     const base = "w-full rounded-xl border px-4 py-3 text-sm outline-none";
     return fieldError(name)
       ? `${base} border-red-300 focus:border-red-500`
-      : `${base} border-[#E0E6ED] focus:border-[#1565C0]`;
+      : `${base} border-border focus:border-primary`;
   }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -193,10 +193,10 @@ function ReviseQuotationForm({
           <p className="text-[10px] font-bold uppercase tracking-wide text-amber-800">
             Buyer&apos;s revision request
           </p>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#546E7A]">{buyerRevisionRemarks}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-fg">{buyerRevisionRemarks}</p>
         </div>
       ) : (
-        <p className="text-sm text-[#546E7A]">
+        <p className="text-sm text-muted-fg">
           The buyer requested changes. Update your quote and explain what changed.
         </p>
       )}
@@ -246,7 +246,7 @@ function ReviseQuotationForm({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="cursor-pointer rounded-xl border border-[#E0E6ED] px-4 py-2.5 text-sm font-semibold text-[#546E7A] disabled:cursor-not-allowed disabled:opacity-50"
+            className="cursor-pointer rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-muted-fg disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -254,7 +254,7 @@ function ReviseQuotationForm({
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1565C0] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Submit revision
@@ -278,8 +278,8 @@ export function ReviseQuotationFormModal({
       bodyClassName="px-5 py-5 sm:px-6"
       title={
         <div className="min-w-0">
-          <p className="text-lg font-extrabold text-[#0D1B2A]">Revise quotation</p>
-          <p className="mt-0.5 text-xs font-medium text-[#546E7A]">
+          <p className="text-lg font-extrabold text-foreground">Revise quotation</p>
+          <p className="mt-0.5 text-xs font-medium text-muted-fg">
             Quote #{quotation.id}
             {quotation.quantity != null
               ? ` · ${quotation.quantity} ${quotation.unit ?? ""}`

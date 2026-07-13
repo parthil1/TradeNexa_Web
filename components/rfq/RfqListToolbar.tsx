@@ -23,7 +23,7 @@ export default function RfqListToolbar({
   search,
 }: RfqListToolbarProps) {
   return (
-    <div className="mb-5 space-y-3 rounded-2xl border border-[#E8ECF0] bg-[#FAFBFC] p-3 sm:p-4">
+    <div className="mb-5 space-y-3 rounded-xl border border-border bg-muted/50 p-3 sm:p-4">
       {search ? (
         <PortalSearchBar
           value={search.value}
@@ -33,7 +33,9 @@ export default function RfqListToolbar({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-medium text-[#546E7A]">{loading ? "Loading..." : countLabel}</p>
+        <p className="text-xs font-medium text-muted-fg">
+          {loading ? "Loading..." : countLabel}
+        </p>
         {filters || trailing ? (
           <div className="flex flex-wrap items-center gap-2">
             {filters}

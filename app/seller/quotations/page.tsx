@@ -104,8 +104,8 @@ export default function SellerQuotationsPage() {
       ) : null}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading quotations...
         </div>
       ) : items.length === 0 ? (
@@ -122,14 +122,14 @@ export default function SellerQuotationsPage() {
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="cursor-pointer rounded-xl border border-[#E0E6ED] px-4 py-2 text-sm font-bold text-[#546E7A]"
+                className="cursor-pointer rounded-xl border border-border px-4 py-2 text-sm font-bold text-muted-fg"
               >
                 Clear search
               </button>
             ) : (
               <Link
                 href="/seller/leads"
-                className="cursor-pointer rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+                className="cursor-pointer rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
               >
                 Browse RFQs
               </Link>
@@ -170,7 +170,7 @@ export default function SellerQuotationsPage() {
                       <button
                         type="button"
                         onClick={() => setRevisingQuotation(quotation)}
-                        className="cursor-pointer rounded-lg bg-[#1565C0] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1255A8]"
+                        className="cursor-pointer rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-hover"
                       >
                         Revise quote
                       </button>
@@ -178,7 +178,7 @@ export default function SellerQuotationsPage() {
                       <button
                         type="button"
                         onClick={() => setUpdatingQuotation(quotation)}
-                        className="cursor-pointer rounded-lg bg-[#1565C0] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1255A8]"
+                        className="cursor-pointer rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-hover"
                       >
                         Update quote
                       </button>

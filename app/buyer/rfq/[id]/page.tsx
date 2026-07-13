@@ -13,6 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/common/Button";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import PortalEmptyState from "@/components/portal/PortalEmptyState";
 import PortalPagination from "@/components/portal/PortalPagination";
@@ -57,11 +58,11 @@ function DetailMetaItem({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl bg-[#FAFBFC] p-3 ring-1 ring-[#E8ECF0]/80">
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#90A4AE]" aria-hidden />
+    <div className="flex items-start gap-2.5 rounded-xl bg-muted p-3 ring-1 ring-border/80">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-fg" aria-hidden />
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#90A4AE]">{label}</p>
-        <p className="mt-0.5 text-sm font-semibold text-[#0D1B2A]">{value}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">{label}</p>
+        <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -194,11 +195,11 @@ export default function BuyerRfqDetailPage() {
   if (rfqLoading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-        <div className="border-b border-[#E8ECF0] pb-4">
+        <div className="border-b border-border pb-4">
           <PortalBackLink href="/buyer/inquiries" label="My RFQs" />
         </div>
-        <div className="flex items-center justify-center gap-2 py-20 text-sm text-[#546E7A]">
-          <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+        <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-fg">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           Loading RFQ...
         </div>
       </div>
@@ -208,7 +209,7 @@ export default function BuyerRfqDetailPage() {
   if (!rfq) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-        <div className="border-b border-[#E8ECF0] pb-4">
+        <div className="border-b border-border pb-4">
           <PortalBackLink href="/buyer/inquiries" label="My RFQs" />
         </div>
         <PortalEmptyState
@@ -216,11 +217,8 @@ export default function BuyerRfqDetailPage() {
           title="RFQ not found"
           description="This requirement may have been removed."
           action={
-            <Link
-              href="/buyer/inquiries"
-              className="cursor-pointer rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
-            >
-              Back to RFQs
+            <Link href="/buyer/inquiries">
+              <Button>Back to RFQs</Button>
             </Link>
           }
         />
@@ -242,27 +240,27 @@ export default function BuyerRfqDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mb-6 border-b border-[#E8ECF0] pb-5">
+      <div className="mb-6 border-b border-border pb-5">
         <PortalBackLink href="/buyer/inquiries" label="My RFQs" />
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1
               className={`text-2xl font-extrabold tracking-tight sm:text-3xl ${
-                isInactive ? "text-[#90A4AE]" : "text-[#0D1B2A]"
+                isInactive ? "text-muted-fg" : "text-foreground"
               }`}
             >
               {rfq.title}
             </h1>
-            <p className="mt-1 text-sm text-[#546E7A]">Requirement details and seller quotations</p>
+            <p className="mt-1 text-sm text-muted-fg">Requirement details and seller quotations</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             <RfqStatusBadge status={rfq.status} />
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F4F6F9] px-3 py-1 text-xs font-semibold text-[#546E7A]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-fg">
               <Calendar className="h-3.5 w-3.5" />
               Posted {formatRfqDate(rfq.created_at)}
             </span>
             {rfq.quotation_deadline ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F4F6F9] px-3 py-1 text-xs font-semibold text-[#546E7A]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-fg">
                 <Clock className="h-3.5 w-3.5" />
                 Deadline {formatRfqDate(rfq.quotation_deadline)}
               </span>
@@ -273,13 +271,13 @@ export default function BuyerRfqDetailPage() {
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:items-start lg:gap-8">
         <section>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#90A4AE]">Requirement</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-fg">Requirement</p>
 
           <article
-            className={`mt-2 rounded-2xl border bg-white p-5 sm:p-6 ${
+            className={`mt-2 rounded-2xl border bg-card p-5 sm:p-6 ${
               isInactive
                 ? "border-red-200 border-l-4 border-l-red-400"
-                : "border-[#E8ECF0]"
+                : "border-border"
             }`}
           >
             {isInactive ? (
@@ -291,8 +289,8 @@ export default function BuyerRfqDetailPage() {
 
             {rfq.description ? (
               <div className="mb-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#90A4AE]">Description</p>
-                <p className="mt-2 text-sm leading-relaxed text-[#546E7A]">{rfq.description}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-fg">Description</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-fg">{rfq.description}</p>
               </div>
             ) : null}
 
@@ -326,35 +324,35 @@ export default function BuyerRfqDetailPage() {
             </div>
 
             {(isDraft || canCancel) && (
-              <div className="mt-5 flex flex-wrap gap-2 border-t border-[#F0F2F5] pt-5">
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-5">
                 {isDraft ? (
                   <>
-                    <Link
-                      href={`/buyer/rfq/${rfq.id}/edit`}
-                      className="cursor-pointer rounded-xl border border-[#1565C0] px-4 py-2 text-xs font-bold text-[#1565C0] hover:bg-[#E3F2FD]"
-                    >
-                      Edit draft
+                    <Link href={`/buyer/rfq/${rfq.id}/edit`}>
+                      <Button variant="outline" size="sm">
+                        Edit draft
+                      </Button>
                     </Link>
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
                       disabled={actionId !== null}
                       onClick={() => void handlePublish()}
-                      className="cursor-pointer rounded-xl bg-[#1565C0] px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Publish RFQ
-                    </button>
+                    </Button>
                     <DeleteRfqButton rfqId={rfq.id} rfqTitle={rfq.title} />
                   </>
                 ) : null}
                 {canCancel ? (
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
+                    variant="danger"
                     disabled={actionId !== null}
                     onClick={() => void handleCancel()}
-                    className="cursor-pointer rounded-xl border border-red-200 px-4 py-2 text-xs font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel RFQ
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             )}
@@ -363,8 +361,8 @@ export default function BuyerRfqDetailPage() {
 
         <section className="mt-8 lg:mt-0">
           <div className="lg:sticky lg:top-4">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#90A4AE]">Quotations</p>
-            <h2 className="mt-1 text-xl font-extrabold text-[#0D1B2A]">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-fg">Quotations</p>
+            <h2 className="mt-1 text-xl font-extrabold text-foreground">
               {quotesLoading && totalQuotes === 0
                 ? "Loading quotes..."
                 : totalQuotes === 0
@@ -372,7 +370,7 @@ export default function BuyerRfqDetailPage() {
                   : `${totalQuotes} quote${totalQuotes === 1 ? "" : "s"} received`}
             </h2>
             {actionableCount > 0 ? (
-              <p className="mt-1 text-xs text-[#1565C0]">
+              <p className="mt-1 text-xs text-primary">
                 {actionableCount} on this page awaiting your decision
               </p>
             ) : null}
@@ -384,30 +382,28 @@ export default function BuyerRfqDetailPage() {
             ) : null}
 
             {quotesLoading && quotations.length === 0 ? (
-              <div className="mt-4 flex items-center justify-center gap-2 py-12 text-sm text-[#546E7A]">
-                <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+              <div className="mt-4 flex items-center justify-center gap-2 py-12 text-sm text-muted-fg">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 Loading quotations...
               </div>
             ) : quotesMismatch ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
-                <p className="text-sm font-bold text-[#0D1B2A]">Could not load quotations</p>
-                <p className="mt-1 text-xs text-[#546E7A]">
+                <p className="text-sm font-bold text-foreground">Could not load quotations</p>
+                <p className="mt-1 text-xs text-muted-fg">
                   This RFQ shows {totalQuotes} quote{totalQuotes === 1 ? "" : "s"}, but the list did not load.
                   Try refreshing.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => void reloadQuotes()}
-                  className="mt-3 cursor-pointer rounded-xl bg-[#1565C0] px-4 py-2 text-xs font-bold text-white"
-                >
-                  Retry
-                </button>
+                <div className="mt-3">
+                  <Button size="sm" onClick={() => void reloadQuotes()}>
+                    Retry
+                  </Button>
+                </div>
               </div>
             ) : totalQuotes === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-[#E0E6ED] bg-[#FAFBFC] p-6 text-center">
-                <FileText className="mx-auto h-8 w-8 text-[#CFD8DC]" />
-                <p className="mt-3 text-sm font-bold text-[#0D1B2A]">No quotations yet</p>
-                <p className="mt-1 text-xs text-[#546E7A]">
+              <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted p-6 text-center">
+                <FileText className="mx-auto h-8 w-8 text-muted-fg" />
+                <p className="mt-3 text-sm font-bold text-foreground">No quotations yet</p>
+                <p className="mt-1 text-xs text-muted-fg">
                   Sellers will submit quotes here once your RFQ is live.
                 </p>
               </div>
@@ -435,30 +431,31 @@ export default function BuyerRfqDetailPage() {
                     actions={
                       showActions ? (
                         <>
-                          <button
-                            type="button"
+                          <Button
+                            size="sm"
+                            variant="primary"
                             disabled={actionId === quotation.id}
                             onClick={() => void runQuotationAction(quotation.id, "accept")}
-                            className="cursor-pointer rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            className="bg-success hover:bg-success/90"
                           >
                             Accept
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
                             disabled={actionId === quotation.id}
                             onClick={() => void runQuotationAction(quotation.id, "reject")}
-                            className="cursor-pointer rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Reject
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             disabled={actionId === quotation.id}
                             onClick={() => setRevisionFor(quotation.id)}
-                            className="cursor-pointer rounded-lg border border-[#E0E6ED] px-3 py-2 text-xs font-bold text-[#546E7A] disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Request revision
-                          </button>
+                          </Button>
                         </>
                       ) : undefined
                     }

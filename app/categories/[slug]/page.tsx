@@ -161,7 +161,7 @@ export default function CategoryDetailPage() {
   const error = productError || subError;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-background">
       <MarketplaceDetailHeader
         title={category?.name ?? "Category"}
         backHref="/categories"

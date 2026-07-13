@@ -33,6 +33,9 @@ function SidebarProfile({
   const isSeller = accent === "seller";
   const displayName = user?.company || user?.name || (isSeller ? "Seller" : "Buyer");
   const initials = getInitials(displayName);
+  const badgeClass = isSeller
+    ? "text-orange-300 bg-orange-500/15 border-orange-400/25"
+    : "text-sky-300 bg-primary/20 border-sky-400/25";
 
   return (
     <div className="shrink-0 border-b border-white/[0.08] px-4 py-5">
@@ -44,13 +47,17 @@ function SidebarProfile({
         }`}
         title={collapsed ? displayName : undefined}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/15 text-sm font-semibold text-blue-400">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${badgeClass}`}
+        >
           {initials}
         </div>
         {!collapsed ? (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">{displayName}</p>
-            <span className="mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400 bg-blue-500/10">
+            <span
+              className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badgeClass}`}
+            >
               {isSeller ? "Seller" : "Buyer"}
             </span>
           </div>
@@ -64,17 +71,19 @@ function SidebarNav({
   items,
   pathname,
   collapsed,
+  accent,
   onNavigate,
 }: {
   items: PortalNavItem[];
   pathname: string;
   collapsed?: boolean;
+  accent?: "buyer" | "seller";
   onNavigate?: () => void;
 }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
       {!collapsed ? (
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-white/35">
           Menu
         </p>
       ) : null}
@@ -85,6 +94,7 @@ function SidebarNav({
               item={item}
               active={item.match(pathname)}
               collapsed={collapsed}
+              accent={accent}
               onNavigate={onNavigate}
             />
           </li>
@@ -107,12 +117,12 @@ function SidebarFooter({
         href="/"
         onClick={onNavigate}
         title={collapsed ? "Back to Website" : undefined}
-        className={`group flex h-10 items-center rounded-lg text-[13px] font-medium text-slate-500 transition-all duration-200 hover:bg-slate-800/60 hover:text-slate-200 ${
+        className={`group flex h-10 items-center rounded-lg text-[13px] font-medium text-white/45 transition-all duration-200 hover:bg-white/[0.06] hover:text-white/85 ${
           collapsed ? "justify-center px-0" : "gap-3 px-3"
         }`}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center text-slate-500 transition-colors group-hover:text-slate-300">
-          <Globe className="h-[18px] w-[18px]" />
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center text-white/40 transition-colors group-hover:text-white/70">
+          <Globe className="h-[18px] w-[18px]" aria-hidden />
         </span>
         {!collapsed ? <span className="flex-1">Back to Website</span> : null}
       </Link>
@@ -132,16 +142,16 @@ function CollapseToggle({
       <button
         type="button"
         onClick={onToggle}
-        className={`flex h-10 w-full items-center rounded-lg text-slate-500 transition-all duration-200 hover:bg-slate-800/60 hover:text-slate-200 ${
+        className={`flex h-10 w-full cursor-pointer items-center rounded-lg text-white/45 transition-all duration-200 hover:bg-white/[0.06] hover:text-white/85 ${
           collapsed ? "justify-center" : "gap-3 px-3"
         }`}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? (
-          <ChevronRight className="h-[18px] w-[18px]" />
+          <ChevronRight className="h-[18px] w-[18px]" aria-hidden />
         ) : (
           <>
-            <ChevronLeft className="h-[18px] w-[18px]" />
+            <ChevronLeft className="h-[18px] w-[18px]" aria-hidden />
             <span className="text-[13px] font-medium">Collapse</span>
           </>
         )}
@@ -170,15 +180,15 @@ function SidebarPanel({
   showClose?: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col bg-slate-900">
+    <div className="flex h-full flex-col bg-navy">
       {showClose ? (
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-white lg:hidden"
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white/50 transition-colors duration-200 hover:bg-white/10 hover:text-white lg:hidden"
           aria-label="Close menu"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden />
         </button>
       ) : null}
 
@@ -187,6 +197,7 @@ function SidebarPanel({
         items={items}
         pathname={pathname}
         collapsed={collapsed}
+        accent={accent}
         onNavigate={onNavigate}
       />
       <SidebarFooter collapsed={collapsed} onNavigate={onNavigate} />
@@ -219,13 +230,12 @@ export default function PortalSidebar({
 
   return (
     <>
-      {/* Width spacer — keeps main content offset while the real sidebar is fixed. */}
       <div
         className={`hidden shrink-0 transition-[width] duration-200 lg:block ${widthClass}`}
         aria-hidden
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-white/[0.08] bg-slate-900 transition-[width] duration-200 lg:flex ${widthClass}`}
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-white/[0.08] bg-navy transition-[width] duration-200 lg:flex ${widthClass}`}
       >
         <SidebarPanel
           items={items}
@@ -244,7 +254,7 @@ export default function PortalSidebar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"
+              className="fixed inset-0 z-50 bg-navy/40 backdrop-blur-[2px] lg:hidden"
               onClick={onMobileClose}
             />
             <motion.aside
@@ -252,7 +262,7 @@ export default function PortalSidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 400, damping: 36 }}
-              className="fixed inset-y-0 left-0 z-50 flex h-dvh w-[260px] shrink-0 flex-col border-r border-white/[0.08] bg-slate-900 shadow-xl shadow-slate-900/20 lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex h-dvh w-[260px] shrink-0 flex-col border-r border-white/[0.08] bg-navy shadow-xl lg:hidden"
             >
               <SidebarPanel
                 items={items}

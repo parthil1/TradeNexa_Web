@@ -109,7 +109,7 @@ export default function ProductDetailPage() {
 
   if (invalidId) {
     return (
-      <div className="min-h-screen bg-[#F4F6F9]">
+      <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-xl px-4 py-12">
           <PortalEmptyState
             icon={Package}
@@ -118,7 +118,7 @@ export default function ProductDetailPage() {
             action={
               <Link
                 href="/products"
-                className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
               >
                 Browse Products
               </Link>
@@ -131,8 +131,8 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center gap-2 bg-[#F4F6F9] py-20 text-sm text-[#546E7A]">
-        <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+      <div className="flex min-h-screen items-center justify-center gap-2 bg-background py-20 text-sm text-muted-fg">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
         Loading product...
       </div>
     );
@@ -140,7 +140,7 @@ export default function ProductDetailPage() {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-[#F4F6F9]">
+      <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-xl px-4 py-12">
           <PortalEmptyState
             icon={Package}
@@ -149,7 +149,7 @@ export default function ProductDetailPage() {
             action={
               <Link
                 href="/products"
-                className="rounded-xl bg-[#1565C0] px-4 py-2 text-sm font-bold text-white"
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
               >
                 Browse Products
               </Link>
@@ -161,7 +161,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F4F6F9]">
+    <div className="flex min-h-screen flex-col bg-background">
       <PortalProductDetailView
         product={product}
         similarProducts={similarProducts}

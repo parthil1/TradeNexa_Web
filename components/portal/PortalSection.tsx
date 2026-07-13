@@ -22,14 +22,14 @@ export default function PortalSection({
       >
         <div className="min-w-0">
           <h3
-            className={`font-semibold tracking-tight text-portal-fg ${
+            className={`font-semibold tracking-tight text-foreground ${
               compact ? "text-sm sm:text-base" : "text-base sm:text-lg"
             }`}
           >
             {title}
           </h3>
           {subtitle ? (
-            <p className={`mt-1 text-portal-muted ${compact ? "text-xs" : "text-sm"}`}>
+            <p className={`mt-1 text-muted-fg ${compact ? "text-xs" : "text-sm"}`}>
               {subtitle}
             </p>
           ) : null}

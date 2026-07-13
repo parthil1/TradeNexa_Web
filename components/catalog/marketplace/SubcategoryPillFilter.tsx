@@ -32,8 +32,8 @@ function FilterButton({
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition lg:w-full lg:justify-between lg:rounded-xl lg:px-4 lg:py-3 lg:text-left ${
         isActive
-          ? "bg-[#1a3a5c] text-white shadow-md lg:border-l-4 lg:border-primary lg:bg-primary/5 lg:text-primary lg:shadow-none"
-          : "bg-transparent text-[#1a2b4c] hover:bg-slate-50 lg:text-slate-700 lg:hover:bg-slate-100"
+          ? "bg-foreground text-white shadow-md lg:border-l-4 lg:border-primary lg:bg-primary/5 lg:text-primary lg:shadow-none"
+          : "bg-transparent text-foreground hover:bg-muted lg:text-foreground lg:hover:bg-muted"
       }`}
     >
       <span className="truncate">{label}</span>
@@ -42,7 +42,7 @@ function FilterButton({
           className={`flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
             isActive
               ? "bg-white/25 text-white lg:bg-primary/10 lg:text-primary"
-              : "bg-slate-100 text-slate-600"
+              : "bg-muted text-muted-fg"
           }`}
         >
           {count}
@@ -81,7 +81,7 @@ function SubcategoryLoadMoreButton({
       type="button"
       onClick={onLoadMoreSubs}
       disabled={loadingSubs || loadingMoreSubs}
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-primary/30 hover:text-primary disabled:opacity-50 lg:mt-2 lg:w-full lg:rounded-xl lg:py-2.5 lg:text-sm ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-fg transition hover:border-primary/30 hover:text-primary disabled:opacity-50 lg:mt-2 lg:w-full lg:rounded-xl lg:py-2.5 lg:text-sm ${className}`}
     >
       {loadingMoreSubs ? (
         <>
@@ -108,7 +108,7 @@ export function SubcategoryFilterBar({
   const { allCount } = useFilterItems(subcategories, totalProductCount);
 
   return (
-    <div className="border-b border-slate-100 bg-white lg:hidden">
+    <div className="border-b border-border bg-card lg:hidden">
       <div className="flex gap-2.5 overflow-x-auto py-3.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <FilterButton
           label="All"
@@ -151,13 +151,13 @@ export function SubcategoryFilterSidebar({
 
   return (
     <aside className="hidden lg:block lg:w-72 lg:shrink-0 xl:w-80">
-      <div className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="sticky top-24 rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-fg">
             Subcategories
           </h3>
           {subPagination && (
-            <span className="text-[11px] font-semibold text-slate-400">
+            <span className="text-[11px] font-semibold text-muted-fg">
               {subcategories.length}/{totalSubs}
             </span>
           )}

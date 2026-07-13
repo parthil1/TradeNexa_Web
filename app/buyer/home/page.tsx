@@ -26,11 +26,46 @@ import type { ApiCategory, ApiProductListItem } from "@/types/catalog";
 import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
 
 const quickLinks = [
-  { label: "Categories", href: "/buyer/categories", icon: LayoutGrid, bg: "bg-[#E8EFF9]", color: "text-[#1565C0]" },
-  { label: "Trending", href: "/buyer/trending-products", icon: Flame, bg: "bg-orange-50", color: "text-[#FF6D00]" },
-  { label: "Inquiries", href: "/buyer/inquiries", icon: MessageSquare, bg: "bg-violet-50", color: "text-[#8B5CF6]" },
-  { label: "Post RFQ", href: "/buyer/post-requirement", icon: FileText, bg: "bg-emerald-50", color: "text-[#2E7D32]" },
+  {
+    label: "Categories",
+    href: "/buyer/categories",
+    icon: LayoutGrid,
+    bg: "bg-primary-soft",
+    color: "text-primary",
+  },
+  {
+    label: "Trending",
+    href: "/buyer/trending-products",
+    icon: Flame,
+    bg: "bg-portal-seller-light",
+    color: "text-accent",
+  },
+  {
+    label: "Inquiries",
+    href: "/buyer/inquiries",
+    icon: MessageSquare,
+    bg: "bg-muted",
+    color: "text-foreground",
+  },
+  {
+    label: "Post RFQ",
+    href: "/buyer/post-requirement",
+    icon: FileText,
+    bg: "bg-emerald-50",
+    color: "text-success",
+  },
 ];
+
+function SectionLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="text-sm font-semibold text-primary transition-colors duration-200 hover:text-primary-hover"
+    >
+      {children}
+    </Link>
+  );
+}
 
 export default function BuyerHomePage() {
   const { user } = useAuth();
@@ -56,18 +91,19 @@ export default function BuyerHomePage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5 md:px-8 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
         className="mb-5 flex items-center gap-3 sm:mb-6"
       >
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1565C0] to-[#5E92F3] text-lg font-extrabold text-white shadow-md shadow-[#1565C0]/25 sm:h-14 sm:w-14 sm:text-xl">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-semibold text-white shadow-[var(--shadow-button)] sm:h-14 sm:w-14 sm:text-xl">
           {initial}
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-[#546E7A] sm:text-sm">Welcome back,</p>
-          <h2 className="truncate text-xl font-extrabold text-[#0D1B2A] sm:text-2xl md:text-3xl">
+          <p className="text-xs text-muted-fg sm:text-sm">Welcome back,</p>
+          <h2 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             {displayName}
           </h2>
         </div>
@@ -75,12 +111,14 @@ export default function BuyerHomePage() {
 
       <Link
         href="/buyer/search"
-        className="mb-5 flex items-center gap-3 rounded-2xl border border-[#E0E6ED] bg-white px-4 py-3.5 shadow-sm transition active:scale-[0.99] hover:border-[#1565C0]/40 sm:mb-6 sm:py-4"
+        className="mb-5 flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3.5 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-primary/40 sm:mb-6 sm:py-4"
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8EFF9]">
-          <Search className="h-5 w-5 text-[#1565C0]" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft">
+          <Search className="h-5 w-5 text-primary" aria-hidden />
         </div>
-        <span className="text-sm text-[#B0BEC5] sm:text-base">Search products, suppliers, categories...</span>
+        <span className="text-sm text-muted-fg sm:text-base">
+          Search products, suppliers, categories...
+        </span>
       </Link>
 
       <div className="-mx-4 mb-5 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 sm:pb-0 md:mb-6">
@@ -90,36 +128,38 @@ export default function BuyerHomePage() {
             <Link
               key={link.href}
               href={link.href}
-              className="flex min-w-[88px] shrink-0 snap-start flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 transition-shadow active:scale-[0.98] hover:cursor-pointer hover:border-slate-300 hover:shadow-sm sm:min-w-0 sm:p-4"
+              className="surface-card-hover flex min-w-[88px] shrink-0 snap-start flex-col items-center gap-2 p-3 sm:min-w-0 sm:p-4"
             >
               <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${link.bg}`}>
-                <Icon className={`h-5 w-5 ${link.color}`} />
+                <Icon className={`h-5 w-5 ${link.color}`} aria-hidden />
               </div>
-              <span className="text-center text-[11px] font-bold text-[#546E7A] sm:text-xs">{link.label}</span>
+              <span className="text-center text-[11px] font-semibold text-muted-fg sm:text-xs">
+                {link.label}
+              </span>
             </Link>
           );
         })}
       </div>
 
       {bannersLoading ? (
-        <div className="mb-5 h-[148px] animate-pulse rounded-xl bg-slate-200 sm:mb-6 sm:h-[168px] sm:rounded-2xl md:h-[188px]" />
+        <div className="skeleton mb-5 h-[148px] sm:mb-6 sm:h-[168px] md:h-[188px]" />
       ) : banners.length > 0 ? (
         <BuyerHomeBanner banners={banners} />
       ) : (
         <Link
           href="/buyer/post-requirement"
-          className="mb-5 block overflow-hidden rounded-xl border border-orange-200/50 bg-gradient-to-r from-[#E65100] to-[#FF6D00] p-4 text-white shadow-sm sm:mb-6 sm:rounded-2xl sm:p-5"
+          className="mb-5 block overflow-hidden rounded-xl bg-accent p-4 text-white shadow-sm transition-opacity duration-200 hover:opacity-95 sm:mb-6 sm:rounded-xl sm:p-5"
         >
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/75 sm:text-[10px]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/75">
             TradeNexa B2B
           </p>
-          <h3 className="mt-0.5 text-base font-bold sm:text-lg">Post Your Requirement</h3>
+          <h3 className="mt-0.5 text-base font-semibold sm:text-lg">Post Your Requirement</h3>
           <p className="mt-1 max-w-md text-xs text-white/85 sm:text-sm">
             Get quotes from multiple sellers in 24 hours
           </p>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-primary sm:text-sm">
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-accent sm:text-sm">
             Post RFQ
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </span>
         </Link>
       )}
@@ -127,11 +167,7 @@ export default function BuyerHomePage() {
       <PortalSection
         title="Top Categories"
         subtitle="Browse by industry"
-        action={
-          <Link href="/buyer/categories" className="text-sm font-bold text-[#1565C0]">
-            View all
-          </Link>
-        }
+        action={<SectionLink href="/buyer/categories">View all</SectionLink>}
       >
         <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:px-0 md:pb-0">
           {categories.map((cat) => {
@@ -140,12 +176,14 @@ export default function BuyerHomePage() {
               <Link
                 key={cat.id}
                 href={`/buyer/category/${cat.id}`}
-                className="flex min-w-[120px] shrink-0 snap-start flex-col items-center rounded-xl border border-slate-200 bg-white p-3.5 text-center transition-shadow active:scale-[0.98] hover:cursor-pointer hover:border-slate-300 hover:shadow-sm sm:min-w-[140px] sm:p-4 md:min-w-0"
+                className="surface-card-hover flex min-w-[120px] shrink-0 snap-start flex-col items-center p-3.5 text-center sm:min-w-[140px] sm:p-4 md:min-w-0"
               >
-                <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 sm:h-12 sm:w-12">
-                  <Icon className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
+                <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft sm:h-12 sm:w-12">
+                  <Icon className="h-5 w-5 text-primary sm:h-6 sm:w-6" aria-hidden />
                 </div>
-                <p className="line-clamp-2 text-xs font-medium text-slate-900 sm:text-sm">{cat.name}</p>
+                <p className="line-clamp-2 text-xs font-medium text-foreground sm:text-sm">
+                  {cat.name}
+                </p>
               </Link>
             );
           })}
@@ -155,33 +193,29 @@ export default function BuyerHomePage() {
       <PortalSection
         title="Featured Suppliers"
         subtitle="Verified & trusted businesses"
-        action={
-          <Link href="/buyer/search" className="text-sm font-bold text-[#1565C0]">
-            View all
-          </Link>
-        }
+        action={<SectionLink href="/buyer/search">View all</SectionLink>}
       >
         <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3">
           {demoSuppliers.map((s) => (
             <Link
               key={s.id}
               href={`/buyer/supplier/${s.id}`}
-              className="w-[78vw] max-w-[300px] shrink-0 snap-start rounded-2xl border border-[#E8ECF0] bg-white p-4 shadow-sm transition active:scale-[0.99] hover:shadow-md sm:w-[300px] md:w-auto md:max-w-none"
+              className="surface-card-hover w-[78vw] max-w-[300px] shrink-0 snap-start p-4 sm:w-[300px] md:w-auto md:max-w-none"
             >
               <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8EFF9] text-sm font-extrabold text-[#1565C0]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-sm font-semibold text-primary">
                   {s.name[0]}
                 </div>
-                {s.verified ? <BadgeCheck className="h-5 w-5 text-[#1565C0]" /> : null}
+                {s.verified ? <BadgeCheck className="h-5 w-5 text-primary" aria-hidden /> : null}
               </div>
-              <p className="mt-3 line-clamp-2 text-sm font-extrabold text-[#0D1B2A]">{s.name}</p>
-              <p className="mt-1 text-xs text-[#546E7A]">{s.category}</p>
+              <p className="mt-3 line-clamp-2 text-sm font-semibold text-foreground">{s.name}</p>
+              <p className="mt-1 text-xs text-muted-fg">{s.category}</p>
               <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1 font-semibold text-amber-600">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                <span className="flex items-center gap-1 font-semibold text-warning">
+                  <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden />
                   {s.rating}
                 </span>
-                <span className="text-[#546E7A]">{s.productCount} products</span>
+                <span className="text-muted-fg">{s.productCount} products</span>
               </div>
             </Link>
           ))}
@@ -191,11 +225,7 @@ export default function BuyerHomePage() {
       <PortalSection
         title="Trending"
         subtitle="Most popular items this week"
-        action={
-          <Link href="/buyer/trending-products" className="text-sm font-bold text-[#1565C0]">
-            View all
-          </Link>
-        }
+        action={<SectionLink href="/buyer/trending-products">View all</SectionLink>}
       >
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 md:gap-4">
           {trending.map((p) => (
@@ -216,14 +246,14 @@ export default function BuyerHomePage() {
 
       <Link
         href="/buyer/post-requirement"
-        className="mb-2 flex items-center justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-r from-[#E65100] to-[#FF6D00] p-4 text-white shadow-lg shadow-[#FF6D00]/20 transition active:scale-[0.99] sm:mb-4 sm:rounded-3xl sm:p-5"
+        className="mb-2 flex items-center justify-between gap-4 overflow-hidden rounded-xl bg-accent p-4 text-white shadow-sm transition-opacity duration-200 hover:opacity-95 sm:mb-4 sm:p-5"
       >
         <div className="min-w-0">
-          <p className="text-sm font-extrabold sm:text-base">Post a Requirement</p>
+          <p className="text-sm font-semibold sm:text-base">Post a Requirement</p>
           <p className="mt-0.5 text-xs text-white/85 sm:text-sm">Get quotes from multiple sellers</p>
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-5 w-5" aria-hidden />
         </div>
       </Link>
     </div>

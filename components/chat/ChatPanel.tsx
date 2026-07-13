@@ -565,7 +565,7 @@ export default function ChatPanel({
 
   const shellClass = embedded
     ? `flex h-[min(560px,70vh)] flex-col overflow-hidden bg-white ${className}`
-    : `flex h-[min(560px,70vh)] flex-col overflow-hidden rounded-2xl border border-[#E8ECF0] bg-white shadow-sm ${className}`;
+    : `flex h-[min(560px,70vh)] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm ${className}`;
 
   const chatUnavailable = Boolean(bootError);
   const canCompose =
@@ -576,36 +576,36 @@ export default function ChatPanel({
 
   return (
     <section className={shellClass}>
-      <header className="flex items-start justify-between gap-3 border-b border-[#E8ECF0] px-4 py-3.5">
+      <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5">
         <div className="flex min-w-0 items-start gap-3">
           <div className="relative shrink-0">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E3F2FD] text-base font-bold text-[#1565C0]">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-base font-bold text-primary">
               {getInitials(headerName)}
             </span>
             <span
               className={`absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full ring-[2.5px] ring-white ${
-                online ? "bg-emerald-500" : "bg-[#B0BEC5]"
+                online ? "bg-success" : "bg-muted-fg"
               }`}
               title={presenceLabel}
               aria-label={presenceLabel}
             />
           </div>
           <div className="min-w-0 pt-0.5">
-            <h3 className="truncate text-sm font-bold text-[#0D1B2A]">{headerName}</h3>
+            <h3 className="truncate text-sm font-bold text-foreground">{headerName}</h3>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               <p
                 className={`text-xs font-semibold ${
                   isTyping
-                    ? "text-[#1565C0]"
+                    ? "text-primary"
                     : online
-                      ? "text-emerald-600"
-                      : "text-[#90A4AE]"
+                      ? "text-success"
+                      : "text-muted-fg"
                 }`}
               >
                 {isTyping ? "typing..." : presenceLabel}
               </p>
-              <span className="text-[#CFD8DC]">·</span>
-              <p className="truncate text-xs text-[#90A4AE]">
+              <span className="text-muted-fg">·</span>
+              <p className="truncate text-xs text-muted-fg">
                 {rfqTitle ? `RFQ · ${rfqTitle}` : `RFQ #${rfqId}`}
               </p>
               {disconnected && !chatUnavailable ? (
@@ -624,7 +624,7 @@ export default function ChatPanel({
       <div
         ref={listRef}
         onScroll={conversationId && !bootLoading && !chatUnavailable ? handleScroll : undefined}
-        className={`min-h-0 flex-1 bg-[#FAFBFC] ${
+        className={`min-h-0 flex-1 bg-muted ${
           chatUnavailable || bootLoading || messages.length === 0
             ? "flex flex-col"
             : "overflow-y-auto px-4 py-4"
@@ -632,11 +632,11 @@ export default function ChatPanel({
       >
         {bootLoading ? (
           <div className="relative flex h-full flex-1 flex-col justify-end gap-3 px-4 pb-6">
-            <div className="mr-auto h-10 w-2/3 animate-pulse rounded-2xl bg-[#E8ECF0]" />
-            <div className="ml-auto h-10 w-1/2 animate-pulse rounded-2xl bg-[#E3F2FD]" />
-            <div className="mr-auto h-14 w-3/5 animate-pulse rounded-2xl bg-[#E8ECF0]" />
-            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-[#FAFBFC]/70 text-sm text-[#546E7A]">
-              <Loader2 className="h-5 w-5 animate-spin text-[#1565C0]" />
+            <div className="mr-auto h-10 w-2/3 animate-pulse rounded-2xl bg-border" />
+            <div className="ml-auto h-10 w-1/2 animate-pulse rounded-2xl bg-primary-soft" />
+            <div className="mr-auto h-14 w-3/5 animate-pulse rounded-2xl bg-border" />
+            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-muted/70 text-sm text-muted-fg">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Opening chat...
             </div>
           </div>
@@ -646,16 +646,16 @@ export default function ChatPanel({
               <MessageSquare className="h-10 w-10 text-amber-500/80" strokeWidth={1.5} />
               <AlertCircle className="absolute -right-1.5 -top-1.5 h-5 w-5 fill-amber-50 text-amber-500" />
             </div>
-            <p className="mt-4 text-sm font-bold text-[#0D1B2A]">Chat unavailable</p>
-            <p className="mt-2 max-w-xs text-xs leading-relaxed text-[#546E7A]">{errorCopy}</p>
+            <p className="mt-4 text-sm font-bold text-foreground">Chat unavailable</p>
+            <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-fg">{errorCopy}</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white ring-1 ring-[#E8ECF0]">
-              <MessageSquare className="h-7 w-7 text-[#CFD8DC]" strokeWidth={1.5} />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white ring-1 ring-border">
+              <MessageSquare className="h-7 w-7 text-muted-fg" strokeWidth={1.5} />
             </div>
-            <p className="mt-3 text-sm font-bold text-[#0D1B2A]">No messages yet</p>
-            <p className="mt-1 text-xs text-[#546E7A]">
+            <p className="mt-3 text-sm font-bold text-foreground">No messages yet</p>
+            <p className="mt-1 text-xs text-muted-fg">
               {role === "buyer" ? "Say hello to start the conversation." : "Start the conversation."}
             </p>
           </div>
@@ -663,7 +663,7 @@ export default function ChatPanel({
           <>
             {loadingMessages ? (
               <div className="flex justify-center py-2">
-                <Loader2 className="h-4 w-4 animate-spin text-[#1565C0]" />
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
               </div>
             ) : null}
             {messages.map((message, index) => (
@@ -675,12 +675,12 @@ export default function ChatPanel({
                     ref={unreadAnchorRef}
                     className="my-3 flex items-center gap-2 px-1"
                   >
-                    <span className="h-px flex-1 bg-[#E0E6ED]" />
-                    <span className="shrink-0 rounded-full bg-[#25D366] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="shrink-0 rounded-full bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                       {unreadBannerCount > 99 ? "99+" : unreadBannerCount} unread message
                       {unreadBannerCount === 1 ? "" : "s"}
                     </span>
-                    <span className="h-px flex-1 bg-[#E0E6ED]" />
+                    <span className="h-px flex-1 bg-border" />
                   </div>
                 ) : null}
                 <div data-chat-message-id={message.id > 0 ? message.id : undefined}>
@@ -700,13 +700,13 @@ export default function ChatPanel({
                 aria-live="polite"
                 aria-label="Typing"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ECEFF1] text-[10px] font-bold text-[#546E7A]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-fg">
                   {getInitials(headerName)}
                 </div>
-                <div className="inline-flex items-center gap-1 rounded-2xl rounded-bl-md bg-[#F4F6F9] px-3 py-2.5">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#90A4AE] [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#90A4AE] [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#90A4AE]" />
+                <div className="inline-flex items-center gap-1 rounded-2xl rounded-bl-md bg-card px-3 py-2.5">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-fg [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-fg [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-fg" />
                 </div>
               </div>
             ) : null}
@@ -716,33 +716,33 @@ export default function ChatPanel({
       </div>
 
       {canCompose ? (
-        <div className="relative border-t border-[#E8ECF0] bg-white px-3 py-3">
+        <div className="relative border-t border-border bg-white px-3 py-3">
           <div ref={attachRef} className="flex items-end gap-2">
             {attachOpen ? (
-              <div className="absolute bottom-[calc(100%-4px)] left-0 z-20 w-[240px] overflow-hidden rounded-xl border border-[#E8ECF0] bg-white py-1 shadow-lg shadow-slate-900/10">
+              <div className="absolute bottom-[calc(100%-4px)] left-0 z-20 w-[240px] overflow-hidden rounded-xl border border-border bg-white py-1 shadow-lg shadow-slate-900/10">
                 <button
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-muted"
                 >
-                  <ImageIcon className="h-5 w-5 shrink-0 text-[#546E7A]" />
+                  <ImageIcon className="h-5 w-5 shrink-0 text-muted-fg" />
                   Photo
                 </button>
                 <button
                   type="button"
                   onClick={() => docInputRef.current?.click()}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-muted"
                 >
-                  <FileText className="h-5 w-5 shrink-0 text-[#546E7A]" />
+                  <FileText className="h-5 w-5 shrink-0 text-muted-fg" />
                   Document
                 </button>
                 {role === "buyer" && productId ? (
                   <button
                     type="button"
                     onClick={() => void handleAttachProduct()}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-muted"
                   >
-                    <Package className="h-5 w-5 shrink-0 text-[#546E7A]" />
+                    <Package className="h-5 w-5 shrink-0 text-muted-fg" />
                     Attach Product
                   </button>
                 ) : null}
@@ -750,9 +750,9 @@ export default function ChatPanel({
                   <button
                     type="button"
                     onClick={() => void handleAttachQuotation(quotations[0].id)}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-muted"
                   >
-                    <MessageSquare className="h-5 w-5 shrink-0 text-[#546E7A]" />
+                    <MessageSquare className="h-5 w-5 shrink-0 text-muted-fg" />
                     Attach Quote #{quotations[0].id}
                   </button>
                 ) : null}
@@ -761,22 +761,22 @@ export default function ChatPanel({
                     <button
                       type="button"
                       onClick={() => setQuotePickerOpen((v) => !v)}
-                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-[#0D1B2A] transition hover:bg-[#F4F6F9]"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-muted"
                     >
-                      <MessageSquare className="h-5 w-5 shrink-0 text-[#546E7A]" />
+                      <MessageSquare className="h-5 w-5 shrink-0 text-muted-fg" />
                       <span className="flex-1">Attach Quotation</span>
                       <ChevronRight
-                        className={`h-4 w-4 text-[#90A4AE] transition ${quotePickerOpen ? "rotate-90" : ""}`}
+                        className={`h-4 w-4 text-muted-fg transition ${quotePickerOpen ? "rotate-90" : ""}`}
                       />
                     </button>
                     {quotePickerOpen ? (
-                      <div className="border-t border-[#F0F2F5] bg-[#FAFBFC] py-1">
+                      <div className="border-t border-border bg-muted py-1">
                         {quotations.map((q) => (
                           <button
                             key={q.id}
                             type="button"
                             onClick={() => void handleAttachQuotation(q.id)}
-                            className="flex w-full px-3 py-2 pl-11 text-left text-xs font-semibold text-[#546E7A] transition hover:bg-[#F4F6F9] hover:text-[#0D1B2A]"
+                            className="flex w-full px-3 py-2 pl-11 text-left text-xs font-semibold text-muted-fg transition hover:bg-card hover:text-foreground"
                           >
                             Quote #{q.id}
                             {q.price != null ? ` · ₹${q.price.toLocaleString("en-IN")}` : ""}
@@ -794,8 +794,8 @@ export default function ChatPanel({
               onClick={() => setAttachOpen((v) => !v)}
               className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition ${
                 attachOpen
-                  ? "border-[#1565C0]/40 bg-[#E3F2FD] text-[#1565C0]"
-                  : "border-[#E0E6ED] text-[#546E7A] hover:bg-[#F4F6F9]"
+                  ? "border-primary/40 bg-primary-soft text-primary"
+                  : "border-border text-muted-fg hover:bg-card"
               }`}
               aria-label="Attach"
               aria-expanded={attachOpen}
@@ -835,7 +835,7 @@ export default function ChatPanel({
               }}
               rows={1}
               placeholder={disconnected ? "Reconnecting..." : "Type a message..."}
-              className="max-h-28 min-h-[48px] flex-1 resize-none rounded-xl border border-[#E0E6ED] bg-[#FAFBFC] px-3.5 py-3 text-sm text-[#0D1B2A] outline-none transition focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/15 disabled:opacity-50"
+              className="max-h-28 min-h-[48px] flex-1 resize-none rounded-xl border border-border bg-muted px-3.5 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50"
             />
             <button
               type="button"
@@ -843,8 +843,8 @@ export default function ChatPanel({
               onClick={() => void handleSend()}
               className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition ${
                 draft.trim() && !sending && !composerDisabled
-                  ? "bg-[#1565C0] text-white hover:bg-[#1255A8]"
-                  : "cursor-not-allowed bg-[#E8ECF0] text-[#90A4AE]"
+                  ? "bg-primary text-white hover:bg-primary-hover"
+                  : "cursor-not-allowed bg-border text-muted-fg"
               }`}
               aria-label="Send"
             >
