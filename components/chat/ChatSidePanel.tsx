@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import ChatPanel, { type ChatPanelProps } from "@/components/chat/ChatPanel";
+import { goChatOffline } from "@/services/chatPresence";
 
 interface ChatSidePanelProps extends Omit<ChatPanelProps, "className" | "embedded"> {
   open: boolean;
@@ -23,6 +24,12 @@ export default function ChatSidePanel({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Closing the sidebar must force Offline immediately (socket leave + relay).
+  useEffect(() => {
+    if (open) return;
+    goChatOffline({ reason: "close", force: true });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

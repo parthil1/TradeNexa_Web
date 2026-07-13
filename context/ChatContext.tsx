@@ -95,6 +95,8 @@ interface ChatContextValue {
   typingByConversation: Record<number, boolean>;
   typingByRfq: Record<number, boolean>;
   presenceByUserId: Record<number, boolean>;
+  /** Peer online for a conversation (avoids user_id vs profile id mismatches). */
+  peerOnlineByConversation: Record<number, boolean>;
   loadMessages: (conversationId: number, page?: number, appendOlder?: boolean) => Promise<void>;
   /** Load the next older page for a conversation (handles API asc/desc quirks). */
   loadOlderMessages: (conversationId: number) => Promise<void>;
@@ -168,6 +170,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [typingByConversation, setTypingByConversation] = useState<Record<number, boolean>>({});
   const [typingByRfq, setTypingByRfq] = useState<Record<number, boolean>>({});
   const [presenceByUserId, setPresenceByUserId] = useState<Record<number, boolean>>({});
+  const [peerOnlineByConversation, setPeerOnlineByConversation] = useState<
+    Record<number, boolean>
+  >({});
   const [hasMoreOlder, setHasMoreOlder] = useState<Record<number, boolean>>({});
   const [pageByConversation, setPageByConversation] = useState<Record<number, number>>({});
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -288,6 +293,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setUnreadSummary({ total_unread: 0 });
       setConversationsMeta({});
       setPresenceByUserId({});
+      setPeerOnlineByConversation({});
       return;
     }
 
@@ -486,17 +492,52 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    const applyPresence = (userId: number, online: boolean) => {
+    const applyPresence = (userId: number, online: boolean, conversationId?: number | null) => {
       setPresenceByUserId((prev) => {
         if (prev[userId] === online) return prev;
         return { ...prev, [userId]: online };
       });
+      if (conversationId != null && Number.isFinite(conversationId) && conversationId > 0) {
+        setPeerOnlineByConversation((prev) => {
+          if (prev[conversationId] === online) return prev;
+          return { ...prev, [conversationId]: online };
+        });
+      }
+    };
+
+    const applyPeerOnlineForConversation = (conversationId: number, online: boolean) => {
+      if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+      setPeerOnlineByConversation((prev) => {
+        if (prev[conversationId] === online) return prev;
+        return { ...prev, [conversationId]: online };
+      });
+    };
+
+    const pickConversationIdFromPayload = (payload: unknown): number | null => {
+      const data = unwrapSocketPayload(payload);
+      if (!data || typeof data !== "object") return activeIdRef.current;
+      const record = data as Record<string, unknown>;
+      const raw =
+        record.conversation_id ??
+        record.conversationId ??
+        (record.conversation && typeof record.conversation === "object"
+          ? (record.conversation as Record<string, unknown>).id
+          : null);
+      const id = Number(raw);
+      if (Number.isFinite(id) && id > 0) return id;
+      return activeIdRef.current;
     };
 
     const onPresence = (payload: unknown) => {
       const parsed = parsePresencePayload(payload);
       if (!parsed) return;
-      applyPresence(parsed.userId, parsed.online);
+      if (
+        currentUserIdRef.current != null &&
+        parsed.userId === currentUserIdRef.current
+      ) {
+        return;
+      }
+      applyPresence(parsed.userId, parsed.online, pickConversationIdFromPayload(payload));
     };
 
     const seedPresenceFromConversation = (conversation: {
@@ -556,11 +597,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         console.info("[chat-socket] conversation:join", payload);
       }
 
+      const conversationId = pickConversationIdFromPayload(payload);
+
       const data = unwrapSocketPayload(payload);
       if (data && typeof data === "object") {
         const record = data as Record<string, unknown>;
         const conversation = normalizeChatConversation(record.conversation ?? record);
-        if (conversation) seedPresenceFromConversation(conversation);
+        if (conversation) {
+          seedPresenceFromConversation(conversation);
+          if (conversation.other_party?.is_online === true) {
+            applyPeerOnlineForConversation(conversation.id, true);
+          }
+        }
       }
 
       // conversation:join ⇒ peer is online (buyer + seller).
@@ -568,8 +616,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         forceOnline: true,
         excludeUserId: currentUserIdRef.current,
       });
-      for (const update of updates) {
-        applyPresence(update.userId, true);
+      if (updates.length > 0) {
+        for (const update of updates) {
+          applyPresence(update.userId, true, conversationId);
+        }
+      } else if (conversationId != null) {
+        // Only treat as peer-online when the join names a different user.
+        const record =
+          data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+        const joinerId = Number(
+          record?.user_id ?? record?.sender_id ?? record?.participant_id
+        );
+        if (
+          Number.isFinite(joinerId) &&
+          joinerId > 0 &&
+          (currentUserIdRef.current == null || joinerId !== currentUserIdRef.current)
+        ) {
+          applyPresence(joinerId, true, conversationId);
+        }
       }
     };
 
@@ -578,13 +642,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (process.env.NODE_ENV === "development") {
         console.info("[chat-socket] conversation:leave", payload);
       }
-      // conversation:leave ⇒ peer is offline (buyer + seller).
+      const conversationId = pickConversationIdFromPayload(payload);
       const updates = parseConversationPresencePayload(payload, {
         forceOnline: false,
         excludeUserId: currentUserIdRef.current,
       });
-      for (const update of updates) {
-        applyPresence(update.userId, false);
+      if (updates.length > 0) {
+        for (const update of updates) {
+          applyPresence(update.userId, false, conversationId);
+        }
+      } else if (conversationId != null) {
+        applyPeerOnlineForConversation(conversationId, false);
       }
     };
 
@@ -658,19 +726,28 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const me = currentUserIdRef.current ?? 0;
       const state = await fetchPresenceRelay(conversationId, me);
       if (cancelled || !state) return;
+
+      let peerOnline = false;
       for (const user of state.users) {
         if (!Number.isFinite(user.user_id) || user.user_id <= 0) continue;
+        if (user.is_online) peerOnline = true;
         setPresenceByUserId((prev) => {
           if (prev[user.user_id] === user.is_online) return prev;
           return { ...prev, [user.user_id]: user.is_online };
         });
       }
+
+      // Conversation-scoped peer status (UI source of truth).
+      setPeerOnlineByConversation((prev) => {
+        if (prev[conversationId] === peerOnline) return prev;
+        return { ...prev, [conversationId]: peerOnline };
+      });
     };
 
     void tick();
     const interval = window.setInterval(() => {
       void tick();
-    }, 2000);
+    }, 1000);
 
     return () => {
       cancelled = true;
@@ -1143,6 +1220,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       typingByConversation,
       typingByRfq,
       presenceByUserId,
+      peerOnlineByConversation,
       loadMessages,
       loadOlderMessages,
       hasMoreOlder,
@@ -1166,6 +1244,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       typingByConversation,
       typingByRfq,
       presenceByUserId,
+      peerOnlineByConversation,
       loadMessages,
       loadOlderMessages,
       hasMoreOlder,

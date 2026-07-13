@@ -105,21 +105,30 @@ function touchLocalTab(conversationId: number) {
   }
 }
 
-function emitSocketOnline(conversationId: number) {
-  joinConversation(conversationId);
+function emitSocketOnline(conversationId: number, userId?: number) {
+  joinConversation(conversationId, userId);
   const s = getExistingChatSocket();
   if (!s?.connected) return;
-  // Optional aliases — ignored by backends that do not handle them.
-  s.emit("user_online", { conversation_id: conversationId, is_online: true });
-  s.emit("user:online", { conversation_id: conversationId, is_online: true });
+  const payload = {
+    conversation_id: conversationId,
+    user_id: userId,
+    is_online: true,
+  };
+  s.emit("user_online", payload);
+  s.emit("user:online", payload);
 }
 
-function emitSocketOffline(conversationId: number) {
-  leaveConversation(conversationId);
+function emitSocketOffline(conversationId: number, userId?: number) {
+  leaveConversation(conversationId, userId);
   const s = getExistingChatSocket();
   if (!s?.connected) return;
-  s.emit("user_offline", { conversation_id: conversationId, is_online: false });
-  s.emit("user:offline", { conversation_id: conversationId, is_online: false });
+  const payload = {
+    conversation_id: conversationId,
+    user_id: userId,
+    is_online: false,
+  };
+  s.emit("user_offline", payload);
+  s.emit("user:offline", payload);
 }
 
 /** Prefer sendBeacon on unload so offline still reaches the relay. */
@@ -155,7 +164,7 @@ function startHeartbeat() {
     if (!session || !online) return;
     if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
     touchLocalTab(session.conversationId);
-    emitSocketOnline(session.conversationId);
+    emitSocketOnline(session.conversationId, session.userId);
     void publishPresenceRelay({
       conversationId: session.conversationId,
       userId: session.userId,
@@ -197,7 +206,7 @@ export function goChatOnline(conversationId: number, userId: number) {
 
   online = true;
   connectChatSocket();
-  emitSocketOnline(conversationId);
+  emitSocketOnline(conversationId, userId);
   void publishPresenceRelay({ conversationId, userId, online: true });
   startHeartbeat();
 }
@@ -261,7 +270,7 @@ export function goChatOffline(options?: {
     return;
   }
 
-  emitSocketOffline(conversationId);
+  emitSocketOffline(conversationId, userId);
   void publishPresenceRelay({ conversationId, userId, online: false });
 }
 

@@ -291,26 +291,34 @@ export function disconnectChatSocket() {
   setStatus("disconnected");
 }
 
-export function joinConversation(conversationId: number) {
+export function joinConversation(conversationId: number, userId?: number | null) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   joinedConversationIds.add(conversationId);
   const s = connectChatSocket();
-  // Buyer + seller: joining the room announces online for this conversation.
-  emitWhenConnected(s, "conversation:join", {
+  const payload: Record<string, unknown> = {
     conversation_id: conversationId,
     is_online: true,
-  });
+  };
+  if (userId != null && Number.isFinite(userId) && userId > 0) {
+    payload.user_id = userId;
+  }
+  // Buyer + seller: joining the room announces online for this conversation.
+  emitWhenConnected(s, "conversation:join", payload);
   emitWhenConnected(s, "presence:subscribe", { conversation_id: conversationId });
 }
 
-export function leaveConversation(conversationId: number) {
+export function leaveConversation(conversationId: number, userId?: number | null) {
   joinedConversationIds.delete(conversationId);
   if (!socket?.connected) return;
-  // Leaving announces offline for this conversation (buyer + seller).
-  socket.emit("conversation:leave", {
+  const payload: Record<string, unknown> = {
     conversation_id: conversationId,
     is_online: false,
-  });
+  };
+  if (userId != null && Number.isFinite(userId) && userId > 0) {
+    payload.user_id = userId;
+  }
+  // Leaving announces offline for this conversation (buyer + seller).
+  socket.emit("conversation:leave", payload);
   socket.emit("presence:unsubscribe", { conversation_id: conversationId });
 }
 

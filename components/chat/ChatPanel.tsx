@@ -99,6 +99,7 @@ export default function ChatPanel({
     typingByConversation,
     typingByRfq,
     presenceByUserId,
+    peerOnlineByConversation,
     loadMessages,
     loadOlderMessages,
     hasMoreOlder,
@@ -145,6 +146,11 @@ export default function ChatPanel({
     (conversationId != null && typingByConversation[conversationId]) || typingByRfq[rfqId]
   );
   const disconnected = socketStatus !== "connected";
+  const conversationPresence =
+    conversationId != null &&
+    Object.prototype.hasOwnProperty.call(peerOnlineByConversation, conversationId)
+      ? peerOnlineByConversation[conversationId]
+      : undefined;
   const livePresence =
     otherUserId != null && Object.prototype.hasOwnProperty.call(presenceByUserId, otherUserId)
       ? presenceByUserId[otherUserId]
@@ -153,12 +159,15 @@ export default function ChatPanel({
     conversationId != null ? conversationsMeta[conversationId]?.other_party : null;
   const metaPresence =
     typeof metaParty?.is_online === "boolean" ? metaParty.is_online : undefined;
+  // Prefer live conversation presence, then user-id map, then API seed.
   const online =
-    typeof livePresence === "boolean"
-      ? livePresence
-      : typeof metaPresence === "boolean"
-        ? metaPresence
-        : false;
+    typeof conversationPresence === "boolean"
+      ? conversationPresence
+      : typeof livePresence === "boolean"
+        ? livePresence
+        : typeof metaPresence === "boolean"
+          ? metaPresence
+          : false;
   const presenceLabel = online ? "Online" : "Offline";
 
   function captureUnreadBanner(conversation: { unread_count?: number | null }) {
