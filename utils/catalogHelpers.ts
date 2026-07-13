@@ -1,5 +1,6 @@
 import type { PaginatedResult, ApiProductListItem } from "@/types/catalog";
 import { API_BASE_URL, BACKEND_ORIGIN } from "@/config/api";
+import { parseApprovalStatus } from "@/utils/productApprovalHelpers";
 import { parseWishlistFlag, readProductWishlistFlag } from "@/utils/wishlistHelpers";
 
 function proxyBackendMediaUrl(url: URL): string | null {
@@ -353,6 +354,32 @@ export function normalizeProductListItem(
       : null) ??
     "Supplier";
 
+  const approvalStatus = parseApprovalStatus(raw.approval_status ?? item.approval_status);
+  const reviewVersion =
+    typeof raw.review_version === "number"
+      ? raw.review_version
+      : typeof item.review_version === "number"
+        ? item.review_version
+        : null;
+  const latestRemarks =
+    typeof raw.latest_review_remarks === "string"
+      ? raw.latest_review_remarks
+      : typeof item.latest_review_remarks === "string"
+        ? item.latest_review_remarks
+        : null;
+  const submittedAt =
+    typeof raw.submitted_at === "string"
+      ? raw.submitted_at
+      : typeof item.submitted_at === "string"
+        ? item.submitted_at
+        : null;
+  const reviewedAt =
+    typeof raw.reviewed_at === "string"
+      ? raw.reviewed_at
+      : typeof item.reviewed_at === "string"
+        ? item.reviewed_at
+        : null;
+
   return {
     id: item.id,
     name: item.name,
@@ -372,6 +399,15 @@ export function normalizeProductListItem(
     subcategory_id: item.subcategory_id ?? null,
     subcategory_name: item.subcategory_name ?? null,
     ...(wishlistFlag !== undefined ? { is_wishlist: wishlistFlag } : {}),
+    ...(approvalStatus
+      ? {
+          approval_status: approvalStatus,
+          review_version: reviewVersion,
+          latest_review_remarks: latestRemarks,
+          submitted_at: submittedAt,
+          reviewed_at: reviewedAt,
+        }
+      : {}),
   };
 }
 

@@ -13,7 +13,7 @@ import ProductWizardStepper from "@/components/seller/ProductWizardStepper";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import { fetchCategories, fetchSubcategories, fetchProductById } from "@/services/catalogService";
 import { fetchBrandsPage } from "@/services/brandsService";
-import { createProduct, deleteProductMedia, updateProduct } from "@/services/productService";
+import { createProduct, deleteProductMedia, submitProductForReview, updateProduct } from "@/services/productService";
 import { fetchSellerId } from "@/services/profileService";
 import { useAuth } from "@/hooks/useAuth";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
@@ -22,6 +22,7 @@ import type { ApiBrand } from "@/types/brand";
 import type {
   CreateProductFormData,
   ExistingProductMedia,
+  ProductApprovalStatus,
   ProductCondition,
   ProductSpecificationRow,
   RemovedProductMediaIds,
@@ -39,6 +40,12 @@ import {
   mapProductDetailToFormData,
 } from "@/utils/mapProductToFormData";
 import { toFormString } from "@/utils/buildProductFormData";
+import {
+  approvalStatusHint,
+  canSellerEditProduct,
+} from "@/utils/productApprovalHelpers";
+import ProductApprovalBadge from "@/components/seller/ProductApprovalBadge";
+import Link from "next/link";
 
 const PRODUCT_CONDITIONS: { value: ProductCondition; label: string }[] = [
   { value: "NEW", label: "New" },
@@ -382,6 +389,8 @@ export default function AddProductForm({ productId }: { productId?: number } = {
   const [sellerLoading, setSellerLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [productLoading, setProductLoading] = useState(isEditMode);
+  const [approvalStatus, setApprovalStatus] = useState<ProductApprovalStatus | null>(null);
+  const [latestReviewRemarks, setLatestReviewRemarks] = useState<string | null>(null);
   const [form, setForm] = useState<CreateProductFormData>(() => emptyForm());
   const [existingMedia, setExistingMedia] = useState<ExistingProductMedia>(
     EMPTY_EXISTING_PRODUCT_MEDIA
@@ -599,6 +608,8 @@ export default function AddProductForm({ productId }: { productId?: number } = {
 
         setForm(mappedForm);
         setExistingMedia(media);
+        setApprovalStatus(product.approval_status ?? null);
+        setLatestReviewRemarks(product.latest_review_remarks ?? null);
         setActiveStepIndex(0);
         setMaxReachedStepIndex(furthestStep);
       } catch {
@@ -880,7 +891,17 @@ export default function AddProductForm({ productId }: { productId?: number } = {
           ? await updateProduct(productId, payload)
           : await createProduct(payload);
 
-      showSuccessToast(isEditMode ? "Product updated successfully!" : "Product created successfully!");
+      if (isEditMode && productId && approvalStatus === "revision_required") {
+        await submitProductForReview(productId);
+        showSuccessToast("Changes saved and submitted for review");
+      } else if (isEditMode) {
+        showSuccessToast(
+          "Product updated. Material changes may require re-approval before buyers see them."
+        );
+      } else {
+        showSuccessToast("Product submitted for review. It will appear to buyers after approval.");
+      }
+
       router.push(
         product?.id
           ? `/seller/product/${product.id}`
@@ -930,8 +951,62 @@ export default function AddProductForm({ productId }: { productId?: number } = {
     );
   }
 
+  if (isEditMode && approvalStatus && !canSellerEditProduct(approvalStatus)) {
+    return (
+      <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50 p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <ProductApprovalBadge status={approvalStatus} />
+          <h2 className="text-lg font-bold text-foreground">Editing blocked</h2>
+        </div>
+        <p className="text-sm text-foreground/80">
+          {approvalStatusHint(approvalStatus) ??
+            "This product was rejected and cannot be edited or resubmitted."}
+        </p>
+        {latestReviewRemarks ? (
+          <p className="text-sm text-foreground">
+            <span className="font-semibold">Admin remarks: </span>
+            {latestReviewRemarks}
+          </p>
+        ) : null}
+        <Link
+          href={productId ? `/seller/product/${productId}` : "/seller/catalog"}
+          className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white"
+        >
+          Back to product
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      {isEditMode && approvalStatus ? (
+        <div
+          className={`rounded-xl border px-4 py-3 ${
+            approvalStatus === "revision_required"
+              ? "border-orange-200 bg-orange-50"
+              : approvalStatus === "in_review"
+                ? "border-amber-200 bg-amber-50"
+                : "border-emerald-200 bg-emerald-50"
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <ProductApprovalBadge status={approvalStatus} />
+            <p className="text-sm text-foreground/80">
+              {approvalStatus === "revision_required"
+                ? "Save your changes to automatically resubmit for review."
+                : approvalStatusHint(approvalStatus)}
+            </p>
+          </div>
+          {latestReviewRemarks ? (
+            <p className="mt-2 text-sm text-foreground">
+              <span className="font-semibold">Admin remarks: </span>
+              {latestReviewRemarks}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {!sellerId ? (
         <div
           className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"

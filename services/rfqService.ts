@@ -23,6 +23,23 @@ import {
   unwrapRfqPaginated,
 } from "@/utils/rfqHelpers";
 
+function getLoggedInUserId(): number | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return undefined;
+    const user = JSON.parse(raw) as { id?: string | number; user_id?: number | null };
+    if (typeof user.user_id === "number" && Number.isFinite(user.user_id) && user.user_id > 0) {
+      return user.user_id;
+    }
+    const fromId = Number(user.id);
+    if (Number.isFinite(fromId) && fromId > 0) return fromId;
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
 function buildListParams(params?: RfqListParams) {
   return {
     page: params?.page ?? 1,
@@ -179,8 +196,12 @@ export async function requestQuotationRevision(
 export async function fetchSellerRfqFeed(params?: RfqListParams): Promise<RfqListResult> {
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 10;
+  const buyerId = getLoggedInUserId();
   const response = await apiClient.get(API_ENDPOINTS.RFQS_SELLER_FEED, {
-    params: buildListParams(params),
+    params: {
+      ...buildListParams(params),
+      ...(buyerId ? { buyer_id: buyerId } : {}),
+    },
   });
   const data = unwrapApiPayload<unknown>(response.data);
   return mapRfqList(data, page, limit);

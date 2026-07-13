@@ -2,7 +2,16 @@ import apiClient from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { unwrapApiPayload } from "@/utils/authHelpers";
 import { buildProductFormData } from "@/utils/buildProductFormData";
-import type { ApiCreatedProduct, CreateProductFormData } from "@/types/product";
+import { unwrapPaginatedResult } from "@/utils/catalogHelpers";
+import { parseApprovalStatus } from "@/utils/productApprovalHelpers";
+import type { PaginatedResult } from "@/types/catalog";
+import type {
+  ApiCreatedProduct,
+  ApiProductReview,
+  CreateProductFormData,
+  ProductApprovalStatus,
+  ProductReviewAction,
+} from "@/types/product";
 
 export interface DeleteProductMediaPayload {
   image_ids?: number[];
@@ -46,4 +55,70 @@ export async function deleteProductMedia(
     data: body,
   });
   unwrapApiPayload(response.data);
+}
+
+export interface SubmitProductResult {
+  id: number;
+  approval_status: ProductApprovalStatus | null;
+  review_version?: number | null;
+}
+
+/** POST /api/v1/products/:id/submit — resubmit after revision_required */
+export async function submitProductForReview(productId: number): Promise<SubmitProductResult> {
+  const response = await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${productId}/submit`);
+  const payload = unwrapApiPayload<Partial<SubmitProductResult>>(response.data);
+  return {
+    id: payload?.id ?? productId,
+    approval_status: parseApprovalStatus(payload?.approval_status) ?? "in_review",
+    review_version: payload?.review_version ?? null,
+  };
+}
+
+function normalizeProductReview(raw: unknown): ApiProductReview | null {
+  if (!raw || typeof raw !== "object") return null;
+  const item = raw as Record<string, unknown>;
+  const id = typeof item.id === "number" ? item.id : Number(item.id);
+  const productId = typeof item.product_id === "number" ? item.product_id : Number(item.product_id);
+  if (!Number.isFinite(id) || !Number.isFinite(productId)) return null;
+
+  return {
+    id,
+    product_id: productId,
+    review_version:
+      typeof item.review_version === "number"
+        ? item.review_version
+        : Number(item.review_version) || 1,
+    action: (typeof item.action === "string" ? item.action : "submitted") as ProductReviewAction,
+    from_status: parseApprovalStatus(item.from_status),
+    to_status: parseApprovalStatus(item.to_status),
+    remarks: typeof item.remarks === "string" ? item.remarks : null,
+    actor_id: typeof item.actor_id === "number" ? item.actor_id : null,
+    actor_role: typeof item.actor_role === "string" ? item.actor_role : null,
+    metadata:
+      item.metadata && typeof item.metadata === "object"
+        ? (item.metadata as Record<string, unknown>)
+        : null,
+    created_at: typeof item.created_at === "string" ? item.created_at : "",
+  };
+}
+
+/** GET /api/v1/products/:id/reviews — append-only moderation timeline */
+export async function fetchProductReviews(
+  productId: number,
+  params?: { page?: number; limit?: number }
+): Promise<PaginatedResult<ApiProductReview>> {
+  const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/${productId}/reviews`, {
+    params: {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 20,
+    },
+  });
+  const data = unwrapApiPayload<unknown>(response.data);
+  const paginated = unwrapPaginatedResult<unknown>(data);
+  return {
+    ...paginated,
+    results: paginated.results
+      .map((item) => normalizeProductReview(item))
+      .filter((item): item is ApiProductReview => item != null),
+  };
 }

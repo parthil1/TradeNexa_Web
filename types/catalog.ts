@@ -1,3 +1,5 @@
+import type { ProductApprovalStatus } from "@/types/product";
+
 export interface ApiPagination {
   total: number;
   page: number;
@@ -59,6 +61,12 @@ export interface ApiProductListItem {
   subcategory_name?: string | null;
   /** Present when the products list API is called with an access token */
   is_wishlist?: boolean;
+  /** Seller `/products/my` — moderation state */
+  approval_status?: ProductApprovalStatus | null;
+  review_version?: number | null;
+  latest_review_remarks?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
 }
 
 export interface ApiProductMediaItem {
@@ -175,6 +183,14 @@ export interface ApiProductDetail {
   currency?: string | null;
   stock_quantity?: number | null;
   rating?: number | null;
+  /** Moderation — present for owner/admin detail responses */
+  approval_status?: ProductApprovalStatus | null;
+  review_version?: number | null;
+  latest_review_remarks?: string | null;
+  submitted_at?: string | null;
+  resubmitted_at?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: number | null;
 }
 
 export interface CatalogListParams {
@@ -202,6 +218,7 @@ export interface ProductListParams extends CatalogListParams {
 /** GET /api/v1/products/my — authenticated seller's own listings */
 export interface MyProductListParams extends ProductListParams {
   brand_id?: number;
+  approval_status?: ProductApprovalStatus;
 }
 
 export interface RelatedProductsParams extends CatalogListParams {

@@ -2,6 +2,7 @@ import apiClient from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { unwrapApiPayload } from "@/utils/authHelpers";
 import { unwrapPaginatedResult, normalizeProductListItem } from "@/utils/catalogHelpers";
+import { parseApprovalStatus } from "@/utils/productApprovalHelpers";
 import type {
   ApiCategory,
   ApiCategoryDetail,
@@ -62,6 +63,8 @@ function buildParams(params?: CatalogListParams | ProductListParams | MyProductL
   }
   const brandId = (params as MyProductListParams | undefined)?.brand_id;
   if (brandId && !query.brand_id) query.brand_id = brandId;
+  const approvalStatus = (params as MyProductListParams | undefined)?.approval_status;
+  if (approvalStatus) query.approval_status = approvalStatus;
   return query;
 }
 
@@ -273,8 +276,33 @@ export async function fetchTrendingProductItems(limit = 8): Promise<ApiProductLi
 
 export async function fetchProductById(id: number): Promise<ApiProductDetail | null> {
   const response = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/${id}`);
-  const data = unwrapApiPayload<ApiProductDetail>(response.data);
-  return data ?? null;
+  const data = unwrapApiPayload<ApiProductDetail & Record<string, unknown>>(response.data);
+  if (!data) return null;
+
+  const raw = data as Record<string, unknown>;
+
+  return {
+    ...data,
+    approval_status: parseApprovalStatus(raw.approval_status ?? data.approval_status),
+    review_version:
+      typeof raw.review_version === "number"
+        ? raw.review_version
+        : (data.review_version ?? null),
+    latest_review_remarks:
+      typeof raw.latest_review_remarks === "string"
+        ? raw.latest_review_remarks
+        : (data.latest_review_remarks ?? null),
+    submitted_at:
+      typeof raw.submitted_at === "string" ? raw.submitted_at : (data.submitted_at ?? null),
+    resubmitted_at:
+      typeof raw.resubmitted_at === "string"
+        ? raw.resubmitted_at
+        : (data.resubmitted_at ?? null),
+    reviewed_at:
+      typeof raw.reviewed_at === "string" ? raw.reviewed_at : (data.reviewed_at ?? null),
+    reviewed_by:
+      typeof raw.reviewed_by === "number" ? raw.reviewed_by : (data.reviewed_by ?? null),
+  };
 }
 
 export async function fetchRelatedProducts(

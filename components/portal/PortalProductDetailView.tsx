@@ -52,8 +52,15 @@ import PortalProductCard from "@/components/portal/PortalProductCard";
 import PortalSection from "@/components/portal/PortalSection";
 import PortalStatCard from "@/components/portal/PortalStatCard";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
+import ProductApprovalBadge from "@/components/seller/ProductApprovalBadge";
+import SubmitProductForReviewButton from "@/components/seller/SubmitProductForReviewButton";
 import { useWishlist } from "@/hooks/useWishlist";
 import { showErrorToast } from "@/utils/toast";
+import {
+  approvalStatusHint,
+  canSellerEditProduct,
+  canSellerSubmitForReview,
+} from "@/utils/productApprovalHelpers";
 import {
   PORTAL_PRODUCT_LINKS,
   type ProductDetailLinks,
@@ -353,6 +360,13 @@ export default function PortalProductDetailView({
   const router = useRouter();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const [descExpanded, setDescExpanded] = useState(false);
+  const [localApprovalStatus, setLocalApprovalStatus] = useState(
+    product.approval_status ?? null
+  );
+
+  useEffect(() => {
+    setLocalApprovalStatus(product.approval_status ?? null);
+  }, [product.approval_status]);
 
   const { basic_details: basic, pricing, marketplace, ratings, user_actions } = product;
   const hasWishlistAction = user_actions?.is_favourite != null;
@@ -405,6 +419,12 @@ export default function PortalProductDetailView({
   const isPremium = marketplace.is_featured || marketplace.is_recommended;
   const contactPhone = getSellerContactPhone(product);
   const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
+  const isSellerView = Boolean(links.editProduct);
+  const approvalStatus = product.approval_status ?? null;
+  const displayApprovalStatus = localApprovalStatus ?? approvalStatus;
+  const displayCanEdit = canSellerEditProduct(displayApprovalStatus);
+  const displayCanSubmit = canSellerSubmitForReview(displayApprovalStatus);
+  const displayApprovalHint = approvalStatusHint(displayApprovalStatus);
 
   const thirdStatTitle = basic.brand ? "Brand" : basic.subcategory ? "Type" : "Quality";
   const thirdStatValue = basic.brand?.name ?? basic.subcategory?.name ?? "Standard";
@@ -467,6 +487,9 @@ export default function PortalProductDetailView({
           </h2>
 
           <div className={`flex flex-wrap items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"}`}>
+            {isSellerView && displayApprovalStatus ? (
+              <ProductApprovalBadge status={displayApprovalStatus} />
+            ) : null}
             {ratings.average > 0 ? (
               <span className="inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -503,7 +526,7 @@ export default function PortalProductDetailView({
         </div>
 
         <div className="flex items-center gap-2">
-          {links.editProduct ? (
+          {links.editProduct && displayCanEdit ? (
             <Link
               href={links.editProduct(product.id)}
               className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
@@ -511,6 +534,13 @@ export default function PortalProductDetailView({
               <Pencil className="h-3.5 w-3.5" />
               Edit
             </Link>
+          ) : null}
+          {displayCanSubmit ? (
+            <SubmitProductForReviewButton
+              productId={product.id}
+              onSubmitted={(status) => setLocalApprovalStatus(status)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-white transition hover:bg-primary/90"
+            />
           ) : null}
           {links.editProduct ? (
             <DeleteProductButton
@@ -533,6 +563,33 @@ export default function PortalProductDetailView({
           ) : null}
         </div>
       </motion.div>
+
+      {isSellerView && displayApprovalStatus ? (
+        <div
+          className={`mb-4 rounded-xl border px-4 py-3 ${
+            displayApprovalStatus === "rejected"
+              ? "border-red-200 bg-red-50"
+              : displayApprovalStatus === "revision_required"
+                ? "border-orange-200 bg-orange-50"
+                : displayApprovalStatus === "approved"
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-amber-200 bg-amber-50"
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <ProductApprovalBadge status={displayApprovalStatus} />
+            {displayApprovalHint ? (
+              <p className="text-sm text-foreground/80">{displayApprovalHint}</p>
+            ) : null}
+          </div>
+          {product.latest_review_remarks ? (
+            <p className="mt-2 text-sm text-foreground">
+              <span className="font-semibold">Admin remarks: </span>
+              {product.latest_review_remarks}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className={`grid grid-cols-1 lg:grid-cols-12 ${compact ? "gap-4 lg:gap-5" : "gap-6 lg:gap-8"}`}>
         <div className="lg:col-span-5">

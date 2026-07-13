@@ -7,11 +7,18 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { MapPin, Pencil, Star } from "lucide-react";
 import type { ApiProductListItem } from "@/types/catalog";
+import type { ProductApprovalStatus } from "@/types/product";
 import { formatLocation, formatPrice, getInitials, productGradient, resolveImageUrl } from "@/utils/catalogHelpers";
+import {
+  canSellerEditProduct,
+  canSellerSubmitForReview,
+} from "@/utils/productApprovalHelpers";
 import { productHasWishlistField } from "@/utils/wishlistHelpers";
 import { isPortalPath } from "@/utils/roleNavigation";
 import PortalWishlistButton from "@/components/portal/PortalWishlistButton";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
+import ProductApprovalBadge from "@/components/seller/ProductApprovalBadge";
+import SubmitProductForReviewButton from "@/components/seller/SubmitProductForReviewButton";
 import { useWishlist } from "@/hooks/useWishlist";
 
 interface PortalProductCardProps {
@@ -23,6 +30,8 @@ interface PortalProductCardProps {
   subcategoryLabel?: string;
   showWishlist?: boolean;
   onWishlistToggle?: (product: ApiProductListItem) => void;
+  showApprovalStatus?: boolean;
+  onApprovalUpdated?: (status: ProductApprovalStatus) => void;
 }
 
 export default function PortalProductCard({
@@ -34,6 +43,8 @@ export default function PortalProductCard({
   subcategoryLabel,
   showWishlist,
   onWishlistToggle,
+  showApprovalStatus = false,
+  onApprovalUpdated,
 }: PortalProductCardProps) {
   const pathname = usePathname() ?? "";
   const onPortal = isPortalPath(pathname);
@@ -49,6 +60,10 @@ export default function PortalProductCard({
         : productHasWishlistField(product)
     : false;
   const wishlisted = isWishlisted(product.id, product.is_wishlist === true);
+  const canEdit = canSellerEditProduct(product.approval_status);
+  const canSubmit = showApprovalStatus && canSellerSubmitForReview(product.approval_status);
+  const resolvedEditHref = editHref && canEdit ? editHref : undefined;
+  const footerCols = [resolvedEditHref, showDelete, canSubmit].filter(Boolean).length;
 
   return (
     <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="h-full">
@@ -72,6 +87,11 @@ export default function PortalProductCard({
             {badgeLabel ? (
               <span className="pointer-events-none absolute left-2 top-2 max-w-[85%] truncate rounded-md bg-portal-buyer/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
                 {badgeLabel}
+              </span>
+            ) : null}
+            {showApprovalStatus && product.approval_status ? (
+              <span className="absolute bottom-2 left-2 z-[1]">
+                <ProductApprovalBadge status={product.approval_status} />
               </span>
             ) : null}
           </div>
@@ -110,20 +130,36 @@ export default function PortalProductCard({
             />
           </div>
         ) : null}
-        {editHref || showDelete ? (
+        {footerCols > 0 ? (
           <div
-            className={`grid border-t border-border ${editHref && showDelete ? "grid-cols-2" : "grid-cols-1"}`}
+            className={`grid border-t border-border ${
+              footerCols === 1
+                ? "grid-cols-1"
+                : footerCols === 2
+                  ? "grid-cols-2"
+                  : "grid-cols-3"
+            }`}
           >
-            {editHref ? (
+            {resolvedEditHref ? (
               <Link
-                href={editHref}
+                href={resolvedEditHref}
                 className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-fg transition hover:bg-muted hover:text-primary ${
-                  showDelete ? "border-r border-border" : ""
+                  footerCols > 1 ? "border-r border-border" : ""
                 }`}
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Link>
+            ) : null}
+            {canSubmit ? (
+              <SubmitProductForReviewButton
+                productId={product.id}
+                label="Submit"
+                onSubmitted={onApprovalUpdated}
+                className={`flex w-full items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-primary transition hover:bg-primary/5 ${
+                  showDelete ? "border-r border-border" : ""
+                }`}
+              />
             ) : null}
             {showDelete ? (
               <DeleteProductButton
