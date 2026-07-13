@@ -383,7 +383,11 @@ export function formatPrice(amount: number, currency?: string | null): string {
   }).format(amount);
 }
 
-export function formatLocation(city: string | null, state: string | null, country?: string | null): string {
+export function formatLocation(
+  city: string | null | undefined,
+  state: string | null | undefined,
+  country?: string | null
+): string {
   const parts = [city, state, country].filter(Boolean);
   return parts.length > 0 ? parts.join(", ") : "India";
 }
