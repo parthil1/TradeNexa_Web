@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Local typing relay for buyer ↔ seller when the Railway socket
- * does not broadcast `typing:indicator` reliably.
+ * does not broadcast `typing:indicator` (S→C) reliably.
+ * Client still emits guide events `typing:start` / `typing:stop` on the socket.
  * Works on a single Next.js process (local `next dev` / one Node instance).
  */
 

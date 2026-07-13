@@ -570,7 +570,7 @@ export default function ChatPanel({
   const chatUnavailable = Boolean(bootError);
   const canCompose =
     Boolean(conversationId) && !bootLoading && !chatUnavailable;
-  /** Keep composer usable while socket reconnects so typing:indicator can still emit. */
+  /** Keep composer usable while socket reconnects so typing:start/stop can still emit. */
   const composerDisabled = !canCompose;
   const errorCopy = humanizeChatBootError(bootError ?? "", missingSellerId);
 
@@ -814,7 +814,7 @@ export default function ChatPanel({
                   clearTimeout(blurTypingTimerRef.current);
                   blurTypingTimerRef.current = null;
                 }
-                // Buyer + seller both emit Postman `typing:indicator` over Socket.IO.
+                // Guide: emit typing:start / typing:stop; listen for typing:indicator.
                 setTyping(conversationId, value.trim().length > 0, rfqId);
               }}
               onBlur={() => {

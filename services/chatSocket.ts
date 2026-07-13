@@ -113,17 +113,12 @@ function getStoredAccessToken(): string | null {
 
 /**
  * Browser Socket.IO cannot set custom HTTP headers reliably.
- * Pass the token via handshake.auth (and query as a fallback).
- * Send both raw and Bearer forms — REST uses Bearer; Postman socket used raw.
+ * Guide: auth: { token: accessToken } — raw JWT (no Bearer prefix).
  */
 function buildAuthPayload(token: string) {
-  const bearer = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
   const raw = token.startsWith("Bearer ") ? token.slice(7).trim() : token;
   return {
     token: raw,
-    access_token: raw,
-    Authorization: raw,
-    authorization: bearer,
   };
 }
 
@@ -131,14 +126,8 @@ function applySocketAuth(s: Socket, token: string) {
   if (!token) return;
   const auth = buildAuthPayload(token);
   s.auth = auth;
-  const raw = auth.token;
-  s.io.opts.query = { ...(s.io.opts.query as object), token: raw, Authorization: raw };
-  // Node/native clients only — harmless in browser.
-  const opts = s.io.opts as { extraHeaders?: Record<string, string> };
-  opts.extraHeaders = {
-    Authorization: raw,
-    authorization: auth.authorization,
-  };
+  // Query fallback for backends that read handshake.query.token
+  s.io.opts.query = { ...(s.io.opts.query as object), token: auth.token };
 }
 
 async function refreshAccessToken(): Promise<string> {
@@ -185,20 +174,16 @@ function flushPendingLeaves(s: Socket) {
     // Skip if we rejoined this room before the leave could flush.
     if (joinedConversationIds.has(conversationId)) continue;
     s.emit("conversation:leave", payload);
-    s.emit("presence:unsubscribe", { conversation_id: conversationId });
   }
   pendingLeaveByConversation.clear();
 }
 
 function rejoinRooms(s: Socket) {
-  // Offline announcements first, then re-subscribe active rooms.
+  // Leave queued rooms first, then re-join active conversation rooms.
   flushPendingLeaves(s);
   joinedConversationIds.forEach((conversationId) => {
-    s.emit("conversation:join", {
-      conversation_id: conversationId,
-      is_online: true,
-    });
-    s.emit("presence:subscribe", { conversation_id: conversationId });
+    // Guide: conversation:join { conversation_id }
+    s.emit("conversation:join", { conversation_id: conversationId });
   });
 }
 
@@ -218,17 +203,19 @@ function flushPendingConnectEmits(s: Socket) {
   for (const [key, payload] of entries) {
     const event = key.split("::")[0];
     if (!event) continue;
-    s.emit(event, payload);
+    if (payload == null) s.emit(event);
+    else s.emit(event, payload);
   }
 }
 
 function emitWhenConnected(s: Socket, event: string, payload: unknown) {
   if (s.connected) {
-    s.emit(event, payload);
+    if (payload === undefined) s.emit(event);
+    else s.emit(event, payload);
     return;
   }
   // Dedup by event+conversation so reconnect storms don't stack once() listeners.
-  pendingConnectEmits.set(pendingEmitKey(event, payload), payload);
+  pendingConnectEmits.set(pendingEmitKey(event, payload), payload === undefined ? null : payload);
   if (pendingConnectFlushBound) return;
   pendingConnectFlushBound = true;
   s.once("connect", () => {
@@ -238,7 +225,7 @@ function emitWhenConnected(s: Socket, event: string, payload: unknown) {
 }
 
 /**
- * Socket.IO auth: handshake.auth carries the token (browser-safe).
+ * Socket.IO auth: handshake.auth.token = raw JWT (guide).
  * Also mirrors token on query for backends that read handshake.query.
  */
 export function getChatSocket(): Socket {
@@ -258,12 +245,9 @@ export function getChatSocket(): Socket {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 8000,
     timeout: 20000,
+    // Guide: auth: { token: accessToken }, path: '/socket.io'
     auth,
-    query: { token: auth.token, Authorization: auth.token },
-    extraHeaders: {
-      Authorization: auth.token,
-      authorization: auth.authorization,
-    },
+    query: { token: auth.token },
   });
 
   bindSocketEventBridges(socket);
@@ -350,41 +334,26 @@ export function disconnectChatSocket() {
   setStatus("disconnected");
 }
 
-export function joinConversation(conversationId: number, userId?: number | null) {
+export function joinConversation(conversationId: number, _userId?: number | null) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   joinedConversationIds.add(conversationId);
   pendingLeaveByConversation.delete(conversationId);
   const s = connectChatSocket();
-  const payload: Record<string, unknown> = {
-    conversation_id: conversationId,
-    is_online: true,
-  };
-  if (userId != null && Number.isFinite(userId) && userId > 0) {
-    payload.user_id = userId;
-  }
-  // Buyer + seller: joining the room announces online for this conversation.
-  emitWhenConnected(s, "conversation:join", payload);
-  emitWhenConnected(s, "presence:subscribe", { conversation_id: conversationId });
+  // Guide: emit conversation:join before expecting live typing / messages.
+  emitWhenConnected(s, "conversation:join", { conversation_id: conversationId });
 }
 
-export function leaveConversation(conversationId: number, userId?: number | null) {
+export function leaveConversation(conversationId: number, _userId?: number | null) {
   joinedConversationIds.delete(conversationId);
-  const payload: Record<string, unknown> = {
-    conversation_id: conversationId,
-    is_online: false,
-  };
-  if (userId != null && Number.isFinite(userId) && userId > 0) {
-    payload.user_id = userId;
-  }
+  const payload = { conversation_id: conversationId };
   if (!socket?.connected) {
     // Queue leave so reconnect flush can still notify peers.
     pendingLeaveByConversation.set(conversationId, payload);
     return;
   }
   pendingLeaveByConversation.delete(conversationId);
-  // Leaving announces offline for this conversation (buyer + seller).
+  // Guide: emit conversation:leave on unmount / leave screen.
   socket.emit("conversation:leave", payload);
-  socket.emit("presence:unsubscribe", { conversation_id: conversationId });
 }
 
 /** Leave every joined room and announce offline (logout / hard disconnect). */
@@ -396,51 +365,65 @@ export function leaveAllConversations() {
   joinedConversationIds.clear();
 }
 
-/** Emit `typing:indicator` — Buyer Chat + Seller Chat (Postman). */
+/**
+ * Guide client → server typing:
+ *   typing:start / typing:stop  { conversation_id }
+ * Server → client: typing:indicator { conversation_id, user_id, is_typing }
+ */
 export function emitTypingIndicator(
   conversationId: number,
   isTyping: boolean,
-  extras?: { rfqId?: number | null }
+  _extras?: { rfqId?: number | null }
 ) {
   if (!Number.isFinite(conversationId) || conversationId <= 0) return;
   const s = connectChatSocket();
-  // Only track room membership when already joined via presence — typing must not
-  // silently re-add rooms after leave (that fights pending leave + stuck online).
   if (joinedConversationIds.has(conversationId)) {
     pendingLeaveByConversation.delete(conversationId);
   }
 
-  const payload: Record<string, unknown> = {
-    conversation_id: conversationId,
-    is_typing: Boolean(isTyping),
-  };
-  if (extras?.rfqId != null && Number.isFinite(extras.rfqId)) {
-    payload.rfq_id = extras.rfqId;
-  }
+  const event = isTyping ? "typing:start" : "typing:stop";
+  const payload = { conversation_id: conversationId };
 
   if (s.connected) {
-    s.emit("typing:indicator", payload);
+    s.emit(event, payload);
     if (process.env.NODE_ENV === "development") {
-      console.info("[chat-socket] emit typing:indicator", payload, { id: s.id });
+      console.info(`[chat-socket] emit ${event}`, payload, { id: s.id });
     }
     return;
   }
   // Queue one typing emit; do not force a join from typing alone.
-  emitWhenConnected(s, "typing:indicator", payload);
+  emitWhenConnected(s, event, payload);
 }
 
 /**
- * Emit `message:read` over the socket (in addition to REST mark-read).
- * Postman lists this on both Buyer and Seller Chat Events tabs.
+ * Guide: presence:ping — heartbeat so server can emit presence:update.
  */
-export function emitMessageRead(conversationId: number, lastReadMessageId: number) {
-  if (!Number.isFinite(conversationId) || conversationId <= 0) return;
-  if (!Number.isFinite(lastReadMessageId) || lastReadMessageId <= 0) return;
+export function emitPresencePing() {
   const s = connectChatSocket();
-  const payload = {
+  if (s.connected) {
+    s.emit("presence:ping");
+    return;
+  }
+  emitWhenConnected(s, "presence:ping", undefined);
+}
+
+/**
+ * Emit `message:read` over the socket (in addition to REST POST .../read).
+ * Guide: { conversation_id, last_read_message_id? }
+ */
+export function emitMessageRead(conversationId: number, lastReadMessageId?: number) {
+  if (!Number.isFinite(conversationId) || conversationId <= 0) return;
+  const s = connectChatSocket();
+  const payload: Record<string, unknown> = {
     conversation_id: conversationId,
-    last_read_message_id: lastReadMessageId,
   };
+  if (
+    lastReadMessageId != null &&
+    Number.isFinite(lastReadMessageId) &&
+    lastReadMessageId > 0
+  ) {
+    payload.last_read_message_id = lastReadMessageId;
+  }
   emitWhenConnected(s, "message:read", payload);
   if (process.env.NODE_ENV === "development") {
     console.info("[chat-socket] emit message:read", payload);

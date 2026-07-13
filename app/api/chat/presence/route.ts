@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Local presence relay for buyer ↔ seller online/offline when
- * `conversation:join` / leave is not broadcast by the Railway socket.
+ * socket `presence:update` (S→C) is delayed. Primary flow remains
+ * conversation:join / leave + presence:ping per the Chat Module guide.
  */
 
 type PresenceEntry = {

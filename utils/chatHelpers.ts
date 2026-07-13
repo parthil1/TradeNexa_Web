@@ -613,12 +613,17 @@ export function normalizeChatConversation(raw: unknown): ApiChatConversation | n
 
 export function normalizeUnreadSummary(raw: unknown): ChatUnreadSummary {
   const item = readRecord(raw) ?? {};
+  const asBuyer = pickNumber(item.as_buyer) ?? undefined;
+  const asSeller = pickNumber(item.as_seller) ?? undefined;
   return {
+    // Guide badge fields: total, as_buyer, as_seller
     total_unread:
+      pickNumber(item.total) ??
       pickNumber(item.total_unread) ??
       pickNumber(item.unread_count) ??
-      pickNumber(item.total) ??
-      0,
+      ((asBuyer ?? 0) + (asSeller ?? 0) || 0),
+    as_buyer: asBuyer,
+    as_seller: asSeller,
     conversations_unread: pickNumber(item.conversations_unread) ?? undefined,
   };
 }

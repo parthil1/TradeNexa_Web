@@ -26,7 +26,7 @@ import {
   unwrapSocketPayload,
   type ChatSocketStatus,
 } from "@/services/chatSocket";
-import { CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
+import { CHAT_SOCKET_EXTRA_LISTEN_EVENTS, CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
 import { fetchTypingRelay, publishTypingRelay } from "@/services/typingRelay";
 import { fetchPresenceRelay } from "@/services/presenceRelay";
 import { goChatOffline, goChatOnline, resetChatPresence } from "@/services/chatPresence";
@@ -244,7 +244,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const syncConversationsUnread = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const { results } = await fetchConversations({ page: 1, limit: 50 });
+      const { results } = await fetchConversations({
+        page: 1,
+        limit: 50,
+        role: activeRoleRef.current,
+      });
       let systemInflation = 0;
       setConversationsMeta((prev) => {
         const next = { ...prev };
@@ -661,7 +665,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Full Buyer Chat (7) + Seller Chat (6) Postman Events union.
+    // Guide listen events + optional join/leave echoes for presence UI.
     const unsubscribers = [
       ...CHAT_SOCKET_LISTEN_EVENTS.map((event) => {
         switch (event) {
@@ -677,13 +681,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             return subscribeChatEvent(event, onConversationUpdated);
           case "chat:error":
             return subscribeChatEvent(event, onChatError);
-          case "conversation:join":
-            return subscribeChatEvent(event, onJoinAck);
           default:
             return () => undefined;
         }
       }),
-      subscribeChatEvent("conversation:leave", onLeave),
+      ...CHAT_SOCKET_EXTRA_LISTEN_EVENTS.map((event) => {
+        if (event === "conversation:join") return subscribeChatEvent(event, onJoinAck);
+        if (event === "conversation:leave") return subscribeChatEvent(event, onLeave);
+        return () => undefined;
+      }),
     ];
 
     return () => {
@@ -1185,7 +1191,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         typingActiveRef.current[conversationId] = false;
         delete typingLastEmitRef.current[conversationId];
         delete typingTimers.current[conversationId];
-      }, 2500);
+        // Guide example: stop after ~1.5s of idle input.
+      }, 1500);
     },
     []
   );
@@ -1197,7 +1204,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       remainingUnread?: number
     ) => {
       try {
-        // REST mark-read + socket `message:read` (Buyer/Seller Chat Postman events).
+        // Guide: REST POST .../read and/or socket message:read.
         emitMessageRead(conversationId, lastMessageId);
         await markConversationRead(conversationId, { last_read_message_id: lastMessageId });
         const nextUnread = Math.max(0, remainingUnread ?? 0);

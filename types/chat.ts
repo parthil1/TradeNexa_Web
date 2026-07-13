@@ -84,7 +84,12 @@ export interface ApiChatConversation {
 }
 
 export interface ChatUnreadSummary {
+  /** Normalized badge total (maps API `total` / `total_unread`). */
   total_unread: number;
+  /** Guide: GET /chats/unread-summary → as_buyer */
+  as_buyer?: number;
+  /** Guide: GET /chats/unread-summary → as_seller */
+  as_seller?: number;
   conversations_unread?: number;
 }
 
@@ -114,16 +119,24 @@ export type SendMessagePayload =
   | SendQuotationMessagePayload;
 
 export interface MarkReadPayload {
-  last_read_message_id: number;
+  /** Optional — defaults to latest on the server. */
+  last_read_message_id?: number;
 }
 
 export interface ChatListParams {
   page?: number;
   limit?: number;
+  role?: ChatRole;
+  rfq_id?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
 }
 
 export interface ChatMessagesParams extends ChatListParams {
   order?: "asc" | "desc";
+  before_id?: number;
+  after_id?: number;
 }
 
 export type ChatConversationListResult = PaginatedResult<ApiChatConversation>;

@@ -5,9 +5,10 @@
  * Offline is forced on: sidebar close, unmount, navigation, refresh, tab/window
  * close, tab hidden, and logout.
  *
- * Uses existing socket events (`conversation:join` / `conversation:leave`) plus
- * the local presence relay. `sendBeacon` / keepalive cover hard unloads where
- * Socket.IO emit is unreliable.
+ * Guide flow:
+ * - conversation:join / conversation:leave for room membership
+ * - presence:ping for heartbeats (server emits presence:update)
+ * - Local presence relay as a same-origin fallback when socket presence is delayed
  */
 
 import {
@@ -15,6 +16,7 @@ import {
   leaveConversation,
   getExistingChatSocket,
   connectChatSocket,
+  emitPresencePing,
 } from "@/services/chatSocket";
 import { publishPresenceRelay } from "@/services/presenceRelay";
 
@@ -107,18 +109,10 @@ function touchLocalTab(conversationId: number) {
 
 function emitSocketOnline(conversationId: number, userId?: number) {
   joinConversation(conversationId, userId);
-  const s = getExistingChatSocket();
-  if (!s?.connected) return;
-  const payload = {
-    conversation_id: conversationId,
-    user_id: userId,
-    is_online: true,
-  };
-  s.emit("user_online", payload);
-  s.emit("user:online", payload);
+  emitPresencePing();
 }
 
-/** Lightweight heartbeat — refresh relay + optional presence ping without re-join spam. */
+/** Lightweight heartbeat — refresh relay + presence:ping without re-join spam. */
 function emitSocketPresenceHeartbeat(conversationId: number, userId?: number) {
   const s = getExistingChatSocket();
   if (!s?.connected) {
@@ -126,26 +120,11 @@ function emitSocketPresenceHeartbeat(conversationId: number, userId?: number) {
     joinConversation(conversationId, userId);
     return;
   }
-  const payload = {
-    conversation_id: conversationId,
-    user_id: userId,
-    is_online: true,
-  };
-  s.emit("user_online", payload);
-  s.emit("user:online", payload);
+  emitPresencePing();
 }
 
 function emitSocketOffline(conversationId: number, userId?: number) {
   leaveConversation(conversationId, userId);
-  const s = getExistingChatSocket();
-  if (!s?.connected) return;
-  const payload = {
-    conversation_id: conversationId,
-    user_id: userId,
-    is_online: false,
-  };
-  s.emit("user_offline", payload);
-  s.emit("user:offline", payload);
 }
 
 /** Prefer sendBeacon on unload so offline still reaches the relay. */

@@ -1,35 +1,40 @@
 /**
- * Socket.IO events from Postman:
- * - Buyer Chat (Events 7)
- * - Seller Chat (Events 6)
+ * Socket.IO events from Chat Module Frontend Guide.
  *
- * Shared client uses the union so both roles work on one connection
- * (role is determined by the auth token, not a separate namespace).
+ * Rooms: user:{id} (auto on connect), conversation:{id} (after conversation:join)
+ * Auth: handshake.auth.token = raw JWT
+ *
+ * Critical: send chat text via REST only — Socket never accepts message content.
  */
 
-/** Server → client (Postman Events tab, Listen ON). */
+/** Server → client */
 export const CHAT_SOCKET_LISTEN_EVENTS = [
-  "conversation:join",
   "message:new",
-  "conversation:updated", // Buyer Chat only in Postman; safe for seller too
+  "conversation:updated",
   "typing:indicator",
   "message:read",
-  "chat:error",
   "presence:update",
+  "chat:error",
 ] as const;
 
-/** Client → server (Postman Message tab + chat flow). */
+/** Client → server */
 export const CHAT_SOCKET_EMIT_EVENTS = [
   "conversation:join",
   "conversation:leave",
-  "typing:indicator",
+  "typing:start",
+  "typing:stop",
   "message:read",
-  "presence:subscribe",
-  "presence:unsubscribe",
+  "presence:ping",
 ] as const;
 
-/** Also listen for leave so we can flip peer to Offline (buyer + seller). */
-export const CHAT_SOCKET_EXTRA_LISTEN_EVENTS = ["conversation:leave"] as const;
+/**
+ * Optional echoes some backends still send when a peer joins/leaves a room.
+ * Not in the guide listen list, but useful for Online/Offline UI.
+ */
+export const CHAT_SOCKET_EXTRA_LISTEN_EVENTS = [
+  "conversation:join",
+  "conversation:leave",
+] as const;
 
 export type ChatSocketListenEvent = (typeof CHAT_SOCKET_LISTEN_EVENTS)[number];
 export type ChatSocketEmitEvent = (typeof CHAT_SOCKET_EMIT_EVENTS)[number];

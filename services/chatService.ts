@@ -25,8 +25,24 @@ function buildListParams(params?: ChatListParams | ChatMessagesParams) {
     page: params?.page ?? 1,
     limit: params?.limit ?? 20,
   };
-  if (params && "order" in params && params.order) {
+  if (!params) return query;
+
+  if (params.role) query.role = params.role;
+  if (params.rfq_id != null && Number.isFinite(params.rfq_id)) {
+    query.rfq_id = params.rfq_id;
+  }
+  if (params.search?.trim()) query.search = params.search.trim();
+  if (params.sort_by) query.sort_by = params.sort_by;
+  if (params.sort_order) query.sort_order = params.sort_order;
+
+  if ("order" in params && params.order) {
     query.order = params.order;
+  }
+  if ("before_id" in params && params.before_id != null && Number.isFinite(params.before_id)) {
+    query.before_id = params.before_id;
+  }
+  if ("after_id" in params && params.after_id != null && Number.isFinite(params.after_id)) {
+    query.after_id = params.after_id;
   }
   return query;
 }
@@ -130,6 +146,8 @@ export async function fetchMessages(
         page: params?.page ?? 1,
         limit: params?.limit ?? 20,
         order: params?.order ?? "asc",
+        before_id: params?.before_id,
+        after_id: params?.after_id,
       }),
     }
   );
@@ -286,9 +304,12 @@ export async function sendMediaMessage(
 
 export async function markConversationRead(
   conversationId: number,
-  payload: MarkReadPayload
+  payload?: MarkReadPayload
 ): Promise<void> {
-  await apiClient.post(`${API_ENDPOINTS.CHATS_CONVERSATIONS}/${conversationId}/read`, payload);
+  await apiClient.post(
+    `${API_ENDPOINTS.CHATS_CONVERSATIONS}/${conversationId}/read`,
+    payload ?? {}
+  );
 }
 
 /** Find an existing RFQ conversation without creating one. */
