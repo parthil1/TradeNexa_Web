@@ -9,6 +9,20 @@ function readErrorData(err: unknown): Record<string, unknown> | null {
   return data && typeof data === "object" ? (data as Record<string, unknown>) : null;
 }
 
+/** First field-level validation message from an API error response (array order preserved). */
+export function getFirstApiValidationMessage(err: unknown): string | null {
+  const data = readErrorData(err);
+  if (!data || !Array.isArray(data.errors) || data.errors.length === 0) return null;
+
+  for (const item of data.errors) {
+    if (!item || typeof item !== "object") continue;
+    const message =
+      "message" in item ? String((item as ApiFieldError).message).trim() : "";
+    if (message) return message;
+  }
+  return null;
+}
+
 /** Extract field-level validation messages from API error responses. */
 export function getApiFieldErrors(err: unknown): Record<string, string> {
   const data = readErrorData(err);
@@ -27,18 +41,20 @@ export function getApiFieldErrors(err: unknown): Record<string, string> {
 }
 
 export function formatApiErrorMessage(err: unknown, fallback = "Request failed"): string {
+  const firstValidation = getFirstApiValidationMessage(err);
+  if (firstValidation) return firstValidation;
+
+  if (err && typeof err !== "object") return fallback;
   if (err && typeof err === "object" && "message" in err) {
-    const message = String((err as { message: string }).message);
-    if (message.trim()) return message;
+    const message = String((err as { message: string }).message).trim();
+    // Prefer a real validation field message over the generic envelope.
+    if (message && message.toLowerCase() !== "validation failed") return message;
   }
   return fallback;
 }
 
 export function formatApiValidationSummary(err: unknown, fallback?: string): string {
-  const fieldErrors = getApiFieldErrors(err);
-  const messages = Object.values(fieldErrors);
-  if (messages.length > 0) {
-    return messages.slice(0, 3).join(" · ");
-  }
+  const first = getFirstApiValidationMessage(err);
+  if (first) return first;
   return formatApiErrorMessage(err, fallback ?? "Validation failed");
 }

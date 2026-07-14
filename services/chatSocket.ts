@@ -3,7 +3,7 @@
 import { io, type Socket } from "socket.io-client";
 import axios from "axios";
 import { API_BASE_URL, BACKEND_ORIGIN } from "@/config/api";
-import { CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
+import { CHAT_SOCKET_ALIAS_EVENTS, CHAT_SOCKET_LISTEN_EVENTS } from "@/config/chatSocketEvents";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { getAccessToken, getRefreshToken, unwrapApiPayload } from "@/utils/authHelpers";
 
@@ -90,6 +90,17 @@ function bindSocketEventBridges(s: Socket) {
         console.info(`[chat-socket] recv ${event}`, ...args);
       }
       dispatchChatEvent(event, args);
+    });
+  }
+
+  // Guide aliases → fan-in to the canonical event only (avoid double-dispatch
+  // if the backend ever emits both receive_message and message:new).
+  for (const [alias, canonical] of Object.entries(CHAT_SOCKET_ALIAS_EVENTS)) {
+    s.on(alias, (...args: unknown[]) => {
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[chat-socket] recv ${alias} → ${canonical}`, ...args);
+      }
+      dispatchChatEvent(canonical, args);
     });
   }
 }
@@ -390,14 +401,73 @@ export function emitMessageRead(conversationId: number, lastReadMessageId?: numb
   }
 }
 
+/**
+ * Socket.IO may emit a single object, or split args like
+ * `(conversation_id, message)` / `(message, ackFn)`. Normalize to one payload.
+ */
+export function coalesceIncomingSocketPayload(args: unknown[]): unknown {
+  if (args.length === 0) return null;
+  const first = args[0];
+  const second = args[1];
+
+  // Ignore Socket.IO ack callbacks in the arg list.
+  const meaningful = args.filter((arg) => typeof arg !== "function");
+  if (meaningful.length === 0) return null;
+  if (meaningful.length === 1) return meaningful[0];
+
+  const a = meaningful[0];
+  const b = meaningful[1];
+
+  if (
+    (typeof a === "number" || (typeof a === "string" && /^\d+$/.test(a))) &&
+    b &&
+    typeof b === "object"
+  ) {
+    return { conversation_id: Number(a), message: b };
+  }
+
+  if (a && typeof a === "object" && b && typeof b === "object") {
+    const aRec = a as Record<string, unknown>;
+    const bRec = b as Record<string, unknown>;
+    if (
+      ("conversation_id" in aRec || "conversationId" in aRec) &&
+      ("id" in bRec || "content" in bRec || "message_type" in bRec)
+    ) {
+      return {
+        ...aRec,
+        message: b,
+        conversation_id: aRec.conversation_id ?? aRec.conversationId,
+      };
+    }
+  }
+
+  void first;
+  void second;
+  return a;
+}
+
 /** Best-effort unwrap of common socket event envelopes. */
 export function unwrapSocketPayload(payload: unknown): unknown {
   if (payload == null) return payload;
   if (typeof payload !== "object") return payload;
   const record = payload as Record<string, unknown>;
+
+  const parentConversationId =
+    record.conversation_id ?? record.conversationId ?? null;
+
   if (record.message && typeof record.message === "object") {
     const msg = record.message as Record<string, unknown>;
-    if ("id" in msg || "conversation_id" in msg || "content" in msg) return record.message;
+    if ("id" in msg || "conversation_id" in msg || "content" in msg || "message_type" in msg) {
+      // Guide: { conversation_id, message } — message may omit conversation_id
+      if (
+        parentConversationId != null &&
+        msg.conversation_id == null &&
+        msg.conversationId == null
+      ) {
+        return { ...msg, conversation_id: parentConversationId };
+      }
+      return record.message;
+    }
   }
   if (record.data && typeof record.data === "object") {
     const data = record.data as Record<string, unknown>;
@@ -405,7 +475,8 @@ export function unwrapSocketPayload(payload: unknown): unknown {
       "id" in data ||
       "conversation_id" in data ||
       "message" in data ||
-      "user_id" in data
+      "user_id" in data ||
+      "unread_count" in data
     ) {
       return unwrapSocketPayload(record.data);
     }

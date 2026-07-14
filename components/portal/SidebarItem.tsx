@@ -56,11 +56,16 @@ export default function SidebarItem({
       {!collapsed ? (
         <>
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
-          {item.badge ? <ConversationBadge count={item.badge} /> : null}
+          {item.badge ? (
+            <ConversationBadge
+              count={item.badge}
+              className="bg-sky-400 text-slate-950 shadow-none ring-2 ring-slate-950/40"
+            />
+          ) : null}
         </>
       ) : item.badge ? (
         <span
-          className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-whatsapp px-1 text-[10px] font-bold tabular-nums text-white"
+          className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sky-400 px-1 text-[10px] font-bold tabular-nums text-slate-950 ring-2 ring-slate-950/40"
           aria-label={`${item.badge} unread message${item.badge === 1 ? "" : "s"}`}
         >
           {formatChatBadgeCount(item.badge)}

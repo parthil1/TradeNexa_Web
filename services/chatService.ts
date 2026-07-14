@@ -7,6 +7,7 @@ import {
   normalizeUnreadSummary,
   unwrapChatPaginated,
 } from "@/utils/chatHelpers";
+import { formatApiErrorMessage } from "@/utils/apiErrors";
 import type {
   ApiChatConversation,
   ApiChatMessage,
@@ -410,12 +411,7 @@ export async function ensureInquiryConversation(
 }
 
 function getErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error && err.message) return err.message;
-  if (err && typeof err === "object" && "message" in err) {
-    const message = (err as { message?: unknown }).message;
-    if (typeof message === "string" && message.trim()) return message.trim();
-  }
-  return fallback;
+  return formatApiErrorMessage(err, fallback);
 }
 
 export { getErrorMessage as getChatErrorMessage };

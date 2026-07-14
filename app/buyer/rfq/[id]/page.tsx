@@ -482,7 +482,6 @@ export default function BuyerRfqDetailPage() {
         title="Chat with Seller"
         rfqId={rfq.id}
         role="buyer"
-        rfqTitle={rfq.title}
         rfqStatus={rfq.status}
         sellerId={chatTarget?.seller_id ?? null}
         otherPartyName={

@@ -127,8 +127,15 @@ export default function CitySelect({
       label: city.name,
     }));
 
-    if (value && selectedLabel && !items.some((item) => item.value === value)) {
-      items.unshift({ value, label: selectedLabel });
+    // Keep a selected city visible even before it appears in the fetched page.
+    if (value) {
+      const alreadyListed = items.some((item) => item.value === value);
+      if (!alreadyListed) {
+        items.unshift({
+          value,
+          label: selectedLabel?.trim() || `City #${value}`,
+        });
+      }
     }
 
     return [{ value: "", label: emptyLabel }, ...items];

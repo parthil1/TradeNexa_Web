@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useActiveRole } from "@/context/ActiveRoleContext";
 import { useChat } from "@/context/ChatContext";
 import { effectiveConversationUnread } from "@/utils/chatHelpers";
 
@@ -10,20 +11,44 @@ export function formatChatBadgeCount(count: number): string {
   return count > 99 ? "99+" : String(count);
 }
 
-/** Unread count for the Chats nav item. */
+/**
+ * Unread count for the Chats nav item.
+ *
+ * Source of truth: `unreadSummary`, kept live by Socket.IO
+ * (`message:new` / `receive_message`, `conversation:updated`, `messages_read`)
+ * and seeded via REST unread-summary on connect.
+ * Prefer role-scoped counts when the API provides them.
+ */
 export function useChatUnreadBadge(): number {
-  const { unreadSummary, conversationsMeta } = useChat();
+  const { unreadSummary, conversationsMeta, socketStatus } = useChat();
+  const { activeRole } = useActiveRole();
 
   return useMemo(() => {
+    const roleScoped =
+      activeRole === "seller"
+        ? unreadSummary.as_seller
+        : unreadSummary.as_buyer;
+    const fromSummary =
+      roleScoped != null && roleScoped > 0
+        ? roleScoped
+        : unreadSummary.total_unread ?? 0;
+    if (fromSummary > 0) return fromSummary;
+
+    // Fallback: sum of known conversation unreads (also updated by the same socket events).
     const metaValues = Object.values(conversationsMeta);
-    if (metaValues.length > 0) {
-      return metaValues.reduce(
-        (sum, conversation) => sum + effectiveConversationUnread(conversation),
-        0
-      );
-    }
-    return unreadSummary.total_unread > 0 ? unreadSummary.total_unread : 0;
-  }, [conversationsMeta, unreadSummary.total_unread]);
+    if (metaValues.length === 0) return 0;
+    return metaValues.reduce(
+      (sum, conversation) => sum + effectiveConversationUnread(conversation),
+      0
+    );
+  }, [
+    activeRole,
+    conversationsMeta,
+    unreadSummary.as_buyer,
+    unreadSummary.as_seller,
+    unreadSummary.total_unread,
+    socketStatus,
+  ]);
 }
 
 /**
@@ -61,7 +86,7 @@ export function useRfqChatUnread(rfqId?: number | null, sellerId?: number | null
 type BadgeSize = "sm" | "md";
 
 /**
- * WhatsApp-style unread count pill — green circle/pill with the message count.
+ * Unread count pill for nav / chat entry points.
  */
 export default function ConversationBadge({
   count,
@@ -82,7 +107,7 @@ export default function ConversationBadge({
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full bg-whatsapp font-bold tabular-nums leading-none text-white shadow-sm ${sizeClass} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-primary font-bold tabular-nums leading-none text-white shadow-sm ${sizeClass} ${className}`}
       aria-label={`${count} unread message${count === 1 ? "" : "s"}`}
       title={`${count} unread`}
     >

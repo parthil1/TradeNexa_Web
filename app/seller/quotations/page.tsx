@@ -204,11 +204,6 @@ export default function SellerQuotationsPage() {
         title="Chat with Buyer"
         rfqId={chatTarget?.rfq_id ?? 0}
         role="seller"
-        rfqTitle={
-          chatTarget?.rfq_title?.trim() ||
-          chatTarget?.product_name?.trim() ||
-          null
-        }
         rfqStatus={chatTarget?.rfq_status}
         otherPartyName={
           chatTarget?.buyer_company?.trim() ||

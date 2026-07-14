@@ -287,7 +287,6 @@ export default function SellerLeadDetailPage() {
           title="Chat with Buyer"
           rfqId={rfq.id}
           role="seller"
-          rfqTitle={rfq.title}
           rfqStatus={rfq.status}
           otherPartyName={buyerLine}
           quotations={existingQuotation ? [existingQuotation] : []}

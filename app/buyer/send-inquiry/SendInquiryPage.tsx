@@ -569,7 +569,6 @@ export default function SendInquiryPage() {
         role="buyer"
         conversationId={conversationId}
         inquiryId={conversationId ? null : inquiryId}
-        contextTitle={productName}
         productId={productId || null}
         productName={productName}
         otherPartyName={sellerName}

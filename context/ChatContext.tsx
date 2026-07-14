@@ -13,6 +13,7 @@ import React, {
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/context/ActiveRoleContext";
 import {
+  coalesceIncomingSocketPayload,
   connectChatSocket,
   disconnectChatSocket,
   emitMessageRead,
@@ -163,6 +164,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const activeIdRef = useRef<number | null>(null);
   const conversationsMetaRef = useRef<Record<number, ApiChatConversation>>({});
   const unreadSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Avoid REST seed overwriting a fresh socket unread bump (eventual consistency). */
+  const lastLocalUnreadBumpAtRef = useRef(0);
+  /** Dedupe unread bumps when message:new / receive_message both arrive. */
+  const recentUnreadMessageIdsRef = useRef<Set<number>>(new Set());
   /** How message pages are numbered for each conversation after the initial fetch. */
   const pagingModeRef = useRef<Record<number, "desc" | "asc-tail">>({});
   const pageByConversationRef = useRef<Record<number, number>>({});
@@ -211,7 +216,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
     try {
       const summary = await fetchUnreadSummary();
-      setUnreadSummary(summary);
+      setUnreadSummary((prev) => {
+        const nextTotal = summary.total_unread ?? 0;
+        const prevTotal = prev.total_unread ?? 0;
+        // Keep a recent live bump if REST briefly lags behind Socket.IO.
+        if (
+          prevTotal > nextTotal &&
+          Date.now() - lastLocalUnreadBumpAtRef.current < 3000
+        ) {
+          return {
+            ...summary,
+            total_unread: prevTotal,
+            as_buyer: summary.as_buyer ?? prev.as_buyer,
+            as_seller: summary.as_seller ?? prev.as_seller,
+          };
+        }
+        return summary;
+      });
     } catch {
       /* badge is best-effort */
     }
@@ -280,15 +301,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     void refreshUnread();
     void syncConversationsUnread();
 
-    const onMessageNew = (payload: unknown) => {
+    // Re-seed unread from REST whenever the socket (re)connects, then rely on
+    // live message:new / conversation:updated / messages_read for the nav badge.
+    const unsubStatus = subscribeChatSocketStatus((next) => {
+      if (next === "connected") {
+        void refreshUnread();
+      }
+    });
+
+    const onMessageNew = (...args: unknown[]) => {
+      const payload = coalesceIncomingSocketPayload(args);
       const message = normalizeChatMessage(
         unwrapSocketPayload(payload),
         currentUserIdRef.current
       );
       if (!message) {
         if (process.env.NODE_ENV === "development") {
-          console.warn("[chat] message:new ignored (normalize failed)", payload);
+          console.warn("[chat] message:new ignored (normalize failed)", payload, args);
         }
+        // Still try conversation:updated-style unread via delayed REST if payload is opaque.
+        void refreshUnread();
         return;
       }
       const owned = applyMessageOwnership(
@@ -315,10 +347,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         countsAsUnreadChatMessage(owned);
 
       if (isIncomingUnread) {
+        // Dedupe if both alias + canonical events reach the handler in some setups.
+        if (recentUnreadMessageIdsRef.current.has(owned.id)) {
+          return;
+        }
+        recentUnreadMessageIdsRef.current.add(owned.id);
+        if (recentUnreadMessageIdsRef.current.size > 200) {
+          recentUnreadMessageIdsRef.current.clear();
+        }
+
         const socketRfqId = pickSocketRfqId(payload);
         const knownRfqId =
           conversationsMetaRef.current[owned.conversation_id]?.rfq_id ?? null;
 
+        lastLocalUnreadBumpAtRef.current = Date.now();
         setConversationsMeta((prev) => {
           const existing = prev[owned.conversation_id];
           return {
@@ -333,10 +375,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             },
           };
         });
-        setUnreadSummary((prev) => ({
-          ...prev,
-          total_unread: (prev.total_unread ?? 0) + 1,
-        }));
+        setUnreadSummary((prev) => {
+          const roleKey =
+            activeRoleRef.current === "seller" ? "as_seller" : "as_buyer";
+          return {
+            ...prev,
+            total_unread: (prev.total_unread ?? 0) + 1,
+            [roleKey]: ((prev[roleKey] as number | undefined) ?? 0) + 1,
+          };
+        });
 
         // Resolve rfq_id if we still don't have one (needed for quotation card badges).
         // Socket-first: only one light GET for the missing RFQ link — no inbox/list refresh.
@@ -366,17 +413,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const onMessageRead = (payload: unknown) => {
+    const onMessageRead = (...args: unknown[]) => {
+      const payload = coalesceIncomingSocketPayload(args);
       const data = unwrapSocketPayload(payload);
       if (!data || typeof data !== "object") return;
       const record = data as Record<string, unknown>;
       const conversationId = Number(record.conversation_id);
-      const lastReadId = Number(record.last_read_message_id ?? record.message_id);
-      if (!Number.isFinite(conversationId) || !Number.isFinite(lastReadId)) return;
+      const lastReadId = Number(
+        record.last_read_message_id ?? record.message_id ?? record.last_read_id
+      );
+      if (!Number.isFinite(conversationId)) return;
 
-      // Guide: message:read is from the *reader*. Ignore our own mark-read echo —
-      // otherwise sending/opening chat paints blue double-ticks on *our* messages
-      // without the peer actually reading them.
       const readerRaw =
         record.reader_id ??
         record.user_id ??
@@ -386,10 +433,49 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           : null);
       const readerId = Number(readerRaw);
       const me = currentUserIdRef.current;
+
+      // Our own read (this tab, another tab, or socket mark_messages_read) — clear
+      // unread for the nav badge. Do not paint blue ticks on our outgoing messages.
       if (me != null && Number.isFinite(readerId) && readerId > 0 && readerId === me) {
+        let cleared = 0;
+        setConversationsMeta((prev) => {
+          const existing = prev[conversationId];
+          const prevUnread = existing?.unread_count ?? 0;
+          if (prevUnread <= 0 && existing) return prev;
+          cleared = prevUnread;
+          return {
+            ...prev,
+            [conversationId]: {
+              ...(existing ?? { id: conversationId }),
+              id: conversationId,
+              unread_count: 0,
+            },
+          };
+        });
+        if (cleared > 0) {
+          setUnreadSummary((prev) => {
+            const roleKey =
+              activeRoleRef.current === "seller" ? "as_seller" : "as_buyer";
+            return {
+              ...prev,
+              total_unread: Math.max(0, (prev.total_unread ?? 0) - cleared),
+              [roleKey]: Math.max(
+                0,
+                ((prev[roleKey] as number | undefined) ?? 0) - cleared
+              ),
+            };
+          });
+        }
+        // Confirm with REST shortly after self-read so badge matches server.
+        window.setTimeout(() => {
+          void refreshUnread();
+        }, 400);
         return;
       }
-      // Ambiguous echo (no reader_id): do not assume peer read — skip.
+
+      if (!Number.isFinite(lastReadId)) return;
+
+      // Guide: message:read / messages_read from the *peer* → blue ticks on our sends.
       if (!Number.isFinite(readerId) || readerId <= 0) {
         const readerRole = String(record.role ?? record.reader_role ?? "")
           .trim()
@@ -414,18 +500,44 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    const onConversationUpdated = (payload: unknown) => {
+    const onConversationUpdated = (...args: unknown[]) => {
       // Guide: conversation:updated → refresh inbox row from socket payload (no REST).
+      const payload = coalesceIncomingSocketPayload(args);
       const conversation = normalizeChatConversation(unwrapSocketPayload(payload));
-      if (!conversation) return;
+      if (!conversation) {
+        void refreshUnread();
+        return;
+      }
 
       setConversationsMeta((prev) => {
         const existing = prev[conversation.id];
+        const prevUnread = existing?.unread_count ?? 0;
         const nextUnread =
           conversation.unread_count != null
             ? effectiveConversationUnread(conversation)
-            : (existing?.unread_count ?? 0);
-        const next = {
+            : prevUnread;
+        const delta =
+          conversation.unread_count != null ? nextUnread - prevUnread : 0;
+
+        if (delta !== 0) {
+          if (delta > 0) lastLocalUnreadBumpAtRef.current = Date.now();
+          queueMicrotask(() => {
+            setUnreadSummary((summary) => {
+              const roleKey =
+                activeRoleRef.current === "seller" ? "as_seller" : "as_buyer";
+              return {
+                ...summary,
+                total_unread: Math.max(0, (summary.total_unread ?? 0) + delta),
+                [roleKey]: Math.max(
+                  0,
+                  ((summary[roleKey] as number | undefined) ?? 0) + delta
+                ),
+              };
+            });
+          });
+        }
+
+        return {
           ...prev,
           [conversation.id]: {
             ...existing,
@@ -437,23 +549,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               conversation.last_message_at ?? existing?.last_message_at ?? null,
           },
         };
-
-        if (conversation.unread_count != null) {
-          const total = Object.values(next).reduce(
-            (sum, c) => sum + effectiveConversationUnread(c),
-            0
-          );
-          queueMicrotask(() => {
-            setUnreadSummary((summary) =>
-              summary.total_unread === total ? summary : { ...summary, total_unread: total }
-            );
-          });
-        }
-        return next;
       });
     };
 
-    const onChatError = (payload: unknown) => {
+    const onChatError = (...args: unknown[]) => {
+      const payload = coalesceIncomingSocketPayload(args);
       const data = unwrapSocketPayload(payload);
       const message =
         data && typeof data === "object" && "message" in data
@@ -482,9 +582,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     return () => {
       if (unreadSyncTimer.current) clearTimeout(unreadSyncTimer.current);
+      unsubStatus();
       unsubscribers.forEach((unsub) => unsub());
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, refreshUnread, syncConversationsUnread]);
 
   useEffect(() => {
     if (!activeConversationId) return;

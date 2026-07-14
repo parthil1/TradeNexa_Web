@@ -240,7 +240,6 @@ export default function BuyerProductInquiryDetailPage() {
         role="buyer"
         inquiryId={inquiry.id}
         conversationId={inquiry.conversation_id}
-        contextTitle={title}
         productId={inquiry.product_id}
         productName={title}
         otherPartyName={sellerName}

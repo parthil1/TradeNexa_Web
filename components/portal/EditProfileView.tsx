@@ -8,7 +8,10 @@ import CompleteProfileForm, {
   EMPTY_COMPLETE_PROFILE_FORM,
 } from "@/components/portal/CompleteProfileForm";
 import { fetchProfile } from "@/services/profileService";
-import { mapProfileToCompleteProfileForm } from "@/utils/authHelpers";
+import {
+  getProfileLocationIds,
+  mapProfileToCompleteProfileForm,
+} from "@/utils/authHelpers";
 import { useAuth } from "@/hooks/useAuth";
 import type { CompleteProfileFormData, UserRole } from "@/types/auth";
 import { portalMatchedPageContainerClass } from "@/components/portal/portalLayout";
@@ -27,6 +30,8 @@ function resolveProfileRole(userRole: UserRole | undefined): UserRole {
 export default function EditProfileView({ variant, backHref }: EditProfileViewProps) {
   const { user, completeProfileAction, completeProfileState } = useAuth();
   const [initialForm, setInitialForm] = useState<CompleteProfileFormData | null>(null);
+  const [initialStateId, setInitialStateId] = useState("");
+  const [initialCityId, setInitialCityId] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -36,7 +41,10 @@ export default function EditProfileView({ variant, backHref }: EditProfileViewPr
     setLoadingProfile(true);
     try {
       const profile = await fetchProfile();
+      const locationIds = getProfileLocationIds(profile);
       setInitialForm(mapProfileToCompleteProfileForm(profile));
+      setInitialStateId(locationIds.stateId);
+      setInitialCityId(locationIds.cityId);
     } catch {
       setInitialForm({
         ...EMPTY_COMPLETE_PROFILE_FORM,
@@ -46,10 +54,12 @@ export default function EditProfileView({ variant, backHref }: EditProfileViewPr
         state: user?.state ?? "",
         pincode: user?.pincode ?? "",
       });
+      setInitialStateId("");
+      setInitialCityId("");
     } finally {
       setLoadingProfile(false);
     }
-  }, [user?.address, user?.company]);
+  }, [user?.address, user?.city, user?.company, user?.pincode, user?.state]);
 
   useEffect(() => {
     void loadProfile();
@@ -87,9 +97,11 @@ export default function EditProfileView({ variant, backHref }: EditProfileViewPr
           </div>
         ) : (
           <CompleteProfileForm
-            key={initialForm.companyName + (initialForm.companyLogoUrl ?? "") + (initialForm.profileImageUrl ?? "")}
+            key={`profile-${initialStateId}-${initialCityId}-${initialForm.city}-${initialForm.state}`}
             role={role}
             initialValues={initialForm}
+            initialStateId={initialStateId || null}
+            initialCityId={initialCityId || null}
             onSubmit={handleSubmit}
             loading={completeProfileState.loading}
             error={completeProfileState.error}

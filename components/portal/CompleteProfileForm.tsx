@@ -213,6 +213,9 @@ function UploadTile({
 interface CompleteProfileFormProps {
   role: UserRole;
   initialValues?: CompleteProfileFormData;
+  /** Prefill location selects from profile `state_id` / `city_id` when present. */
+  initialStateId?: string | null;
+  initialCityId?: string | null;
   onSubmit: (data: CompleteProfileFormData) => Promise<void>;
   loading?: boolean;
   error?: string | null;
@@ -225,6 +228,8 @@ interface CompleteProfileFormProps {
 export default function CompleteProfileForm({
   role,
   initialValues,
+  initialStateId = null,
+  initialCityId = null,
   onSubmit,
   loading = false,
   error = null,
@@ -238,11 +243,14 @@ export default function CompleteProfileForm({
   const showSellerOnlyFields = role === "seller";
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<CompleteProfileFormData>(EMPTY_COMPLETE_PROFILE_FORM);
-  const [stateId, setStateId] = useState("");
-  const [cityId, setCityId] = useState("");
+  const [form, setForm] = useState<CompleteProfileFormData>(
+    () => initialValues ?? EMPTY_COMPLETE_PROFILE_FORM
+  );
+  const [stateId, setStateId] = useState(() => String(initialStateId ?? "").trim());
+  const [cityId, setCityId] = useState(() => String(initialCityId ?? "").trim());
   const geo = useOptionalGeoLocation();
   const geoPrefillDone = useRef(false);
+  const locationHydratedRef = useRef(false);
 
   const MAX_IMAGE_SIZE_MB = 5;
   const id = (key: string) => `${fieldIdPrefix}-${key}`;
@@ -294,57 +302,99 @@ export default function CompleteProfileForm({
 
   useEffect(() => {
     if (!initialValues) return;
-    setForm(initialValues);
-    setStateId("");
-    setCityId("");
 
-    const stateName = initialValues.state?.trim();
-    const cityName = initialValues.city?.trim();
-    if (!stateName) return;
+    const stateName = initialValues.state?.trim() || "";
+    const cityName = initialValues.city?.trim() || "";
+    const presetStateId = String(initialStateId ?? "").trim();
+    const presetCityId = String(initialCityId ?? "").trim();
+
+    setForm(initialValues);
+
+    // Profile payload nests ids under address: state_id / city_id (e.g. city_id: 4).
+    if (presetStateId && presetCityId) {
+      setStateId(presetStateId);
+      setCityId(presetCityId);
+      locationHydratedRef.current = true;
+      return;
+    }
+
+    if (presetStateId) {
+      setStateId(presetStateId);
+    }
+
+    if (locationHydratedRef.current) return;
 
     let cancelled = false;
 
+    function matchByName<T extends { name: string }>(items: T[], needle: string): T | null {
+      const q = needle.trim().toLowerCase();
+      if (!q || items.length === 0) return null;
+      return (
+        items.find((item) => item.name.toLowerCase() === q) ??
+        items.find((item) => item.name.toLowerCase().startsWith(q)) ??
+        items.find((item) => item.name.toLowerCase().includes(q)) ??
+        items.find((item) => q.includes(item.name.toLowerCase())) ??
+        null
+      );
+    }
+
     async function resolveLocationIds() {
       try {
-        const { results: states } = await fetchStates({
-          search: stateName,
-          limit: 20,
-          sort_by: "name",
-          sort_order: "asc",
-          is_active: true,
-        });
-        if (cancelled) return;
-        const q = stateName!.toLowerCase();
-        const matchedState =
-          states.find((s) => s.name.toLowerCase() === q) ??
-          states.find((s) => s.name.toLowerCase().startsWith(q)) ??
-          states.find((s) => s.name.toLowerCase().includes(q)) ??
-          null;
-        if (!matchedState) return;
+        let matchedStateId = presetStateId ? Number(presetStateId) : NaN;
 
-        setStateId(String(matchedState.id));
-        setForm((prev) => ({ ...prev, state: matchedState.name }));
-
-        if (!cityName) return;
-        const { results: cities } = await fetchCities({
-          state_id: matchedState.id,
-          search: cityName,
-          limit: 20,
-          sort_by: "name",
-          sort_order: "asc",
-          is_active: true,
-        });
-        if (cancelled) return;
-        const cq = cityName.toLowerCase();
-        const matchedCity =
-          cities.find((c) => c.name.toLowerCase() === cq) ??
-          cities.find((c) => c.name.toLowerCase().startsWith(cq)) ??
-          cities.find((c) => c.name.toLowerCase().includes(cq)) ??
-          null;
-        if (matchedCity) {
-          setCityId(String(matchedCity.id));
-          setForm((prev) => ({ ...prev, city: matchedCity.name }));
+        if (!presetStateId) {
+          if (!stateName) return;
+          const { results: states } = await fetchStates({
+            search: stateName,
+            limit: 50,
+            sort_by: "name",
+            sort_order: "asc",
+            is_active: true,
+          });
+          if (cancelled) return;
+          const matchedState = matchByName(states, stateName);
+          if (!matchedState) return;
+          matchedStateId = matchedState.id;
+          setStateId(String(matchedState.id));
+          setForm((prev) => ({ ...prev, state: matchedState.name }));
         }
+
+        if (!cityName || !Number.isFinite(matchedStateId) || matchedStateId <= 0) return;
+
+        let matchedCity =
+          matchByName(
+            (
+              await fetchCities({
+                state_id: matchedStateId,
+                search: cityName,
+                limit: 50,
+                sort_by: "name",
+                sort_order: "asc",
+                is_active: true,
+              })
+            ).results,
+            cityName
+          ) ?? null;
+
+        if (!matchedCity) {
+          matchedCity = matchByName(
+            (
+              await fetchCities({
+                state_id: matchedStateId,
+                limit: 100,
+                sort_by: "name",
+                sort_order: "asc",
+                is_active: true,
+              })
+            ).results,
+            cityName
+          );
+        }
+
+        if (cancelled || !matchedCity) return;
+        setCityId(String(matchedCity.id));
+        setForm((prev) => ({ ...prev, city: matchedCity!.name }));
+        locationHydratedRef.current = true;
       } catch {
         /* keep name-only city/state from profile */
       }
@@ -354,7 +404,7 @@ export default function CompleteProfileForm({
     return () => {
       cancelled = true;
     };
-  }, [initialValues]);
+  }, [initialValues, initialStateId, initialCityId]);
 
   const updateForm = (patch: Partial<CompleteProfileFormData>) => {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -393,8 +443,8 @@ export default function CompleteProfileForm({
     if (showBuyerFields) {
       if (!form.industry.trim()) next.industry = "Industry is required";
       if (!form.address.trim()) next.address = "Address is required";
-      if (!form.state.trim()) next.state = "State is required";
-      if (!form.city.trim()) next.city = "City is required";
+      if (!form.state.trim() || !stateId.trim()) next.state = "State is required";
+      if (!form.city.trim() || !cityId.trim()) next.city = "City is required";
       const pincode = form.pincode.trim();
       if (!pincode) next.pincode = "Pincode is required";
       else if (!/^\d{6}$/.test(pincode)) next.pincode = "Enter a valid 6-digit pincode";
@@ -449,7 +499,12 @@ export default function CompleteProfileForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    await onSubmit(form);
+    // Send location IDs via the existing city/state fields for the API layer.
+    await onSubmit({
+      ...form,
+      city: cityId.trim(),
+      state: stateId.trim(),
+    });
   };
 
   return (
@@ -574,12 +629,17 @@ export default function CompleteProfileForm({
                   emptyLabel="Select state"
                   error={Boolean(errors.state)}
                   onChange={(nextId, label) => {
+                    // Only clear city when the user actually changes state.
+                    if (nextId !== stateId) {
+                      setCityId("");
+                      updateForm({
+                        state: nextId && label ? label : "",
+                        city: "",
+                      });
+                    } else if (label) {
+                      updateForm({ state: label });
+                    }
                     setStateId(nextId);
-                    setCityId("");
-                    updateForm({
-                      state: nextId && label ? label : "",
-                      city: "",
-                    });
                     setErrors((prev) => ({ ...prev, state: "", city: "" }));
                   }}
                 />

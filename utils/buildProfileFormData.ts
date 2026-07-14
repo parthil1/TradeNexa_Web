@@ -1,4 +1,5 @@
 import type { CompleteProfileData } from "@/types/auth";
+import { INDIA_COUNTRY_ID } from "@/types/location";
 
 function appendIfPresent(formData: FormData, key: string, value?: string | null) {
   if (value?.trim()) {
@@ -12,6 +13,28 @@ function appendFile(formData: FormData, key: string, file: File | null) {
   }
 }
 
+/** Parse city/state field value into a positive numeric location id. */
+function parseLocationId(value?: string | number | null): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? Math.trunc(value) : null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || !/^\d+$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.trunc(parsed);
+}
+
+function appendLocationIds(formData: FormData, city: string, state: string) {
+  const cityId = parseLocationId(city);
+  const stateId = parseLocationId(state);
+  if (cityId != null) formData.append("city_id", String(cityId));
+  if (stateId != null) formData.append("state_id", String(stateId));
+  // Backend forbids updating `country` by name — send country_id only.
+  formData.append("country_id", String(INDIA_COUNTRY_ID));
+}
+
 export function buildProfileFormData(payload: CompleteProfileData): FormData {
   const formData = new FormData();
   const d = payload.data;
@@ -22,10 +45,8 @@ export function buildProfileFormData(payload: CompleteProfileData): FormData {
     appendIfPresent(formData, "gst_number", d.gstNumber);
     formData.append("industry", d.industry.trim());
     formData.append("address_line_1", d.address.trim());
-    appendIfPresent(formData, "city", d.city);
-    appendIfPresent(formData, "state", d.state);
+    appendLocationIds(formData, d.city, d.state);
     appendIfPresent(formData, "pincode", d.pincode);
-    formData.append("country", d.country.trim() || "India");
     appendFile(formData, "profile_image", d.profileImageFile);
     return formData;
   }
@@ -43,15 +64,13 @@ export function buildProfileFormData(payload: CompleteProfileData): FormData {
   }
 
   // buyer + seller (matches Postman multipart PUT /auth/profile)
-  formData.append("country", d.country.trim() || "India");
   formData.append("company_name", d.companyName.trim());
   formData.append("industry", d.industry.trim());
   formData.append("gst_number", d.gstNumber.trim());
   formData.append("pan_number", d.panNumber.trim());
   formData.append("business_description", d.businessDescription.trim());
   formData.append("address_line_1", d.address.trim());
-  appendIfPresent(formData, "city", d.city);
-  appendIfPresent(formData, "state", d.state);
+  appendLocationIds(formData, d.city, d.state);
   appendIfPresent(formData, "pincode", d.pincode);
   appendFile(formData, "profile_image", d.profileImageFile);
   appendFile(formData, "company_logo", d.companyLogoFile);

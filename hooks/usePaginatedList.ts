@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiPagination, PaginatedResult } from "@/types/catalog";
+import { formatApiErrorMessage } from "@/utils/apiErrors";
 
 const EMPTY_PAGINATION: ApiPagination = { total: 0, page: 1, limit: 10, totalPages: 0 };
 
 function getErrorMessage(err: unknown): string {
-  if (err instanceof Error && err.message) return err.message;
-  if (err && typeof err === "object" && "message" in err) {
-    const message = (err as { message?: unknown }).message;
-    if (typeof message === "string" && message.trim()) return message;
-  }
-  return "Failed to load data";
+  return formatApiErrorMessage(err, "Failed to load data");
 }
 
 interface UsePaginatedListOptions<T> {

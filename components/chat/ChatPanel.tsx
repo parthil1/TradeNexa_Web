@@ -37,10 +37,8 @@ export interface ChatPanelProps {
   /** RFQ path — buyer needs sellerId when creating. */
   rfqId?: number | null;
   role: ChatRole;
-  rfqTitle?: string | null;
+  /** RFQ status badge in the chat header (optional). */
   rfqStatus?: string | null;
-  /** Context chip title (product / inquiry / RFQ). */
-  contextTitle?: string | null;
   /** Buyer must pass seller_id to create an RFQ conversation */
   sellerId?: number | null;
   otherPartyName?: string | null;
@@ -52,6 +50,8 @@ export interface ChatPanelProps {
   className?: string;
   /** When true, omit outer border/shadow (parent card provides chrome) */
   embedded?: boolean;
+  /** Hide the counterparty avatar/name header (e.g. chats inbox already shows who is selected). */
+  hideHeader?: boolean;
 }
 
 const SENDER_GROUP_MS = 2 * 60 * 1000;
@@ -94,16 +94,14 @@ export default function ChatPanel({
   inquiryId = null,
   rfqId = null,
   role,
-  rfqTitle,
   rfqStatus,
-  contextTitle = null,
   sellerId,
   otherPartyName,
   quotations = [],
   productId,
-  productName: _productName,
   className = "",
   embedded = false,
+  hideHeader = false,
 }: ChatPanelProps) {
   const {
     socketStatus,
@@ -118,7 +116,6 @@ export default function ChatPanel({
     sendMedia,
     markRead,
     upsertConversationMeta,
-    conversationsMeta,
   } = useChat();
 
   const [bootLoading, setBootLoading] = useState(true);
@@ -582,51 +579,40 @@ export default function ChatPanel({
   const composerDisabled = !canCompose;
   const errorCopy = humanizeChatBootError(bootError ?? "", missingSellerId);
 
-  const metaConversation = conversationId ? conversationsMeta[conversationId] : null;
-  const subtitle =
-    contextTitle?.trim() ||
-    metaConversation?.last_context?.title?.trim() ||
-    rfqTitle?.trim() ||
-    (_productName?.trim() ? _productName.trim() : null) ||
-    (rfqId != null && rfqId > 0 ? `RFQ #${rfqId}` : null) ||
-    (inquiryId != null && inquiryId > 0 ? `Inquiry #${inquiryId}` : null) ||
-    "Chat";
-  const subtitlePrefix =
-    metaConversation?.last_context?.type === "rfq" || rfqTitle
-      ? "RFQ"
-      : metaConversation?.last_context?.type === "product" ||
-          metaConversation?.last_context?.type === "enquiry" ||
-          inquiryId
-        ? "Product"
-        : null;
-
   return (
     <section className={shellClass}>
-      <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="relative shrink-0">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-base font-bold text-primary">
-              {getInitials(headerName)}
+      {hideHeader ? (
+        disconnected && !chatUnavailable ? (
+          <div className="border-b border-border px-4 py-2">
+            <span className="inline-flex items-center rounded-full border border-warning/25 bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning">
+              Reconnecting...
             </span>
           </div>
-          <div className="min-w-0 pt-0.5">
-            <h3 className="truncate text-sm font-bold text-foreground">{headerName}</h3>
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-              <p className="truncate text-xs text-muted-fg">
-                {subtitlePrefix ? `${subtitlePrefix} · ${subtitle}` : subtitle}
-              </p>
+        ) : null
+      ) : (
+        <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="relative shrink-0">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-base font-bold text-primary">
+                {getInitials(headerName)}
+              </span>
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <h3 className="truncate text-sm font-bold text-foreground">{headerName}</h3>
               {disconnected && !chatUnavailable ? (
-                <span className="inline-flex items-center rounded-full border border-warning/25 bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning">
-                  Reconnecting...
-                </span>
+                <div className="mt-0.5">
+                  <span className="inline-flex items-center rounded-full border border-warning/25 bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning">
+                    Reconnecting...
+                  </span>
+                </div>
               ) : null}
             </div>
           </div>
-        </div>
-        {rfqStatus ? (
-          <RfqStatusBadge status={rfqStatus} className="shrink-0 px-3 py-1.5 text-[11px]" />
-        ) : null}
-      </header>
+          {rfqStatus ? (
+            <RfqStatusBadge status={rfqStatus} className="shrink-0 px-3 py-1.5 text-[11px]" />
+          ) : null}
+        </header>
+      )}
 
       <div
         ref={listRef}

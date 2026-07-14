@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { formatApiErrorMessage } from "@/utils/apiErrors";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 
 export interface AsyncOperationState<T> {
@@ -24,12 +25,7 @@ interface RunApiActionOptions<T> {
 }
 
 export function getErrorMessage(err: unknown, fallback: string): string {
-  if (err && typeof err === "object" && "message" in err) {
-    const message = (err as { message?: string }).message;
-    if (message) return message;
-  }
-  if (err instanceof Error && err.message) return err.message;
-  return fallback;
+  return formatApiErrorMessage(err, fallback);
 }
 
 /** Shared try/catch wrapper for auth API actions */

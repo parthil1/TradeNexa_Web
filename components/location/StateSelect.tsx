@@ -114,8 +114,14 @@ export default function StateSelect({
       label: state.name,
     }));
 
-    if (value && selectedLabel && !items.some((item) => item.value === value)) {
-      items.unshift({ value, label: selectedLabel });
+    if (value) {
+      const alreadyListed = items.some((item) => item.value === value);
+      if (!alreadyListed) {
+        items.unshift({
+          value,
+          label: selectedLabel?.trim() || `State #${value}`,
+        });
+      }
     }
 
     return [{ value: "", label: emptyLabel }, ...items];

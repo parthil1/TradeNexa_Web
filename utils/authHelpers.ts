@@ -26,8 +26,12 @@ export function extractCountryCode(mobileNumber: string): string {
 export interface ApiAddress {
   address_line_1?: string | null;
   address_line_2?: string | null;
+  city?: string | null;
   state?: string | null;
+  state_id?: number | string | null;
+  city_id?: number | string | null;
   country?: string | null;
+  country_id?: number | string | null;
   pincode?: string | null;
 }
 
@@ -44,6 +48,8 @@ export interface ApiUserProfile {
   is_completed_profile?: boolean | number | null;
   address?: ApiAddress | string | null;
   city?: string | null;
+  city_id?: number | string | null;
+  state_id?: number | string | null;
   seller_id?: number | null;
   seller?: { id?: number | null } | null;
   industry?: string | null;
@@ -123,12 +129,31 @@ export function mapApiProfileToUser(profile: ApiUserProfile): User {
       addressObj?.address_line_1 ??
         (typeof profile.address === "string" ? profile.address : "")
     ),
-    city: String(profile.city ?? ""),
+    city: String(addressObj?.city ?? profile.city ?? ""),
     state: String(addressObj?.state ?? ""),
     pincode: String(addressObj?.pincode ?? ""),
     role: parseUserRole(profile.role, profile.role_id),
     phone: extractPhoneFromMobile(mobile),
     country_code: extractCountryCode(mobile),
+  };
+}
+
+export function getProfileLocationIds(profile: ApiUserProfile): {
+  stateId: string;
+  cityId: string;
+} {
+  const addressObj =
+    profile.address && typeof profile.address === "object" ? profile.address : null;
+
+  // GET /auth/profile nests location ids under `address` (state_id / city_id).
+  const stateId =
+    parsePositiveId(addressObj?.state_id) ?? parsePositiveId(profile.state_id);
+  const cityId =
+    parsePositiveId(addressObj?.city_id) ?? parsePositiveId(profile.city_id);
+
+  return {
+    stateId: stateId != null ? String(stateId) : "",
+    cityId: cityId != null ? String(cityId) : "",
   };
 }
 
@@ -144,13 +169,14 @@ export function mapProfileToCompleteProfileForm(profile: ApiUserProfile): Comple
       addressObj?.address_line_1 ??
         (typeof profile.address === "string" ? profile.address : "")
     ),
-    city: String(profile.city ?? ""),
+    // Location names also live under `address` in GET /auth/profile.
+    city: String(addressObj?.city ?? profile.city ?? ""),
     state: String(addressObj?.state ?? ""),
     pincode: String(addressObj?.pincode ?? ""),
     country: String(addressObj?.country ?? "India"),
     panNumber: String(profile.pan_number ?? ""),
-    cinNumber: String(profile.cin_number ?? ""),
-    iecNumber: String(profile.iec_number ?? ""),
+    cinNumber: String(profile.cin_number ?? (profile as { cin?: string | null }).cin ?? ""),
+    iecNumber: String(profile.iec_number ?? (profile as { iec?: string | null }).iec ?? ""),
     businessDescription: String(profile.business_description ?? ""),
     profileImageFile: null,
     companyLogoFile: null,

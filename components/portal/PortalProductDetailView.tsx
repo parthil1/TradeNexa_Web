@@ -941,7 +941,6 @@ export default function PortalProductDetailView({
         role="buyer"
         inquiryId={chatInquiryId}
         conversationId={chatConversationId}
-        contextTitle={basic.name}
         productId={product.id}
         productName={basic.name}
         otherPartyName={product.seller?.company?.name}

@@ -38,22 +38,6 @@ function previewText(conversation: ApiChatConversation): string {
   return "No messages yet";
 }
 
-function contextLabel(conversation: ApiChatConversation): string | null {
-  const title = conversation.last_context?.title?.trim();
-  const type = (conversation.last_context?.type ?? "").toLowerCase();
-  if (title) {
-    if (type === "rfq") return `RFQ · ${title}`;
-    if (type === "product" || type === "enquiry" || type === "inquiry") {
-      return `Product · ${title}`;
-    }
-    return title;
-  }
-  if (conversation.rfq_title?.trim()) return `RFQ · ${conversation.rfq_title.trim()}`;
-  if (conversation.rfq_id) return `RFQ #${conversation.rfq_id}`;
-  if (conversation.inquiry_id) return `Inquiry #${conversation.inquiry_id}`;
-  return null;
-}
-
 function formatWhen(value?: string | null): string {
   if (!value) return "";
   const date = new Date(value);
@@ -90,14 +74,17 @@ function counterpartyName(conversation: ApiChatConversation, role: ChatRole): st
 }
 
 const PAGE_SIZE = 30;
+const ROW_INDICATOR_LAYOUT_ID = "chats-inbox-row-indicator";
 
 interface ChatsInboxProps {
   role: ChatRole;
 }
 
 export default function ChatsInbox({ role }: ChatsInboxProps) {
-  const { syncConversationsUnread, upsertConversationMeta, conversationsMeta } = useChat();
+  const { syncConversationsUnread, upsertConversationMeta, conversationsMeta, unreadSummary } =
+    useChat();
   const chatRole = role;
+  const isSeller = chatRole === "seller";
 
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -139,6 +126,12 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
     });
   }, [items, conversationsMeta]);
 
+  const totalUnread = useMemo(() => {
+    const roleScoped = isSeller ? unreadSummary.as_seller : unreadSummary.as_buyer;
+    if (typeof roleScoped === "number") return roleScoped;
+    return rows.reduce((sum, c) => sum + effectiveConversationUnread(c), 0);
+  }, [isSeller, unreadSummary.as_buyer, unreadSummary.as_seller, rows]);
+
   useEffect(() => {
     if (!selected?.id) return;
     const live = conversationsMeta[selected.id];
@@ -164,33 +157,43 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem-4.5rem-env(safe-area-inset-bottom))] flex-col overflow-hidden bg-portal-bg lg:-mb-6 lg:h-[calc(100dvh-3.5rem-1.5rem)]">
-      <div className="mx-auto flex h-full w-full max-w-7xl flex-1 overflow-hidden border-border bg-card shadow-[var(--shadow-card)] sm:rounded-xl sm:border lg:mx-4 lg:my-0 xl:mx-auto">
+      <div className="mx-auto flex h-full w-full max-w-7xl flex-1 overflow-hidden border-border bg-card shadow-[var(--shadow-soft)] sm:rounded-2xl sm:border lg:mx-4 lg:my-0 xl:mx-auto">
         {/* Conversation list */}
         <aside
           className={`flex h-full w-full flex-col border-r border-border bg-card md:max-w-[360px] lg:max-w-[400px] ${
             showThreadMobile ? "hidden md:flex" : "flex"
           }`}
         >
-          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3.5">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-placeholder">
-                Messaging
-              </p>
-              <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">
-                Chats
-              </h1>
-              <p className="truncate text-xs text-muted-fg">
-                {chatRole === "buyer" ? "Sellers & suppliers" : "Buyers & leads"}
-              </p>
+          <header className="shrink-0 border-b border-border px-4 pb-3 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate text-[17px] font-semibold tracking-tight text-foreground">
+                    Chats
+                  </h1>
+                  {totalUnread > 0 ? (
+                    <span className="inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-md bg-primary px-1.5 text-[11px] font-bold leading-none text-white">
+                      {formatChatBadgeCount(totalUnread)}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="truncate text-xs text-muted-fg">
+                  {isSeller ? "Buyers & leads" : "Sellers & suppliers"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSearchOpen((v) => !v)}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                  searchOpen
+                    ? "border-primary/30 bg-primary-soft text-primary"
+                    : "border-border text-muted-fg hover:border-primary/30 hover:bg-primary-soft hover:text-primary"
+                }`}
+                aria-label={searchOpen ? "Close search" : "Search chats"}
+              >
+                {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setSearchOpen((v) => !v)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-fg transition-colors hover:border-primary/30 hover:bg-primary-soft hover:text-primary"
-              aria-label={searchOpen ? "Close search" : "Search chats"}
-            >
-              {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
-            </button>
           </header>
 
           <AnimatePresence initial={false}>
@@ -199,16 +202,17 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="shrink-0 overflow-hidden border-b border-border bg-muted px-3 py-2.5"
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="shrink-0 overflow-hidden border-b border-border bg-card px-4 pb-3"
               >
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-fg" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-placeholder" />
                   <input
                     autoFocus
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search by name or company…"
-                    className="input-base !pl-10"
+                    className="input-base !rounded-lg !bg-muted !pl-10"
                   />
                 </div>
               </motion.div>
@@ -249,37 +253,43 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                   const when = formatWhen(
                     conversation.last_message_at ?? conversation.updated_at
                   );
-                  const context = contextLabel(conversation);
                   const preview = previewText(conversation);
                   const active = selected?.id === conversation.id;
 
                   return (
                     <li key={conversation.id}>
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => selectConversation(conversation)}
-                        className={`flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors ${
-                          active
-                            ? "bg-primary-soft/70"
-                            : "hover:bg-muted"
+                        whileTap={{ scale: 0.985 }}
+                        transition={{ duration: 0.12 }}
+                        className={`relative flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                          active ? "bg-primary-soft/60" : "hover:bg-muted/70"
                         }`}
                       >
-                        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
+                        {active ? (
+                          <motion.span
+                            layoutId={ROW_INDICATOR_LAYOUT_ID}
+                            className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-primary"
+                            transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                          />
+                        ) : null}
+                        <span
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                            isSeller
+                              ? "bg-portal-seller-light text-portal-seller"
+                              : "bg-primary-soft text-primary"
+                          }`}
+                        >
                           {getInitials(name)}
-                          {unread > 0 ? (
-                            <ConversationBadge
-                              count={unread}
-                              className="absolute -right-0.5 -top-0.5"
-                            />
-                          ) : null}
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-2">
                             <span
                               className={`truncate text-sm ${
                                 unread > 0
-                                  ? "font-bold text-foreground"
-                                  : "font-semibold text-foreground"
+                                  ? "font-semibold text-foreground"
+                                  : "font-medium text-foreground"
                               }`}
                             >
                               {name}
@@ -287,38 +297,27 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                             {when ? (
                               <span
                                 className={`shrink-0 text-[11px] ${
-                                  unread > 0
-                                    ? "font-semibold text-primary"
-                                    : "text-muted-fg"
+                                  unread > 0 ? "font-semibold text-primary" : "text-muted-fg"
                                 }`}
                               >
                                 {when}
                               </span>
                             ) : null}
                           </span>
-                          {context ? (
-                            <span className="mt-0.5 block truncate text-[11px] font-medium text-primary">
-                              {context}
-                            </span>
-                          ) : null}
                           <span className="mt-0.5 flex items-center gap-2">
                             <span
                               className={`min-w-0 flex-1 truncate text-xs ${
-                                unread > 0
-                                  ? "font-semibold text-foreground"
-                                  : "text-muted-fg"
+                                unread > 0 ? "text-foreground" : "text-muted-fg"
                               }`}
                             >
                               {preview}
                             </span>
                             {unread > 0 ? (
-                              <span className="shrink-0 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                                {formatChatBadgeCount(unread)}
-                              </span>
+                              <ConversationBadge count={unread} size="md" className="shrink-0" />
                             ) : null}
                           </span>
                         </span>
-                      </button>
+                      </motion.button>
                     </li>
                   );
                 })}
@@ -335,21 +334,30 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
 
         {/* Thread pane */}
         <section
-          className={`relative h-full min-w-0 flex-1 flex-col bg-muted ${
+          className={`relative h-full min-w-0 flex-1 flex-col bg-portal-bg ${
             showThreadMobile ? "flex" : "hidden md:flex"
           }`}
         >
           {selected ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-2 py-2 md:hidden">
+              <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 md:hidden">
                 <button
                   type="button"
                   onClick={closeThread}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-fg transition hover:border-primary/30 hover:bg-primary-soft hover:text-primary"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-fg transition-colors hover:bg-muted hover:text-primary"
                   aria-label="Back to chats"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    isSeller
+                      ? "bg-portal-seller-light text-portal-seller"
+                      : "bg-primary-soft text-primary"
+                  }`}
+                >
+                  {getInitials(counterpartyName(selected, chatRole))}
+                </span>
                 <span className="truncate text-sm font-semibold text-foreground">
                   {counterpartyName(selected, chatRole)}
                 </span>
@@ -358,12 +366,10 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                 <ChatPanel
                   key={selected.id}
                   embedded
+                  hideHeader
                   className="!h-full"
                   role={chatRole}
                   conversationId={selected.id}
-                  contextTitle={
-                    selected.last_context?.title || selected.rfq_title || null
-                  }
                   otherPartyName={counterpartyName(selected, chatRole)}
                   rfqId={selected.rfq_id ?? null}
                   inquiryId={selected.inquiry_id ?? null}
@@ -372,21 +378,27 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
             </div>
           ) : (
             <motion.div
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex h-full flex-col items-center justify-center bg-card px-8 text-center"
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-card px-8 text-center"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-                <MessageCircle className="h-8 w-8" strokeWidth={1.5} />
+              <div aria-hidden className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-primary-soft/60 blur-3xl" />
+                <div className="absolute -right-16 bottom-[-6rem] h-80 w-80 rounded-full bg-navy/5 blur-3xl" />
               </div>
-              <h2 className="mt-5 text-xl font-semibold tracking-tight text-foreground">
-                Your conversations
-              </h2>
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-fg">
-                Select a chat to continue messaging. Product inquiries and RFQ discussions share
-                one thread per buyer–seller pair.
-              </p>
+              <div className="relative flex flex-col items-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                  <MessageCircle className="h-8 w-8" strokeWidth={1.5} />
+                </div>
+                <h2 className="mt-5 text-xl font-semibold tracking-tight text-foreground">
+                  Your conversations
+                </h2>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-fg">
+                  Select a chat to continue messaging. Product inquiries and RFQ discussions
+                  share one thread per buyer–seller pair.
+                </p>
+              </div>
             </motion.div>
           )}
         </section>
