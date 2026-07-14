@@ -125,7 +125,7 @@ export default function SellerQuotationsPage() {
         />
       ) : (
         <>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {items.map((quotation) => {
               const revisionPending = isQuotationRevisionPending(
                 quotation,

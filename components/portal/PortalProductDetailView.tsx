@@ -53,13 +53,11 @@ import PortalSection from "@/components/portal/PortalSection";
 import PortalStatCard from "@/components/portal/PortalStatCard";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import ProductApprovalBadge from "@/components/seller/ProductApprovalBadge";
-import SubmitProductForReviewButton from "@/components/seller/SubmitProductForReviewButton";
 import { useWishlist } from "@/hooks/useWishlist";
 import { showErrorToast } from "@/utils/toast";
 import {
   approvalStatusHint,
   canSellerEditProduct,
-  canSellerSubmitForReview,
 } from "@/utils/productApprovalHelpers";
 import {
   PORTAL_PRODUCT_LINKS,
@@ -360,13 +358,6 @@ export default function PortalProductDetailView({
   const router = useRouter();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const [descExpanded, setDescExpanded] = useState(false);
-  const [localApprovalStatus, setLocalApprovalStatus] = useState(
-    product.approval_status ?? null
-  );
-
-  useEffect(() => {
-    setLocalApprovalStatus(product.approval_status ?? null);
-  }, [product.approval_status]);
 
   const { basic_details: basic, pricing, marketplace, ratings, user_actions } = product;
   const hasWishlistAction = user_actions?.is_favourite != null;
@@ -421,10 +412,8 @@ export default function PortalProductDetailView({
   const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
   const isSellerView = Boolean(links.editProduct);
   const approvalStatus = product.approval_status ?? null;
-  const displayApprovalStatus = localApprovalStatus ?? approvalStatus;
-  const displayCanEdit = canSellerEditProduct(displayApprovalStatus);
-  const displayCanSubmit = canSellerSubmitForReview(displayApprovalStatus);
-  const displayApprovalHint = approvalStatusHint(displayApprovalStatus);
+  const displayCanEdit = canSellerEditProduct(approvalStatus);
+  const displayApprovalHint = approvalStatusHint(approvalStatus);
 
   const thirdStatTitle = basic.brand ? "Brand" : basic.subcategory ? "Type" : "Quality";
   const thirdStatValue = basic.brand?.name ?? basic.subcategory?.name ?? "Standard";
@@ -487,8 +476,8 @@ export default function PortalProductDetailView({
           </h2>
 
           <div className={`flex flex-wrap items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"}`}>
-            {isSellerView && displayApprovalStatus ? (
-              <ProductApprovalBadge status={displayApprovalStatus} />
+            {isSellerView && approvalStatus ? (
+              <ProductApprovalBadge status={approvalStatus} />
             ) : null}
             {ratings.average > 0 ? (
               <span className="inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
@@ -535,13 +524,6 @@ export default function PortalProductDetailView({
               Edit
             </Link>
           ) : null}
-          {displayCanSubmit ? (
-            <SubmitProductForReviewButton
-              productId={product.id}
-              onSubmitted={(status) => setLocalApprovalStatus(status)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-white transition hover:bg-primary/90"
-            />
-          ) : null}
           {links.editProduct ? (
             <DeleteProductButton
               productId={product.id}
@@ -564,20 +546,20 @@ export default function PortalProductDetailView({
         </div>
       </motion.div>
 
-      {isSellerView && displayApprovalStatus ? (
+      {isSellerView && approvalStatus ? (
         <div
           className={`mb-4 rounded-xl border px-4 py-3 ${
-            displayApprovalStatus === "rejected"
+            approvalStatus === "rejected"
               ? "border-error/20 bg-error-soft"
-              : displayApprovalStatus === "revision_required"
+              : approvalStatus === "revision_required"
                 ? "border-warning/25 bg-warning-soft"
-                : displayApprovalStatus === "approved"
+                : approvalStatus === "approved"
                   ? "border-success/20 bg-success-soft"
                   : "border-warning/20 bg-warning-soft"
           }`}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <ProductApprovalBadge status={displayApprovalStatus} />
+            <ProductApprovalBadge status={approvalStatus} />
             {displayApprovalHint ? (
               <p className="text-sm text-foreground/80">{displayApprovalHint}</p>
             ) : null}

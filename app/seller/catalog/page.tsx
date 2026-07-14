@@ -19,6 +19,7 @@ import {
   SELLER_PRODUCT_APPROVAL_TABS,
   type SellerProductApprovalTab,
 } from "@/utils/productApprovalHelpers";
+import { portalFilterChipClass } from "@/components/portal/portalLayout";
 
 export default function SellerCatalogPage() {
   const links = sellerCatalogProductLinks();
@@ -57,20 +58,6 @@ export default function SellerCatalogPage() {
     setItems((prev) => prev.filter((item) => item.id !== productId));
   }
 
-  function handleApprovalUpdated(
-    productId: number,
-    approvalStatus: NonNullable<(typeof products)[number]["approval_status"]>
-  ) {
-    const matchesTab =
-      activeTab === "all" || approvalTabToApiStatus(activeTab) === approvalStatus;
-    setItems((prev) => {
-      if (!matchesTab) return prev.filter((item) => item.id !== productId);
-      return prev.map((item) =>
-        item.id === productId ? { ...item, approval_status: approvalStatus } : item
-      );
-    });
-  }
-
   const hasSearch = debouncedSearch.trim().length > 0;
   const tabLabel = formatApprovalStatusTabLabel(activeTab).toLowerCase();
 
@@ -95,11 +82,7 @@ export default function SellerCatalogPage() {
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`shrink-0 cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 ${
-              activeTab === tab
-                ? "bg-primary text-white"
-                : "bg-card text-muted-fg ring-1 ring-border hover:ring-primary/30"
-            }`}
+            className={portalFilterChipClass(activeTab === tab)}
           >
             {formatApprovalStatusTabLabel(tab)}
           </button>
@@ -180,7 +163,6 @@ export default function SellerCatalogPage() {
                 showWishlist={false}
                 showApprovalStatus
                 onDeleted={() => handleProductDeleted(p.id)}
-                onApprovalUpdated={(status) => handleApprovalUpdated(p.id, status)}
               />
             ))}
           </div>

@@ -104,10 +104,6 @@ export function canSellerEditProduct(status?: string | null): boolean {
   return parseApprovalStatus(status) !== "rejected";
 }
 
-export function canSellerSubmitForReview(status?: string | null): boolean {
-  return parseApprovalStatus(status) === "revision_required";
-}
-
 export function approvalTabToApiStatus(
   tab: SellerProductApprovalTab
 ): ProductApprovalStatus | undefined {
@@ -119,7 +115,7 @@ export function approvalStatusHint(status?: string | null): string | null {
     case "in_review":
       return "Waiting for admin moderation. Buyers cannot see this listing yet.";
     case "revision_required":
-      return "Admin requested changes. Edit the product, then submit for review.";
+      return "Admin requested changes. Edit and save the product to continue.";
     case "approved":
       return "Live for buyers when Active. Material edits will send it back to review.";
     case "rejected":

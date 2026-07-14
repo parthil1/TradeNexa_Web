@@ -13,7 +13,7 @@ import ProductWizardStepper from "@/components/seller/ProductWizardStepper";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import { fetchCategories, fetchSubcategories, fetchProductById } from "@/services/catalogService";
 import { fetchBrandsPage } from "@/services/brandsService";
-import { createProduct, deleteProductMedia, submitProductForReview, updateProduct } from "@/services/productService";
+import { createProduct, deleteProductMedia, updateProduct } from "@/services/productService";
 import { fetchSellerId } from "@/services/profileService";
 import { useAuth } from "@/hooks/useAuth";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
@@ -891,15 +891,14 @@ export default function AddProductForm({ productId }: { productId?: number } = {
           ? await updateProduct(productId, payload)
           : await createProduct(payload);
 
-      if (isEditMode && productId && approvalStatus === "revision_required") {
-        await submitProductForReview(productId);
-        showSuccessToast("Changes saved and submitted for review");
-      } else if (isEditMode) {
+      if (isEditMode) {
         showSuccessToast(
-          "Product updated. Material changes may require re-approval before buyers see them."
+          approvalStatus === "revision_required"
+            ? "Changes saved."
+            : "Product updated. Material changes may require re-approval before buyers see them."
         );
       } else {
-        showSuccessToast("Product submitted for review. It will appear to buyers after approval.");
+        showSuccessToast("Product created. It will appear to buyers after approval.");
       }
 
       router.push(
@@ -991,7 +990,7 @@ export default function AddProductForm({ productId }: { productId?: number } = {
             <ProductApprovalBadge status={approvalStatus} />
             <p className="text-sm text-muted-fg">
               {approvalStatus === "revision_required"
-                ? "Save your changes to automatically resubmit for review."
+                ? "Save your changes after making the requested edits."
                 : approvalStatusHint(approvalStatus)}
             </p>
           </div>

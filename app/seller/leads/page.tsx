@@ -24,6 +24,7 @@ import {
   rfqTabToApiStatus,
   SELLER_RFQ_STATUS_TABS,
 } from "@/utils/rfqHelpers";
+import { portalFilterChipClass } from "@/components/portal/portalLayout";
 
 const tabs = SELLER_RFQ_STATUS_TABS;
 
@@ -111,11 +112,7 @@ export default function SellerLeadsPage() {
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`shrink-0 cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 ${
-                  activeTab === tab
-                    ? "bg-primary text-white"
-                    : "bg-card text-muted-fg ring-1 ring-border hover:ring-primary/30"
-                }`}
+                className={portalFilterChipClass(activeTab === tab)}
               >
                 {formatRfqStatusTabLabel(tab)}
               </button>

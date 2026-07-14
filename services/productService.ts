@@ -9,7 +9,6 @@ import type {
   ApiCreatedProduct,
   ApiProductReview,
   CreateProductFormData,
-  ProductApprovalStatus,
   ProductReviewAction,
 } from "@/types/product";
 
@@ -55,23 +54,6 @@ export async function deleteProductMedia(
     data: body,
   });
   unwrapApiPayload(response.data);
-}
-
-export interface SubmitProductResult {
-  id: number;
-  approval_status: ProductApprovalStatus | null;
-  review_version?: number | null;
-}
-
-/** POST /api/v1/products/:id/submit — resubmit after revision_required */
-export async function submitProductForReview(productId: number): Promise<SubmitProductResult> {
-  const response = await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${productId}/submit`);
-  const payload = unwrapApiPayload<Partial<SubmitProductResult>>(response.data);
-  return {
-    id: payload?.id ?? productId,
-    approval_status: parseApprovalStatus(payload?.approval_status) ?? "in_review",
-    review_version: payload?.review_version ?? null,
-  };
 }
 
 function normalizeProductReview(raw: unknown): ApiProductReview | null {

@@ -96,17 +96,15 @@ export default function QuotationCard({
 
   return (
     <article
-      className={`rounded-xl border p-4 ${
+      className={`rounded-xl border p-4 sm:p-5 ${
         disabled
           ? "pointer-events-none border-border bg-muted opacity-50"
           : inactive
             ? "border-border bg-muted opacity-80"
-            : "border-border bg-card"
-      } ${
-        isClickable && !disabled
-          ? "cursor-pointer transition hover:border-primary/35"
-          : ""
-      }`}
+            : isClickable
+              ? "surface-card-hover"
+              : "border-border bg-card"
+      } ${isClickable && !disabled ? "cursor-pointer" : ""}`}
       onClick={isClickable && !disabled ? handleCardActivate : undefined}
       onKeyDown={
         isClickable && !disabled
@@ -127,7 +125,7 @@ export default function QuotationCard({
         <div className="min-w-0">
           {showProductName ? (
             <p
-              className={`truncate text-base font-semibold sm:text-lg ${
+              className={`truncate text-base font-semibold ${
                 inactive ? "text-muted-fg" : "text-foreground"
               }`}
             >
@@ -136,14 +134,14 @@ export default function QuotationCard({
           ) : showSellerInfo ? (
             <>
               <p
-                className={`truncate text-base font-semibold sm:text-lg ${
+                className={`truncate text-base font-semibold ${
                   inactive ? "text-muted-fg" : "text-foreground"
                 }`}
               >
                 {sellerPrimary}
               </p>
               {sellerSecondary ? (
-                <p className="mt-0.5 truncate text-xs font-medium text-muted-fg">
+                <p className="mt-0.5 truncate text-xs text-muted-fg">
                   Contact: {sellerSecondary}
                 </p>
               ) : null}
@@ -166,7 +164,7 @@ export default function QuotationCard({
                   ? `${chatLabel}, ${chatUnread} unread`
                   : chatLabel
               }
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-primary transition hover:border-primary/40 hover:bg-primary-soft"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-fg transition-colors duration-200 hover:border-primary/30 hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
             >
               <MessageSquare className="h-4 w-4" />
               {chatUnread > 0 ? (
@@ -184,15 +182,15 @@ export default function QuotationCard({
 
       {totals ? (
         <div
-          className={`mt-4 rounded-xl px-4 py-3 ${
-            inactive ? "bg-muted" : "bg-primary-soft/60"
+          className={`mt-3.5 rounded-lg border px-4 py-3 ${
+            inactive ? "border-border bg-muted" : "border-primary/15 bg-primary-soft/50"
           }`}
         >
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">Estimated total</p>
-          <p className={`mt-0.5 text-xl font-semibold ${inactive ? "text-muted-fg" : "text-primary"}`}>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-fg">Estimated total</p>
+          <p className={`mt-1 text-xl font-semibold leading-none ${inactive ? "text-muted-fg" : "text-primary"}`}>
             {formatPrice(totals.total, quotation.currency)}
           </p>
-          <p className="mt-1 text-xs text-muted-fg">
+          <p className="mt-1.5 text-xs text-muted-fg">
             {quotation.price != null && quotation.quantity != null
               ? `${formatPrice(quotation.price, quotation.currency)} × ${quotation.quantity} ${quotation.unit ?? ""}`.trim()
               : null}
@@ -204,27 +202,27 @@ export default function QuotationCard({
         </div>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">Unit price</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">Unit price</p>
           <p className={`mt-0.5 text-sm font-semibold ${inactive ? "text-muted-fg" : "text-foreground"}`}>
             {quotation.price != null ? formatPrice(quotation.price, quotation.currency) : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">Quantity</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">Quantity</p>
           <p className="mt-0.5 text-sm font-semibold text-foreground">
             {quotation.quantity ?? "—"} {quotation.unit ?? ""}
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">Delivery</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">Delivery</p>
           <p className="mt-0.5 text-sm font-semibold text-foreground">
             {quotation.delivery_days != null ? `${quotation.delivery_days} days` : "—"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">GST</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">GST</p>
           <p className="mt-0.5 text-sm font-semibold text-foreground">
             {quotation.gst_percentage != null ? `${quotation.gst_percentage}%` : "—"}
           </p>
@@ -232,52 +230,60 @@ export default function QuotationCard({
       </div>
 
       {buyerRevisionRemarks ? (
-        <div className="mt-4 rounded-xl border border-warning/25 bg-warning-soft px-3 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-warning">
+        <div className="mt-3.5 rounded-lg border border-warning/25 bg-warning-soft px-3.5 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-warning">
             Buyer&apos;s revision request
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-fg">{buyerRevisionRemarks}</p>
         </div>
       ) : null}
 
-      {quotation.payment_terms ? (
-        <p className="mt-3 text-xs text-muted-fg">
-          <span className="font-bold text-foreground">Payment:</span> {quotation.payment_terms}
-        </p>
-      ) : null}
-
-      {quotation.remarks && !(revisionPending && buyerRevisionRemarks) ? (
-        <div className="mt-3" onClick={stopCardNav} onKeyDown={stopCardNav}>
+      <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border pt-3 text-xs text-muted-fg">
+        {quotation.payment_terms ? (
+          <span>
+            <span className="font-semibold text-foreground">Payment:</span> {quotation.payment_terms}
+          </span>
+        ) : null}
+        {quotation.remarks && !(revisionPending && buyerRevisionRemarks) ? (
           <button
             type="button"
-            onClick={() => setShowRemarks((v) => !v)}
-            className="cursor-pointer text-xs font-semibold text-primary"
+            onClick={(event) => {
+              stopCardNav(event);
+              setShowRemarks((v) => !v);
+            }}
+            className="cursor-pointer font-semibold text-primary hover:text-primary-hover"
           >
             {showRemarks ? "Hide remarks" : "View remarks"}
           </button>
-          {showRemarks ? (
-            <p className="mt-1 text-sm text-muted-fg">{quotation.remarks}</p>
-          ) : null}
-        </div>
+        ) : null}
+        <span className="ml-auto shrink-0">Submitted {formatRfqDate(quotation.created_at)}</span>
+      </div>
+
+      {showRemarks && quotation.remarks && !(revisionPending && buyerRevisionRemarks) ? (
+        <p
+          className="mt-1.5 text-sm leading-relaxed text-muted-fg"
+          onClick={stopCardNav}
+          onKeyDown={stopCardNav}
+        >
+          {quotation.remarks}
+        </p>
       ) : null}
 
-      <p className="mt-3 text-xs text-muted-fg">Submitted {formatRfqDate(quotation.created_at)}</p>
-
       {sellerRevisionHint ? (
-        <p className="mt-4 rounded-xl border border-warning/20 bg-warning-soft/60 px-3 py-2.5 text-xs leading-relaxed text-muted-fg">
+        <p className="mt-3.5 rounded-lg border border-warning/20 bg-warning-soft/60 px-3.5 py-2.5 text-xs leading-relaxed text-muted-fg">
           {sellerRevisionHint}
         </p>
       ) : null}
 
       {statusHint ? (
-        <p className="mt-4 rounded-xl border border-border bg-card px-3 py-2.5 text-xs leading-relaxed text-muted-fg">
+        <p className="mt-3.5 rounded-lg border border-border bg-muted px-3.5 py-2.5 text-xs leading-relaxed text-muted-fg">
           {statusHint}
         </p>
       ) : null}
 
       {actions ? (
         <div
-          className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4"
+          className="mt-3.5 flex flex-wrap gap-2 border-t border-border pt-3.5"
           onClick={stopCardNav}
           onKeyDown={stopCardNav}
         >

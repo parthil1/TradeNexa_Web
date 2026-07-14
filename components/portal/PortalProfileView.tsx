@@ -233,35 +233,53 @@ export default function PortalProfileView({ variant, menuItems }: PortalProfileV
         <div className="lg:col-span-2">
           <PortalSection title="Account Details" subtitle="Your registered information">
             {accountDetails.length > 0 ? (
-              <div className="surface-card overflow-hidden">
+              <div className="surface-card grid grid-cols-1 overflow-hidden sm:grid-cols-2">
                 {accountDetails.map((row, index) => {
                   const Icon = row.icon;
+                  const total = accountDetails.length;
+                  const isLast = index === total - 1;
+                  const oddTotal = total % 2 === 1;
+                  const spanFullOnSm = isLast && oddTotal;
+                  const lastRowStart = oddTotal ? total - 1 : total - 2;
+                  const inLastRow = index >= lastRowStart;
+                  const showRightDividerOnSm = !spanFullOnSm && index % 2 === 0;
+
                   return (
                     <div
                       key={row.label}
-                      className={`grid gap-3 px-4 py-4 sm:grid-cols-[140px_1fr] sm:items-center sm:gap-6 sm:px-5 ${
-                        index < accountDetails.length - 1 ? "border-b border-border" : ""
-                      } ${index % 2 === 1 ? "bg-muted" : "bg-card"}`}
+                      className={[
+                        "flex items-start gap-3 border-border p-4 sm:p-5",
+                        !inLastRow ? "border-b" : "",
+                        showRightDividerOnSm ? "sm:border-r" : "",
+                        spanFullOnSm ? "sm:col-span-2" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft">
-                          <Icon className="h-4 w-4 text-primary" />
-                        </div>
-                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
-                          {row.label}
-                        </span>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                        <Icon className="h-5 w-5" />
                       </div>
-                      <p className="text-sm font-semibold text-foreground sm:text-base">{row.value}</p>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
+                          {row.label}
+                        </p>
+                        <p className="mt-1 break-words text-sm font-semibold text-foreground">
+                          {row.value}
+                        </p>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border bg-card px-5 py-8 text-center">
+              <div className="surface-card flex flex-col items-center gap-3 border-dashed px-6 py-10 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                  <UserIcon className="h-5 w-5" />
+                </div>
                 <p className="text-sm font-semibold text-muted-fg">No account details available yet.</p>
                 <Link
                   href={theme.editHref}
-                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary"
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition hover:text-primary-hover"
                 >
                   Complete your profile
                   <ArrowRight className="h-4 w-4" />
