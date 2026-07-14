@@ -1,12 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Inbox, Loader2, MessageSquare } from "lucide-react";
-import ConversationBadge, {
-  formatChatBadgeCount,
-  useChatUnreadBadge,
-} from "@/components/chat/ConversationBadge";
 import { Button } from "@/components/common/Button";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import PortalEmptyState from "@/components/portal/PortalEmptyState";
@@ -14,7 +10,6 @@ import PortalPagination from "@/components/portal/PortalPagination";
 import RfqListCard from "@/components/rfq/RfqListCard";
 import RfqListSidebar from "@/components/rfq/RfqListSidebar";
 import RfqListToolbar from "@/components/rfq/RfqListToolbar";
-import { useChat } from "@/context/ChatContext";
 import { fetchSellerRfqFeed } from "@/services/rfqService";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -34,12 +29,6 @@ export default function SellerLeadsPage() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
-  const unreadTotal = useChatUnreadBadge();
-  const { syncConversationsUnread } = useChat();
-
-  useEffect(() => {
-    void syncConversationsUnread();
-  }, [syncConversationsUnread]);
 
   const fetchPage = useCallback(
     (page: number) =>
@@ -78,10 +67,6 @@ export default function SellerLeadsPage() {
       : `No buyer requirements are currently ${tabLabel}.`;
 
   const showCatalogPrompt = !loading && pagination.total > 0 && pagination.total <= PAGE_SIZE;
-  const unreadLabel =
-    unreadTotal > 0
-      ? `${formatChatBadgeCount(unreadTotal)} unread message${unreadTotal === 1 ? "" : "s"}`
-      : null;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
@@ -195,30 +180,11 @@ export default function SellerLeadsPage() {
           action={
             <Link
               href="/seller/quotations"
-              aria-label={
-                unreadLabel ? `My Quotations, ${unreadLabel}` : "My Quotations"
-              }
+              aria-label="My Quotations"
               className="surface-card-hover flex cursor-pointer items-center justify-between gap-3 p-4 text-sm font-semibold text-muted-fg hover:text-primary"
             >
-              <span className="min-w-0">
-                <span className="block">My Quotations</span>
-                {unreadTotal > 0 ? (
-                  <span className="mt-0.5 block text-[11px] font-semibold text-whatsapp-dark">
-                    {formatChatBadgeCount(unreadTotal)} unread message
-                    {unreadTotal === 1 ? "" : "s"}
-                  </span>
-                ) : null}
-              </span>
-              <span className="relative shrink-0">
-                <MessageSquare className="h-4 w-4" />
-                {unreadTotal > 0 ? (
-                  <ConversationBadge
-                    count={unreadTotal}
-                    size="md"
-                    className="absolute -right-2.5 -top-2.5"
-                  />
-                ) : null}
-              </span>
+              <span>My Quotations</span>
+              <MessageSquare className="h-4 w-4 shrink-0" />
             </Link>
           }
         />

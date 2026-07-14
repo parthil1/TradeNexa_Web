@@ -54,7 +54,13 @@ import PortalStatCard from "@/components/portal/PortalStatCard";
 import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import ProductApprovalBadge from "@/components/seller/ProductApprovalBadge";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useAuth } from "@/hooks/useAuth";
 import { showErrorToast } from "@/utils/toast";
+import {
+  findMyInquiryForProduct,
+  getInquiryErrorMessage,
+} from "@/services/inquiryService";
+import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import {
   approvalStatusHint,
   canSellerEditProduct,
@@ -356,8 +362,13 @@ export default function PortalProductDetailView({
   compact = false,
 }: PortalProductDetailViewProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const [descExpanded, setDescExpanded] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInquiryId, setChatInquiryId] = useState<number | null>(null);
+  const [chatConversationId, setChatConversationId] = useState<number | null>(null);
+  const [openingChat, setOpeningChat] = useState(false);
 
   const { basic_details: basic, pricing, marketplace, ratings, user_actions } = product;
   const hasWishlistAction = user_actions?.is_favourite != null;
@@ -411,6 +422,12 @@ export default function PortalProductDetailView({
   const contactPhone = getSellerContactPhone(product);
   const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
   const isSellerView = Boolean(links.editProduct);
+  const acceptInquiry =
+    marketplace.accept_inquiry !== false && product.accept_inquiry !== false;
+  const canContactSeller = user_actions?.can_contact_seller !== false;
+  const inquiryAlreadySent = user_actions?.is_inquiry_sent === true;
+  const showInquiryCta =
+    !isSellerView && acceptInquiry && canContactSeller && links.product;
   const approvalStatus = product.approval_status ?? null;
   const displayCanEdit = canSellerEditProduct(approvalStatus);
   const displayApprovalHint = approvalStatusHint(approvalStatus);
@@ -430,6 +447,39 @@ export default function PortalProductDetailView({
       }
     } catch {
       showErrorToast("Could not share this product");
+    }
+  };
+
+  const goSendInquiry = () => {
+    if (!isAuthenticated) {
+      showErrorToast("Please sign in to send an inquiry.");
+      router.push("/");
+      return;
+    }
+    router.push(`/buyer/send-inquiry?product=${product.id}`);
+  };
+
+  const openExistingInquiryChat = async () => {
+    if (!isAuthenticated) {
+      showErrorToast("Please sign in to continue the conversation.");
+      router.push("/");
+      return;
+    }
+    setOpeningChat(true);
+    try {
+      const existing = await findMyInquiryForProduct(product.id);
+      if (!existing) {
+        showErrorToast("No inquiry found for this product yet.");
+        router.push(`/buyer/send-inquiry?product=${product.id}`);
+        return;
+      }
+      setChatInquiryId(existing.id);
+      setChatConversationId(existing.conversation_id ?? null);
+      setChatOpen(true);
+    } catch (err) {
+      showErrorToast(getInquiryErrorMessage(err, "Could not open inquiry chat"));
+    } finally {
+      setOpeningChat(false);
     }
   };
 
@@ -641,7 +691,41 @@ export default function PortalProductDetailView({
             />
           </div>
 
-          {contactPhone ? (
+          {showInquiryCta ? (
+            <div className="hidden lg:flex flex-wrap gap-2">
+              {inquiryAlreadySent ? (
+                <button
+                  type="button"
+                  onClick={() => void openExistingInquiryChat()}
+                  disabled={openingChat}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {openingChat ? "Opening…" : "Continue chat"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={goSendInquiry}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Send Inquiry
+                </button>
+              )}
+              {contactPhone ? (
+                <a
+                  href={whatsAppHref(contactPhone, inquiryMessage)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-success/20 bg-card px-6 py-3 text-sm font-semibold text-success transition hover:border-success/40 hover:bg-success-soft"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              ) : null}
+            </div>
+          ) : contactPhone ? (
             <div className="hidden lg:flex">
               <a
                 href={whatsAppHref(contactPhone, inquiryMessage)}
@@ -815,7 +899,28 @@ export default function PortalProductDetailView({
               <Heart className={`h-4 w-4 ${wishlisted ? "fill-error text-error" : ""}`} />
             </IconAction>
           ) : null}
-          {contactPhone ? (
+          {showInquiryCta ? (
+            inquiryAlreadySent ? (
+              <button
+                type="button"
+                onClick={() => void openExistingInquiryChat()}
+                disabled={openingChat}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-60"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {openingChat ? "Opening…" : "Continue chat"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={goSendInquiry}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Send Inquiry
+              </button>
+            )
+          ) : contactPhone ? (
             <a
               href={whatsAppHref(contactPhone, inquiryMessage)}
               target="_blank"
@@ -828,6 +933,19 @@ export default function PortalProductDetailView({
           ) : null}
         </div>
       </div>
+
+      <ChatSidePanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        title="Chat with Seller"
+        role="buyer"
+        inquiryId={chatInquiryId}
+        conversationId={chatConversationId}
+        contextTitle={basic.name}
+        productId={product.id}
+        productName={basic.name}
+        otherPartyName={product.seller?.company?.name}
+      />
     </div>
   );
 }

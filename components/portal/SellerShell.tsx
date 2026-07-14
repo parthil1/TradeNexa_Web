@@ -6,13 +6,13 @@ import { sellerNavItems } from "@/components/portal/portalNavConfig";
 import { useChatUnreadBadge } from "@/components/chat/ConversationBadge";
 
 export default function SellerShell({ children }: { children: React.ReactNode }) {
-  const unread = useChatUnreadBadge();
+  const chatUnread = useChatUnreadBadge();
   const navItems = useMemo(
     () =>
       sellerNavItems.map((item) =>
-        item.href === "/seller/leads" ? { ...item, badge: unread || undefined } : item
+        item.href === "/seller/chats" ? { ...item, badge: chatUnread || undefined } : item
       ),
-    [unread]
+    [chatUnread]
   );
 
   return (

@@ -24,4 +24,10 @@ export const API_ENDPOINTS = {
   CHATS_CONVERSATIONS: "/chats/conversations",
   CHATS_UNREAD_SUMMARY: "/chats/unread-summary",
   CHATS_RFQ_CONVERSATIONS: "/chats/rfqs",
+  CHATS_INQUIRY_CONVERSATIONS: "/chats/inquiries",
+  INQUIRIES: "/inquiries",
+  INQUIRIES_MY: "/inquiries/my",
+  INQUIRIES_SELLER: "/inquiries/seller",
+  INQUIRIES_SELLER_QUOTATIONS: "/inquiries/seller/quotations",
+  INQUIRIES_QUOTATIONS: "/inquiries/quotations",
 } as const;

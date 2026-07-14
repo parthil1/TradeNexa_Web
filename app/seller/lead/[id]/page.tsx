@@ -15,7 +15,6 @@ import { SubmitQuotationFormModal } from "@/components/rfq/SubmitQuotationForm";
 import { ReviseQuotationFormModal } from "@/components/rfq/ReviseQuotationForm";
 import { UpdateQuotationFormModal } from "@/components/rfq/UpdateQuotationForm";
 import ChatSidePanel from "@/components/chat/ChatSidePanel";
-import ConversationBadge, { useRfqChatUnread } from "@/components/chat/ConversationBadge";
 import { useChat } from "@/context/ChatContext";
 import { fetchSellerRfqById, findSellerQuotationForRfq, withdrawQuotation } from "@/services/rfqService";
 import type { ApiQuotation, ApiRfqDetail } from "@/types/rfq";
@@ -60,7 +59,6 @@ export default function SellerLeadDetailPage() {
   const rfqId = Number(params.id);
   const invalidId = !rfqId || Number.isNaN(rfqId);
   const { hydrateRfqConversations } = useChat();
-  const chatUnread = useRfqChatUnread(invalidId ? null : rfqId);
 
   const [rfq, setRfq] = useState<ApiRfqDetail | null>(null);
   const [existingQuotation, setExistingQuotation] = useState<ApiQuotation | null>(null);
@@ -187,29 +185,11 @@ export default function SellerLeadDetailPage() {
               variant="outline"
               size="sm"
               onClick={() => setChatOpen(true)}
-              aria-label={
-                chatUnread > 0
-                  ? `Chat with buyer, ${chatUnread} unread message${chatUnread === 1 ? "" : "s"}`
-                  : "Chat with buyer"
-              }
+              aria-label="Chat with buyer"
               className="relative"
             >
-              <span className="relative">
-                <MessageSquare className="h-4 w-4" />
-                {chatUnread > 0 ? (
-                  <ConversationBadge
-                    count={chatUnread}
-                    size="md"
-                    className="absolute -right-2.5 -top-2.5"
-                  />
-                ) : null}
-              </span>
+              <MessageSquare className="h-4 w-4" />
               Chat with buyer
-              {chatUnread > 0 ? (
-                <span className="rounded-lg bg-success/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-success">
-                  {chatUnread > 99 ? "99+" : chatUnread} unread
-                </span>
-              ) : null}
             </Button>
           ) : null}
         </div>

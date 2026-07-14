@@ -16,9 +16,12 @@ import ChatMessageBubble from "@/components/chat/ChatMessageBubble";
 import RfqStatusBadge from "@/components/rfq/RfqStatusBadge";
 import { useChat } from "@/context/ChatContext";
 import {
+  ensureInquiryConversation,
   ensureRfqConversation,
+  fetchConversation,
   getChatErrorMessage,
 } from "@/services/chatService";
+import { openInquiryChat } from "@/services/inquiryService";
 import { joinConversation } from "@/services/chatSocket";
 import { countsAsUnreadChatMessage, isSystemChatMessage } from "@/utils/chatHelpers";
 import { getInitials } from "@/utils/catalogHelpers";
@@ -27,16 +30,23 @@ import type { ApiChatConversation, ApiChatMessage, ChatRole } from "@/types/chat
 import type { ApiQuotation } from "@/types/rfq";
 
 export interface ChatPanelProps {
-  rfqId: number;
+  /** Open an existing pair thread directly (preferred after inquiry create). */
+  conversationId?: number | null;
+  /** Resolve via POST /inquiries/:id/chat or POST /chats/conversations { inquiry_id }. */
+  inquiryId?: number | null;
+  /** RFQ path — buyer needs sellerId when creating. */
+  rfqId?: number | null;
   role: ChatRole;
   rfqTitle?: string | null;
   rfqStatus?: string | null;
-  /** Buyer must pass seller_id to create a conversation */
+  /** Context chip title (product / inquiry / RFQ). */
+  contextTitle?: string | null;
+  /** Buyer must pass seller_id to create an RFQ conversation */
   sellerId?: number | null;
   otherPartyName?: string | null;
   /** Seller: quotations on this RFQ that can be attached */
   quotations?: ApiQuotation[];
-  /** Buyer: product linked to the RFQ */
+  /** Buyer: product linked to the RFQ / inquiry */
   productId?: number | null;
   productName?: string | null;
   className?: string;
@@ -80,10 +90,13 @@ function sameSenderRun(a: ApiChatMessage, b: ApiChatMessage): boolean {
 }
 
 export default function ChatPanel({
-  rfqId,
+  conversationId: initialConversationId = null,
+  inquiryId = null,
+  rfqId = null,
   role,
   rfqTitle,
   rfqStatus,
+  contextTitle = null,
   sellerId,
   otherPartyName,
   quotations = [],
@@ -279,25 +292,40 @@ export default function ChatPanel({
       setUnreadBannerCount(0);
       setUnreadStartMessageId(null);
       try {
-        if (role === "buyer" && !sellerId) {
-          setMissingSellerId(true);
-          setBootError(humanizeChatBootError("", true));
+        let conversation: ApiChatConversation | null = null;
+
+        if (initialConversationId != null && initialConversationId > 0) {
+          conversation = await fetchConversation(initialConversationId);
+        } else if (inquiryId != null && inquiryId > 0) {
+          try {
+            conversation = await openInquiryChat(inquiryId);
+          } catch {
+            conversation = await ensureInquiryConversation(inquiryId);
+          }
+        } else if (rfqId != null && rfqId > 0) {
+          if (role === "buyer" && !sellerId) {
+            setMissingSellerId(true);
+            setBootError(humanizeChatBootError("", true));
+            setConversationId(null);
+            return;
+          }
+          conversation = await ensureRfqConversation({
+            rfqId,
+            role,
+            sellerId: sellerId ?? undefined,
+          });
+        } else {
+          setBootError("Missing conversation, inquiry, or RFQ to open chat.");
           setConversationId(null);
           return;
         }
 
-        // Both roles start (or open) the conversation directly.
-        const conversation = await ensureRfqConversation({
-          rfqId,
-          role,
-          sellerId: sellerId ?? undefined,
-        });
         if (cancelled) return;
         await openConversation(conversation);
       } catch (err) {
         if (!cancelled) {
           console.error("[chat] open conversation failed:", err);
-          const msg = getChatErrorMessage(err, "Unable to open chat for this RFQ");
+          const msg = getChatErrorMessage(err, "Unable to open chat");
           if (/seller/i.test(msg) && /missing|required|seller_id/i.test(msg)) {
             setMissingSellerId(true);
             setBootError(humanizeChatBootError(msg, true));
@@ -316,9 +344,12 @@ export default function ChatPanel({
       cancelled = true;
     };
   }, [
+    initialConversationId,
+    inquiryId,
     rfqId,
     role,
     sellerId,
+    otherPartyName,
     loadMessages,
     setActiveConversationId,
     upsertConversationMeta,
@@ -542,7 +573,7 @@ export default function ChatPanel({
   }
 
   const shellClass = embedded
-    ? `flex h-[min(560px,70vh)] flex-col overflow-hidden bg-card ${className}`
+    ? `flex h-full min-h-0 flex-col overflow-hidden bg-card ${className}`
     : `flex h-[min(560px,70vh)] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm ${className}`;
 
   const chatUnavailable = Boolean(bootError);
@@ -550,6 +581,24 @@ export default function ChatPanel({
     Boolean(conversationId) && !bootLoading && !chatUnavailable;
   const composerDisabled = !canCompose;
   const errorCopy = humanizeChatBootError(bootError ?? "", missingSellerId);
+
+  const metaConversation = conversationId ? conversationsMeta[conversationId] : null;
+  const subtitle =
+    contextTitle?.trim() ||
+    metaConversation?.last_context?.title?.trim() ||
+    rfqTitle?.trim() ||
+    (_productName?.trim() ? _productName.trim() : null) ||
+    (rfqId != null && rfqId > 0 ? `RFQ #${rfqId}` : null) ||
+    (inquiryId != null && inquiryId > 0 ? `Inquiry #${inquiryId}` : null) ||
+    "Chat";
+  const subtitlePrefix =
+    metaConversation?.last_context?.type === "rfq" || rfqTitle
+      ? "RFQ"
+      : metaConversation?.last_context?.type === "product" ||
+          metaConversation?.last_context?.type === "enquiry" ||
+          inquiryId
+        ? "Product"
+        : null;
 
   return (
     <section className={shellClass}>
@@ -564,7 +613,7 @@ export default function ChatPanel({
             <h3 className="truncate text-sm font-bold text-foreground">{headerName}</h3>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               <p className="truncate text-xs text-muted-fg">
-                {rfqTitle ? `RFQ · ${rfqTitle}` : `RFQ #${rfqId}`}
+                {subtitlePrefix ? `${subtitlePrefix} · ${subtitle}` : subtitle}
               </p>
               {disconnected && !chatUnavailable ? (
                 <span className="inline-flex items-center rounded-full border border-warning/25 bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning">

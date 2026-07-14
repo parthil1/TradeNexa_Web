@@ -1,8 +1,10 @@
 import {
   BarChart3,
+  ClipboardList,
   Home,
   LayoutDashboard,
   LayoutGrid,
+  MessagesSquare,
   MessageSquare,
   Package,
   Search,
@@ -20,13 +22,27 @@ export const buyerNavItems: PortalNavItem[] = [
     match: (p) => p.startsWith("/buyer/categor"),
   },
   {
-    label: "Inquiries",
+    label: "RFQs",
     href: "/buyer/inquiries",
-    icon: MessageSquare,
+    icon: ClipboardList,
     match: (p) =>
-      p.startsWith("/buyer/inquir") ||
+      p === "/buyer/inquiries" ||
+      p.startsWith("/buyer/inquiries/") ||
       p.startsWith("/buyer/rfq") ||
       p.startsWith("/buyer/post-requirement"),
+  },
+  {
+    label: "Inquiries",
+    href: "/buyer/product-inquiries",
+    icon: MessageSquare,
+    match: (p) =>
+      p.startsWith("/buyer/product-inquiries") || p.startsWith("/buyer/send-inquiry"),
+  },
+  {
+    label: "Chats",
+    href: "/buyer/chats",
+    icon: MessagesSquare,
+    match: (p) => p.startsWith("/buyer/chats"),
   },
   {
     label: "Profile",
@@ -57,10 +73,23 @@ export const sellerNavItems: PortalNavItem[] = [
       p.startsWith("/seller/product"),
   },
   {
-    label: "Leads",
+    label: "RFQs",
     href: "/seller/leads",
+    icon: ClipboardList,
+    match: (p) =>
+      p.startsWith("/seller/lead") || p.startsWith("/seller/quotations"),
+  },
+  {
+    label: "Inquiries",
+    href: "/seller/inquiries",
     icon: MessageSquare,
-    match: (p) => p.startsWith("/seller/lead") || p.startsWith("/seller/quotations"),
+    match: (p) => p.startsWith("/seller/inquiries"),
+  },
+  {
+    label: "Chats",
+    href: "/seller/chats",
+    icon: MessagesSquare,
+    match: (p) => p.startsWith("/seller/chats"),
   },
   {
     label: "Analytics",

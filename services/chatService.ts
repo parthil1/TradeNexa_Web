@@ -31,6 +31,10 @@ function buildListParams(params?: ChatListParams | ChatMessagesParams) {
   if (params.rfq_id != null && Number.isFinite(params.rfq_id)) {
     query.rfq_id = params.rfq_id;
   }
+  if (params.inquiry_id != null && Number.isFinite(params.inquiry_id)) {
+    query.inquiry_id = params.inquiry_id;
+  }
+  if (params.context_type) query.context_type = params.context_type;
   if (params.search?.trim()) query.search = params.search.trim();
   if (params.sort_by) query.sort_by = params.sort_by;
   if (params.sort_order) query.sort_order = params.sort_order;
@@ -98,10 +102,17 @@ export async function fetchRfqConversations(
 export async function createConversation(
   payload: CreateConversationPayload
 ): Promise<ApiChatConversation> {
-  const body =
-    payload.seller_id != null
-      ? { rfq_id: payload.rfq_id, seller_id: payload.seller_id }
-      : { rfq_id: payload.rfq_id };
+  let body: Record<string, number>;
+  if ("inquiry_id" in payload && payload.inquiry_id != null) {
+    body = { inquiry_id: payload.inquiry_id };
+  } else if ("rfq_id" in payload && payload.rfq_id != null) {
+    body =
+      payload.seller_id != null
+        ? { rfq_id: payload.rfq_id, seller_id: payload.seller_id }
+        : { rfq_id: payload.rfq_id };
+  } else {
+    throw new Error("Provide exactly one of rfq_id or inquiry_id");
+  }
 
   const response = await apiClient.post(API_ENDPOINTS.CHATS_CONVERSATIONS, body);
   const data = unwrapApiPayload<unknown>(response.data);
@@ -366,6 +377,36 @@ export async function ensureRfqConversation(options: {
   const existing = await findRfqConversation(options);
   if (existing) return existing;
   return startRfqConversation(options);
+}
+
+/** Open / continue the shared pair thread for a product inquiry. */
+export async function ensureInquiryConversation(
+  inquiryId: number
+): Promise<ApiChatConversation> {
+  try {
+    const existing = await fetchConversations({
+      page: 1,
+      limit: 5,
+      inquiry_id: inquiryId,
+    });
+    if (existing.results[0]) return existing.results[0];
+  } catch {
+    /* fall through to create */
+  }
+
+  try {
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.CHATS_INQUIRY_CONVERSATIONS}/${inquiryId}/conversations`,
+      { params: { page: 1, limit: 1 } }
+    );
+    const data = unwrapApiPayload<unknown>(response.data);
+    const list = unwrapChatPaginated(data, normalizeChatConversation, 1, 1);
+    if (list.results[0]) return list.results[0];
+  } catch {
+    /* fall through to create */
+  }
+
+  return createConversation({ inquiry_id: inquiryId });
 }
 
 function getErrorMessage(err: unknown, fallback: string): string {

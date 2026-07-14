@@ -85,7 +85,7 @@ export default function BuyerInquiriesPage() {
         title="My RFQs"
         subtitle="Track your requirements and seller quotes"
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {newTodayCount > 0 ? (
               <span className="inline-flex items-center rounded-lg bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
                 {newTodayCount} new today

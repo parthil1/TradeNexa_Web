@@ -67,18 +67,33 @@ export interface ApiChatMessage {
   send_status?: ChatSendStatus;
 }
 
+export type ChatContextType = "product" | "rfq" | "enquiry" | "inquiry";
+
+export interface ApiChatLastContext {
+  type: ChatContextType | string;
+  id?: number | null;
+  title?: string | null;
+}
+
 export interface ApiChatConversation {
   id: number;
+  conversation_id?: number | null;
   rfq_id?: number | null;
   rfq_title?: string | null;
   rfq_reference?: string | null;
+  inquiry_id?: number | null;
+  last_context?: ApiChatLastContext | null;
   unread_count?: number | null;
-  last_message?: ApiChatMessage | null;
+  last_message?: ApiChatMessage | string | null;
   last_message_at?: string | null;
+  last_message_sender_id?: number | null;
   participants?: ApiChatParticipant[];
   buyer?: ApiChatParticipant | null;
   seller?: ApiChatParticipant | null;
   other_party?: ApiChatParticipant | null;
+  buyer_id?: number | null;
+  seller_id?: number | null;
+  is_active?: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -93,10 +108,10 @@ export interface ChatUnreadSummary {
   conversations_unread?: number;
 }
 
-export interface CreateConversationPayload {
-  rfq_id: number;
-  seller_id?: number;
-}
+/** Exactly one of rfq_id or inquiry_id (guide XOR). */
+export type CreateConversationPayload =
+  | { inquiry_id: number; rfq_id?: never; seller_id?: never }
+  | { rfq_id: number; seller_id?: number; inquiry_id?: never };
 
 export interface SendTextMessagePayload {
   message_type: "TEXT";
@@ -128,6 +143,8 @@ export interface ChatListParams {
   limit?: number;
   role?: ChatRole;
   rfq_id?: number;
+  inquiry_id?: number;
+  context_type?: "rfq" | "inquiry";
   search?: string;
   sort_by?: string;
   sort_order?: "asc" | "desc";

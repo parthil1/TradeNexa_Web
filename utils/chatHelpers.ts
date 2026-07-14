@@ -40,7 +40,10 @@ function normalizeParticipant(raw: unknown): ApiChatParticipant | null {
   return {
     id: pickNumber(item.id) ?? undefined,
     user_id: pickNumber(item.user_id) ?? undefined,
-    name: pickString(item.name),
+    name:
+      pickString(item.name) ??
+      pickString(item.full_name) ??
+      pickString(item.fullName),
     company_name: pickString(item.company_name) ?? pickString(item.company),
     role: pickString(item.role),
     is_online: typeof item.is_online === "boolean" ? item.is_online : null,
@@ -97,7 +100,7 @@ function normalizeMessageType(value: unknown): ChatMessageType {
 
 /** Known automated status copy that APIs often send as plain TEXT. */
 const SYSTEM_CONTENT_RE =
-  /^(quotation\s+(revised|accepted|rejected|submitted|withdrawn)|rfq\s+(awarded|cancelled|canceled|closed|published)|awarded)$/i;
+  /^(quotation\s+(revised|accepted|rejected|submitted|withdrawn)|rfq\s+(awarded|cancelled|canceled|closed|published)|inquiry\s+(created|rejected|cancelled|canceled|accepted)|awarded)$/i;
 
 export function matchesSystemChatContent(content?: string | null): boolean {
   const text = (content ?? "").trim();
@@ -148,19 +151,22 @@ export function countsAsUnreadChatMessage(message: {
  */
 export function effectiveConversationUnread(conversation: {
   unread_count?: number | null;
-  last_message?: {
-    message_type?: string | null;
-    is_system?: boolean;
-    sender_role?: string | null;
-    sender_id?: number | null;
-    is_mine?: boolean;
-    content?: string | null;
-  } | null;
+  last_message?:
+    | string
+    | {
+        message_type?: string | null;
+        is_system?: boolean;
+        sender_role?: string | null;
+        sender_id?: number | null;
+        is_mine?: boolean;
+        content?: string | null;
+      }
+    | null;
 }): number {
   const count = conversation.unread_count ?? 0;
   if (count <= 0) return 0;
-  // Status tip alone should not keep the badge lit; human unread behind it should.
-  if (conversation.last_message && isSystemChatMessage(conversation.last_message)) {
+  const last = conversation.last_message;
+  if (last && typeof last !== "string" && isSystemChatMessage(last)) {
     return Math.max(0, count - 1);
   }
   return count;
@@ -169,17 +175,21 @@ export function effectiveConversationUnread(conversation: {
 /** System/status events alone do not count as a started conversation.
  *  An empty thread (no last_message) means the buyer accepted/opened chat. */
 export function isConversationStartedByHuman(conversation: {
-  last_message?: {
-    message_type?: string | null;
-    is_system?: boolean;
-    sender_role?: string | null;
-    sender_id?: number | null;
-    is_mine?: boolean;
-    content?: string | null;
-  } | null;
+  last_message?:
+    | string
+    | {
+        message_type?: string | null;
+        is_system?: boolean;
+        sender_role?: string | null;
+        sender_id?: number | null;
+        is_mine?: boolean;
+        content?: string | null;
+      }
+    | null;
 } | null | undefined): boolean {
   const last = conversation?.last_message;
   if (!last) return true;
+  if (typeof last === "string") return Boolean(last.trim());
   return !isSystemChatMessage(last);
 }
 
@@ -578,10 +588,25 @@ export function applyMessageOwnership(
   return message;
 }
 
+function normalizeLastContext(raw: unknown): import("@/types/chat").ApiChatLastContext | null {
+  const item = readRecord(raw);
+  if (!item) return null;
+  const type = pickString(item.type);
+  if (!type) return null;
+  return {
+    type,
+    id: pickNumber(item.id),
+    title: pickString(item.title) ?? pickString(item.name),
+  };
+}
+
 export function normalizeChatConversation(raw: unknown): ApiChatConversation | null {
   const item = readRecord(raw);
   if (!item) return null;
-  const id = pickNumber(item.id);
+  const id =
+    pickNumber(item.id) ??
+    pickNumber(item.conversation_id) ??
+    pickNumber(item.conversationId);
   if (id == null) return null;
 
   const participantsRaw = Array.isArray(item.participants) ? item.participants : [];
@@ -590,22 +615,48 @@ export function normalizeChatConversation(raw: unknown): ApiChatConversation | n
     .filter((p): p is ApiChatParticipant => p !== null);
 
   const rfq = readRecord(item.rfq);
+  const lastContext =
+    normalizeLastContext(item.last_context) ?? normalizeLastContext(item.context);
+
+  const lastMessageRaw = item.last_message;
+  const lastMessage =
+    typeof lastMessageRaw === "string"
+      ? lastMessageRaw
+      : normalizeChatMessage(lastMessageRaw);
+
+  const buyer = normalizeParticipant(item.buyer);
+  const seller = normalizeParticipant(item.seller);
+  // Guide inbox `user` is the counterparty preview
+  const userParty = normalizeParticipant(item.user);
 
   return {
     id,
+    conversation_id: pickNumber(item.conversation_id) ?? id,
     rfq_id: pickNumber(item.rfq_id) ?? pickNumber(rfq?.id),
-    rfq_title: pickString(item.rfq_title) ?? pickString(rfq?.title),
+    rfq_title:
+      pickString(item.rfq_title) ??
+      pickString(rfq?.title) ??
+      (lastContext?.type === "rfq" ? lastContext.title : null),
     rfq_reference:
       pickString(item.rfq_reference) ??
       pickString(item.reference) ??
       (pickNumber(item.rfq_id) != null ? `RFQ-${pickNumber(item.rfq_id)}` : null),
+    inquiry_id: pickNumber(item.inquiry_id),
+    last_context: lastContext,
     unread_count: pickNumber(item.unread_count) ?? 0,
-    last_message: normalizeChatMessage(item.last_message),
+    last_message: lastMessage,
     last_message_at: pickString(item.last_message_at) ?? pickString(item.updated_at),
+    last_message_sender_id: pickNumber(item.last_message_sender_id),
     participants,
-    buyer: normalizeParticipant(item.buyer),
-    seller: normalizeParticipant(item.seller),
-    other_party: normalizeParticipant(item.other_party) ?? normalizeParticipant(item.counterpart),
+    buyer,
+    seller,
+    other_party:
+      normalizeParticipant(item.other_party) ??
+      normalizeParticipant(item.counterpart) ??
+      userParty,
+    buyer_id: pickNumber(item.buyer_id) ?? buyer?.id ?? buyer?.user_id ?? null,
+    seller_id: pickNumber(item.seller_id) ?? seller?.id ?? seller?.user_id ?? null,
+    is_active: typeof item.is_active === "boolean" ? item.is_active : null,
     created_at: pickString(item.created_at),
     updated_at: pickString(item.updated_at),
   };

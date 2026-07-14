@@ -6,13 +6,13 @@ import { buyerNavItems } from "@/components/portal/portalNavConfig";
 import { useChatUnreadBadge } from "@/components/chat/ConversationBadge";
 
 export default function BuyerShell({ children }: { children: React.ReactNode }) {
-  const unread = useChatUnreadBadge();
+  const chatUnread = useChatUnreadBadge();
   const navItems = useMemo(
     () =>
       buyerNavItems.map((item) =>
-        item.href === "/buyer/inquiries" ? { ...item, badge: unread || undefined } : item
+        item.href === "/buyer/chats" ? { ...item, badge: chatUnread || undefined } : item
       ),
-    [unread]
+    [chatUnread]
   );
 
   return (

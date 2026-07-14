@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
-import ConversationBadge, { useRfqChatUnread } from "@/components/chat/ConversationBadge";
 import QuotationStatusBadge from "@/components/rfq/QuotationStatusBadge";
 import type { ApiQuotation } from "@/types/rfq";
 import { formatPrice } from "@/utils/catalogHelpers";
@@ -47,19 +46,13 @@ export default function QuotationCard({
   emphasizeStatus = false,
   rfqStatus,
   onChatClick,
-  chatRfqId,
+  // Keep unused prop for callers that still pass RFQ context for chat.
+  chatRfqId: _chatRfqId,
   href,
   onCardClick,
 }: QuotationCardProps) {
   const router = useRouter();
   const [showRemarks, setShowRemarks] = useState(false);
-  // Buyer cards match by seller_id; seller list/own-quote match by RFQ only.
-  const matchSellerId =
-    onChatClick && showSellerInfo && !showProductName ? quotation.seller_id : null;
-  const chatUnread = useRfqChatUnread(
-    onChatClick ? chatRfqId ?? quotation.rfq_id : null,
-    matchSellerId
-  );
   const accepted = isQuotationAccepted(quotation.status);
   const rfqAwarded = isRfqAwarded(rfqStatus);
   /** When RFQ is awarded, only the accepted quote stays active; others are disabled. */
@@ -159,21 +152,10 @@ export default function QuotationCard({
                 onChatClick();
               }}
               title={chatLabel}
-              aria-label={
-                chatUnread > 0
-                  ? `${chatLabel}, ${chatUnread} unread`
-                  : chatLabel
-              }
+              aria-label={chatLabel}
               className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-fg transition-colors duration-200 hover:border-primary/30 hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
             >
               <MessageSquare className="h-4 w-4" />
-              {chatUnread > 0 ? (
-                <ConversationBadge
-                  count={chatUnread}
-                  size="md"
-                  className="absolute -right-1.5 -top-1.5"
-                />
-              ) : null}
             </button>
           ) : null}
           <QuotationStatusBadge status={quotation.status} className="shrink-0" />

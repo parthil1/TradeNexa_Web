@@ -10,7 +10,7 @@ export function formatChatBadgeCount(count: number): string {
   return count > 99 ? "99+" : String(count);
 }
 
-/** Unread count for portal nav items (Inquiries / Leads). */
+/** Unread count for the Chats nav item. */
 export function useChatUnreadBadge(): number {
   const { unreadSummary, conversationsMeta } = useChat();
 
@@ -27,9 +27,8 @@ export function useChatUnreadBadge(): number {
 }
 
 /**
- * Unread for a specific RFQ chat (side-panel entry points).
- * Buyer: pass sellerId to match that quotation's conversation.
- * Seller: omit sellerId — matches conversations for this RFQ.
+ * Unread for a specific RFQ chat (kept for optional callers).
+ * Prefer the Chats inbox for unread UX.
  */
 export function useRfqChatUnread(rfqId?: number | null, sellerId?: number | null): number {
   const { conversationsMeta } = useChat();

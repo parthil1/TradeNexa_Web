@@ -7,6 +7,7 @@ import {
   ArrowRight,
   BadgeCheck,
   ChevronRight,
+  ClipboardList,
   FileText,
   Flame,
   LayoutGrid,
@@ -41,8 +42,15 @@ const quickLinks = [
     color: "text-accent",
   },
   {
-    label: "Inquiries",
+    label: "RFQs",
     href: "/buyer/inquiries",
+    icon: ClipboardList,
+    bg: "bg-warning-soft",
+    color: "text-warning",
+  },
+  {
+    label: "Inquiries",
+    href: "/buyer/product-inquiries",
     icon: MessageSquare,
     bg: "bg-muted",
     color: "text-foreground",
@@ -121,7 +129,7 @@ export default function BuyerHomePage() {
         </span>
       </Link>
 
-      <div className="-mx-4 mb-5 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 sm:pb-0 md:mb-6">
+      <div className="-mx-4 mb-5 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0 sm:pb-0 md:mb-6">
         {quickLinks.map((link) => {
           const Icon = link.icon;
           return (
