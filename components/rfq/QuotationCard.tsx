@@ -13,7 +13,6 @@ import {
   getQuotationStatusHint,
   getSellerRevisionStatusHint,
   isQuotationAccepted,
-  isQuotationInactiveForBuyer,
   isQuotationRevisionPending,
   isRfqAwarded,
 } from "@/utils/rfqHelpers";
@@ -25,7 +24,7 @@ interface QuotationCardProps {
   showSellerInfo?: boolean;
   /** When true, shows RFQ product/title instead of seller identity (seller list view). */
   showProductName?: boolean;
-  /** Dim inactive quotes and show status explanation (buyer view). */
+  /** Show status hints on buyer view; only dims when RFQ is awarded to another seller. */
   emphasizeStatus?: boolean;
   /** RFQ status helps detect negotiation when quotation status is still "Submitted". */
   rfqStatus?: string | null;
@@ -58,11 +57,8 @@ export default function QuotationCard({
   const [showRemarks, setShowRemarks] = useState(false);
   const accepted = isQuotationAccepted(quotation.status);
   const rfqAwarded = isRfqAwarded(rfqStatus);
-  /** When RFQ is awarded, only the accepted quote stays active; others are disabled. */
+  /** Only dim when RFQ is awarded and this quote was not selected. */
   const disabled = emphasizeStatus && rfqAwarded && !accepted;
-  const inactive =
-    emphasizeStatus &&
-    (disabled || (isQuotationInactiveForBuyer(quotation.status) && !accepted));
   const statusHint = emphasizeStatus
     ? disabled
       ? "This RFQ was awarded to another seller."
@@ -98,11 +94,9 @@ export default function QuotationCard({
       className={`rounded-xl border p-4 sm:p-5 ${
         disabled
           ? "pointer-events-none border-border bg-muted opacity-50"
-          : inactive
-            ? "border-border bg-muted opacity-80"
-            : isClickable
-              ? "surface-card-hover"
-              : "border-border bg-card"
+          : isClickable
+            ? "surface-card-hover"
+            : "border-border bg-card"
       } ${isClickable && !disabled ? "cursor-pointer" : ""}`}
       onClick={isClickable && !disabled ? handleCardActivate : undefined}
       onKeyDown={
@@ -125,7 +119,7 @@ export default function QuotationCard({
           {showProductName ? (
             <p
               className={`truncate text-base font-semibold ${
-                inactive ? "text-muted-fg" : "text-foreground"
+                disabled ? "text-muted-fg" : "text-foreground"
               }`}
             >
               {productPrimary}
@@ -134,7 +128,7 @@ export default function QuotationCard({
             <>
               <p
                 className={`truncate text-base font-semibold ${
-                  inactive ? "text-muted-fg" : "text-foreground"
+                  disabled ? "text-muted-fg" : "text-foreground"
                 }`}
               >
                 {sellerPrimary}
@@ -171,11 +165,11 @@ export default function QuotationCard({
       {totals ? (
         <div
           className={`mt-3.5 rounded-lg border px-4 py-3 ${
-            inactive ? "border-border bg-muted" : "border-primary/15 bg-primary-soft/50"
+            disabled ? "border-border bg-muted" : "border-primary/15 bg-primary-soft/50"
           }`}
         >
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-fg">Estimated total</p>
-          <p className={`mt-1 text-xl font-semibold leading-none ${inactive ? "text-muted-fg" : "text-primary"}`}>
+          <p className={`mt-1 text-xl font-semibold leading-none ${disabled ? "text-muted-fg" : "text-primary"}`}>
             {formatPrice(totals.total, quotation.currency)}
           </p>
           <p className="mt-1.5 text-xs text-muted-fg">
@@ -193,7 +187,7 @@ export default function QuotationCard({
       <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">Unit price</p>
-          <p className={`mt-0.5 text-sm font-semibold ${inactive ? "text-muted-fg" : "text-foreground"}`}>
+          <p className={`mt-0.5 text-sm font-semibold ${disabled ? "text-muted-fg" : "text-foreground"}`}>
             {quotation.price != null ? formatPrice(quotation.price, quotation.currency) : "—"}
           </p>
         </div>
