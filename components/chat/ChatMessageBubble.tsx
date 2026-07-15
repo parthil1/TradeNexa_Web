@@ -456,8 +456,8 @@ export default function ChatMessageBubble({
           ) : null}
 
           {message.message_type === "IMAGE" ? (
-            <div className="w-[min(240px,75vw)] rounded-2xl bg-card shadow-sm ring-1 ring-border">
-              <div className="relative overflow-hidden rounded-t-2xl bg-muted">
+            <div className="w-[min(240px,75vw)] overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] ring-1 ring-border">
+              <div className="group/media relative overflow-hidden bg-muted">
                 {canShowImage ? (
                   <button
                     type="button"
@@ -469,18 +469,24 @@ export default function ChatMessageBubble({
                     <img
                       src={imageUrl!}
                       alt={imageFileName}
-                      className="max-h-56 w-full object-cover"
+                      className="max-h-60 w-full object-cover transition-transform duration-300 ease-out group-hover/media:scale-[1.04]"
                       onError={() => setImageBroken(true)}
+                    />
+                    <span
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-foreground/15 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover/media:opacity-100"
+                      aria-hidden
                     />
                   </button>
                 ) : imageLoading || isUploadingImage ? (
-                  <div className="flex h-28 flex-col items-center justify-center gap-2 text-xs text-muted-fg">
+                  <div className="flex h-32 flex-col items-center justify-center gap-2.5 text-xs font-medium text-muted-fg">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    {isUploadingImage ? "Uploading..." : "Loading image..."}
+                    <span>{isUploadingImage ? "Uploading…" : "Loading image…"}</span>
                   </div>
                 ) : (
-                  <div className="flex h-28 flex-col items-center justify-center gap-1 px-3 text-center text-xs text-muted-fg">
-                    <ImageIcon className="h-5 w-5" />
+                  <div className="flex h-32 flex-col items-center justify-center gap-2 px-3 text-center text-xs font-medium text-muted-fg">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-border/50">
+                      <ImageIcon className="h-4 w-4" />
+                    </span>
                     <span>Preview unavailable</span>
                   </div>
                 )}
@@ -493,24 +499,27 @@ export default function ChatMessageBubble({
                         e.stopPropagation();
                         setImageMenuOpen((open) => !open);
                       }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-card/95 text-foreground shadow-md ring-1 ring-border transition hover:bg-card"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/30 text-white opacity-90 backdrop-blur-md ring-1 ring-white/25 transition hover:bg-foreground/50 hover:opacity-100"
                       aria-label="Image options"
                       aria-expanded={imageMenuOpen}
                       aria-haspopup="menu"
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ) : null}
               </div>
 
-              <div className="flex items-center gap-2 rounded-b-2xl border-t border-border px-3 py-2">
+              <div className="flex items-center gap-2 border-t border-border/80 px-3 py-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-fg">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-semibold text-foreground">
+                  <p className="truncate text-[11.5px] font-semibold leading-tight text-foreground">
                     {imageFileName}
                   </p>
                   {formatFileSize(message.file_size) ? (
-                    <p className="text-[10px] text-muted-fg">
+                    <p className="mt-0.5 text-[10px] leading-none text-muted-fg">
                       {formatFileSize(message.file_size)}
                     </p>
                   ) : null}
