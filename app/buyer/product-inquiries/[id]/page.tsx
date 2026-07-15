@@ -123,6 +123,10 @@ export default function BuyerProductInquiryDetailPage() {
   const title = inquiryProductTitle(inquiry);
   const sellerName = inquiryCounterpartyName(inquiry, "buyer");
   const quote = inquiry.quotation;
+  const status = String(inquiry.status ?? "").toLowerCase();
+  const quoteStatus = String(quote?.status ?? "").toUpperCase();
+  const canCancelInquiry =
+    status === "pending" && quoteStatus !== "ACCEPTED";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
@@ -231,7 +235,7 @@ export default function BuyerProductInquiryDetailPage() {
           </div>
         ) : null}
 
-        {inquiry.status === "pending" ? (
+        {canCancelInquiry ? (
           <Button
             type="button"
             variant="secondary"

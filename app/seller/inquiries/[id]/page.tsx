@@ -103,12 +103,21 @@ export default function SellerInquiryDetailPage() {
   const title = inquiryProductTitle(inquiry);
   const buyerName = inquiryCounterpartyName(inquiry, "seller");
   const quote = inquiry.quotation;
-  const canQuote = inquiry.status === "pending";
+  const quoteStatus = String(quote?.status ?? "").toUpperCase();
+  const canQuote = inquiry.status === "pending" && !quote;
   const canReject = inquiry.status === "pending";
+  const canUpdateQuote =
+    Boolean(quote?.id) &&
+    inquiry.status !== "accepted" &&
+    inquiry.status !== "cancelled" &&
+    inquiry.status !== "closed" &&
+    (quoteStatus === "SUBMITTED" ||
+      quoteStatus === "UPDATED" ||
+      quoteStatus === "REJECTED");
   const canWithdraw =
     inquiry.status === "quoted" &&
     quote &&
-    (quote.status === "SUBMITTED" || quote.status === "UPDATED");
+    (quoteStatus === "SUBMITTED" || quoteStatus === "UPDATED");
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
@@ -188,16 +197,28 @@ export default function SellerInquiryDetailPage() {
                 Total {formatPrice(quote.total_amount, inquiry.currency || "INR")}
               </p>
             ) : null}
-            {canWithdraw ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="mt-3"
-                loading={actionLoading}
-                onClick={() => void handleWithdrawQuote()}
-              >
-                Withdraw quotation
-              </Button>
+            {canUpdateQuote || canWithdraw ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {canUpdateQuote ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => setQuoteOpen(true)}
+                  >
+                    Update quotation
+                  </Button>
+                ) : null}
+                {canWithdraw ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    loading={actionLoading}
+                    onClick={() => void handleWithdrawQuote()}
+                  >
+                    Withdraw quotation
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -239,6 +260,8 @@ export default function SellerInquiryDetailPage() {
         onClose={() => setQuoteOpen(false)}
         inquiryId={inquiry.id}
         productTitle={title}
+        quotationId={canUpdateQuote ? quote?.id : null}
+        initialQuotation={canUpdateQuote ? quote : null}
         defaultQuantity={inquiry.quantity}
         defaultUnit={inquiry.unit}
         onSubmitted={() => void load()}

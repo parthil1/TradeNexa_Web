@@ -4,12 +4,20 @@ import React, { useMemo, useState } from "react";
 import { Button } from "@/components/common/Button";
 import { Modal } from "@/components/common/Modal";
 import { Select } from "@/components/common/Select";
-import type { CreateInquiryQuotationPayload } from "@/types/inquiry";
-import { submitInquiryQuotation } from "@/services/inquiryService";
+import type {
+  ApiInquiryQuotation,
+  CreateInquiryQuotationPayload,
+} from "@/types/inquiry";
+import {
+  submitInquiryQuotation,
+  updateInquiryQuotation,
+} from "@/services/inquiryService";
 import { formatPrice } from "@/utils/catalogHelpers";
 import { formatApiValidationSummary, getApiFieldErrors } from "@/utils/apiErrors";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
+
+const FORM_ID = "submit-inquiry-quotation-form";
 
 const QUOTATION_UNITS = [
   { value: "pcs", label: "Pieces (pcs)" },
@@ -48,30 +56,69 @@ const API_TO_FORM_FIELD: Record<string, keyof FormState> = {
   remarks: "remarks",
 };
 
-interface SubmitInquiryQuotationFormProps {
-  inquiryId: number;
-  defaultQuantity?: number | null;
-  defaultUnit?: string | null;
-  onSubmitted?: () => void;
-  onCancel?: () => void;
+type LiveTotal = {
+  subtotal: number;
+  gstAmount: number;
+  transport: number;
+  total: number;
+};
+
+function formFromQuotation(
+  quote?: ApiInquiryQuotation | null,
+  defaultQuantity?: number | null,
+  defaultUnit?: string | null
+): FormState {
+  if (!quote) {
+    return {
+      ...initialForm,
+      quantity: defaultQuantity != null ? String(defaultQuantity) : "",
+      unit: defaultUnit?.trim() || "pcs",
+    };
+  }
+  return {
+    price: quote.price != null ? String(quote.price) : "",
+    quantity:
+      quote.quantity != null
+        ? String(quote.quantity)
+        : defaultQuantity != null
+          ? String(defaultQuantity)
+          : "",
+    unit: quote.unit?.trim() || defaultUnit?.trim() || "pcs",
+    gstPercentage:
+      quote.gst_percentage != null ? String(quote.gst_percentage) : "18",
+    transportationCharge:
+      quote.transportation_charge != null ? String(quote.transportation_charge) : "",
+    deliveryDays: quote.delivery_days != null ? String(quote.delivery_days) : "7",
+    paymentTerms: quote.payment_terms?.trim() || "",
+    validityDays: quote.validity_days != null ? String(quote.validity_days) : "15",
+    remarks: quote.remarks?.trim() || "",
+  };
 }
 
-export default function SubmitInquiryQuotationForm({
+function useInquiryQuotationForm({
   inquiryId,
+  quotationId,
+  initialQuotation,
   defaultQuantity,
   defaultUnit,
   onSubmitted,
-  onCancel,
-}: SubmitInquiryQuotationFormProps) {
-  const [form, setForm] = useState<FormState>({
-    ...initialForm,
-    quantity: defaultQuantity != null ? String(defaultQuantity) : "",
-    unit: defaultUnit?.trim() || "pcs",
-  });
+}: {
+  inquiryId: number;
+  /** When set, submit uses PUT /inquiries/quotations/:id */
+  quotationId?: number | null;
+  initialQuotation?: ApiInquiryQuotation | null;
+  defaultQuantity?: number | null;
+  defaultUnit?: string | null;
+  onSubmitted?: () => void;
+}) {
+  const isUpdate = quotationId != null && quotationId > 0;
+  const [form, setForm] = useState<FormState>(() =>
+    formFromQuotation(initialQuotation, defaultQuantity, defaultUnit)
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const liveTotal = useMemo(() => {
+  const liveTotal = useMemo<LiveTotal>(() => {
     const price = Number(form.price) || 0;
     const qty = Number(form.quantity) || 0;
     const gst = Number(form.gstPercentage) || 0;
@@ -134,8 +181,13 @@ export default function SubmitInquiryQuotationForm({
 
     setSubmitting(true);
     try {
-      await submitInquiryQuotation(inquiryId, payload);
-      showSuccessToast("Quotation submitted");
+      if (isUpdate && quotationId != null) {
+        await updateInquiryQuotation(quotationId, payload, inquiryId);
+        showSuccessToast("Quotation updated");
+      } else {
+        await submitInquiryQuotation(inquiryId, payload);
+        showSuccessToast("Quotation submitted");
+      }
       onSubmitted?.();
     } catch (err) {
       const fieldErrors = getApiFieldErrors(err);
@@ -145,17 +197,51 @@ export default function SubmitInquiryQuotationForm({
         if (formField) mapped[formField] = message;
       }
       if (Object.keys(mapped).length > 0) setErrors(mapped);
-      showErrorToast(formatApiValidationSummary(err, "Could not submit quotation"));
+      showErrorToast(
+        formatApiValidationSummary(
+          err,
+          isUpdate ? "Could not update quotation" : "Could not submit quotation"
+        )
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
+  return { form, errors, submitting, liveTotal, setField, handleSubmit, isUpdate };
+}
+
+function InquiryQuotationTotalSummary({ liveTotal }: { liveTotal: LiveTotal }) {
   return (
-    <form id="submit-inquiry-quotation-form" onSubmit={handleSubmit} className="space-y-4">
+    <div className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm">
+      <p className="font-semibold text-foreground">
+        Est. total: {formatPrice(liveTotal.total, "INR")}
+      </p>
+      <p className="mt-0.5 text-xs text-muted-fg">
+        Subtotal {formatPrice(liveTotal.subtotal, "INR")} · GST{" "}
+        {formatPrice(liveTotal.gstAmount, "INR")} · Transport{" "}
+        {formatPrice(liveTotal.transport, "INR")}
+      </p>
+    </div>
+  );
+}
+
+function InquiryQuotationFields({
+  form,
+  errors,
+  setField,
+}: {
+  form: FormState;
+  errors: FormErrors;
+  setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+}) {
+  return (
+    <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Price *</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Price <span className="text-error">*</span>
+          </label>
           <input
             value={form.price}
             onChange={(e) => setField("price", e.target.value)}
@@ -257,26 +343,56 @@ export default function SubmitInquiryQuotationForm({
           className="w-full resize-y rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
         />
       </div>
+    </div>
+  );
+}
 
-      <div className="rounded-xl bg-muted px-4 py-3 text-sm">
-        <p className="font-semibold text-foreground">
-          Est. total: {formatPrice(liveTotal.total, "INR")}
-        </p>
-        <p className="mt-1 text-xs text-muted-fg">
-          Subtotal {formatPrice(liveTotal.subtotal, "INR")} · GST{" "}
-          {formatPrice(liveTotal.gstAmount, "INR")} · Transport{" "}
-          {formatPrice(liveTotal.transport, "INR")}
-        </p>
-      </div>
+interface SubmitInquiryQuotationFormProps {
+  inquiryId: number;
+  quotationId?: number | null;
+  initialQuotation?: ApiInquiryQuotation | null;
+  defaultQuantity?: number | null;
+  defaultUnit?: string | null;
+  onSubmitted?: () => void;
+  onCancel?: () => void;
+}
 
-      <div className="flex flex-wrap gap-2">
+export default function SubmitInquiryQuotationForm({
+  inquiryId,
+  quotationId,
+  initialQuotation,
+  defaultQuantity,
+  defaultUnit,
+  onSubmitted,
+  onCancel,
+}: SubmitInquiryQuotationFormProps) {
+  const vm = useInquiryQuotationForm({
+    inquiryId,
+    quotationId,
+    initialQuotation,
+    defaultQuantity,
+    defaultUnit,
+    onSubmitted,
+  });
+
+  return (
+    <form id={FORM_ID} onSubmit={(e) => void vm.handleSubmit(e)} className="space-y-4">
+      <InquiryQuotationFields form={vm.form} errors={vm.errors} setField={vm.setField} />
+      <InquiryQuotationTotalSummary liveTotal={vm.liveTotal} />
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         {onCancel ? (
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onCancel}
+            disabled={vm.submitting}
+            className="sm:min-w-[8rem]"
+          >
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" variant="primary" loading={submitting}>
-          Send quotation
+        <Button type="submit" variant="primary" loading={vm.submitting} className="sm:min-w-[10rem]">
+          {vm.isUpdate ? "Update quotation" : "Send quotation"}
         </Button>
       </div>
     </form>
@@ -288,6 +404,8 @@ export function SubmitInquiryQuotationModal({
   onClose,
   inquiryId,
   productTitle,
+  quotationId,
+  initialQuotation,
   defaultQuantity,
   defaultUnit,
   onSubmitted,
@@ -296,22 +414,101 @@ export function SubmitInquiryQuotationModal({
   onClose: () => void;
   inquiryId: number;
   productTitle: string;
+  quotationId?: number | null;
+  initialQuotation?: ApiInquiryQuotation | null;
   defaultQuantity?: number | null;
   defaultUnit?: string | null;
   onSubmitted?: () => void;
 }) {
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Quote · ${productTitle}`}>
-      <SubmitInquiryQuotationForm
-        inquiryId={inquiryId}
-        defaultQuantity={defaultQuantity}
-        defaultUnit={defaultUnit}
-        onCancel={onClose}
-        onSubmitted={() => {
-          onSubmitted?.();
-          onClose();
-        }}
-      />
+    <InquiryQuoteModalBody
+      key={quotationId ? `edit-${quotationId}` : `create-${inquiryId}`}
+      isOpen={isOpen}
+      onClose={onClose}
+      inquiryId={inquiryId}
+      productTitle={productTitle}
+      quotationId={quotationId}
+      initialQuotation={initialQuotation}
+      defaultQuantity={defaultQuantity}
+      defaultUnit={defaultUnit}
+      onSubmitted={onSubmitted}
+    />
+  );
+}
+
+function InquiryQuoteModalBody({
+  isOpen,
+  onClose,
+  inquiryId,
+  productTitle,
+  quotationId,
+  initialQuotation,
+  defaultQuantity,
+  defaultUnit,
+  onSubmitted,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  inquiryId: number;
+  productTitle: string;
+  quotationId?: number | null;
+  initialQuotation?: ApiInquiryQuotation | null;
+  defaultQuantity?: number | null;
+  defaultUnit?: string | null;
+  onSubmitted?: () => void;
+}) {
+  const vm = useInquiryQuotationForm({
+    inquiryId,
+    quotationId,
+    initialQuotation,
+    defaultQuantity,
+    defaultUnit,
+    onSubmitted: () => {
+      onSubmitted?.();
+      onClose();
+    },
+  });
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="lg"
+      bodyClassName="px-5 py-5 sm:px-6"
+      title={`${vm.isUpdate ? "Update quote" : "Quote"} · ${productTitle}`}
+      footer={
+        <div className="space-y-3">
+          <InquiryQuotationTotalSummary liveTotal={vm.liveTotal} />
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={onClose}
+              disabled={vm.submitting}
+              className="sm:min-w-[8rem]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form={FORM_ID}
+              variant="primary"
+              size="lg"
+              loading={vm.submitting}
+              className="sm:min-w-[10rem]"
+            >
+              {vm.isUpdate ? "Update quotation" : "Send quotation"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <form id={FORM_ID} onSubmit={(e) => void vm.handleSubmit(e)} noValidate>
+        <InquiryQuotationFields form={vm.form} errors={vm.errors} setField={vm.setField} />
+      </form>
     </Modal>
   );
 }
