@@ -25,6 +25,7 @@ import type { ApiSupplier } from "@/types/supplier";
 import { formatApiValidationSummary, getApiFieldErrors } from "@/utils/apiErrors";
 import { isGeoCacheFresh, readGeoLastLocation } from "@/utils/geoLocationStorage";
 import { isRfqDraft, isoToDateInput } from "@/utils/rfqHelpers";
+import { toApiDateTime } from "@/utils/dateFormat";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import { getUnitOptions } from "@/utils/unitOptions";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
@@ -47,8 +48,8 @@ const API_TO_FORM_FIELD: Record<string, string> = {
   seller_ids: "sellerIds",
 };
 
-function dateInputToIso(dateStr: string): string {
-  return `${dateStr}T00:00:00.000Z`;
+function dateInputToApi(dateStr: string): string {
+  return toApiDateTime(dateStr);
 }
 
 const initialForm = {
@@ -644,7 +645,7 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
       description: form.description.trim(),
       quantity: Math.floor(Number(form.quantity)),
       unit: form.unit.trim(),
-      quotation_deadline: dateInputToIso(form.quotationDeadline),
+      quotation_deadline: dateInputToApi(form.quotationDeadline),
       address_line_1: form.addressLine1.trim(),
       ...(form.addressLine2.trim() ? { address_line_2: form.addressLine2.trim() } : {}),
       city: form.city.trim(),
@@ -655,7 +656,7 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
       visibility: form.visibility,
       ...(form.visibility === "PRIVATE" ? { seller_ids: sellerIds } : {}),
       ...(form.paymentTerms.trim() ? { payment_terms: form.paymentTerms.trim() } : {}),
-      ...(form.requiredBefore ? { required_before: dateInputToIso(form.requiredBefore) } : {}),
+      ...(form.requiredBefore ? { required_before: dateInputToApi(form.requiredBefore) } : {}),
       ...(form.productId ? { product_id: Number(form.productId) } : {}),
       ...(form.expectedPrice ? { expected_price: Number(form.expectedPrice) } : {}),
       ...(form.budget ? { budget: Number(form.budget) } : {}),

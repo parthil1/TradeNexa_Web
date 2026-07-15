@@ -73,7 +73,7 @@ export default function SellerInquiryDetailPage() {
     if (!inquiry?.quotation?.id) return;
     setActionLoading(true);
     try {
-      const updated = await withdrawInquiryQuotation(inquiry.quotation.id);
+      const updated = await withdrawInquiryQuotation(inquiry.quotation.id, inquiry.id);
       setInquiry(updated);
       showSuccessToast("Quotation withdrawn");
     } catch (err) {

@@ -15,6 +15,34 @@ export function formatDateDdMmYyyy(value?: string | Date | null): string {
   return `${day}/${month}/${year}`;
 }
 
+/**
+ * Format for MySQL DATETIME columns.
+ * Avoids ISO `T…Z` which MySQL rejects as an invalid datetime.
+ * Date-only (`yyyy-mm-dd` from `<input type="date">`) → `yyyy-mm-dd 00:00:00`.
+ */
+export function toApiDateTime(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed} 00:00:00`;
+  }
+  const match = trimmed.match(
+    /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2})/
+  );
+  if (match) {
+    return `${match[1]} ${match[2]}`;
+  }
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return trimmed;
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  const h = String(date.getUTCHours()).padStart(2, "0");
+  const min = String(date.getUTCMinutes()).padStart(2, "0");
+  const s = String(date.getUTCSeconds()).padStart(2, "0");
+  return `${y}-${m}-${d} ${h}:${min}:${s}`;
+}
+
 /** Compact list dates: today → time, yesterday → Yesterday, else dd/mm/yyyy. */
 export function formatDateListLabel(value?: string | null): string {
   if (!value) return "";

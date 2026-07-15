@@ -53,12 +53,48 @@ function normalizeParticipant(raw: unknown): ApiChatParticipant | null {
 function normalizeProductPreview(raw: unknown): ApiChatProductPreview | null {
   const item = readRecord(raw);
   if (!item) return null;
-  const id = pickNumber(item.id);
+  const id = pickNumber(item.id) ?? pickNumber(item.product_id);
   if (id == null) return null;
   return {
     id,
-    name: pickString(item.name),
-    thumbnail: pickString(item.thumbnail) ?? pickString(item.image),
+    name:
+      pickString(item.name) ??
+      pickString(item.product_name) ??
+      pickString(item.title),
+    thumbnail:
+      pickString(item.thumbnail) ??
+      pickString(item.image) ??
+      pickString(item.product_image) ??
+      pickString(item.thumbnail_url) ??
+      pickString(item.image_url),
+    price: pickNumber(item.price),
+    currency: pickString(item.currency) ?? "INR",
+    unit: pickString(item.unit),
+  };
+}
+
+/** Build product card data from nested `product`, `metadata`, or top-level fields. */
+function resolveChatProductPreview(item: Record<string, unknown>): ApiChatProductPreview | null {
+  const metadata = readRecord(item.metadata) ?? readRecord(item.meta);
+  const fromNested =
+    normalizeProductPreview(item.product) ?? normalizeProductPreview(metadata);
+  if (fromNested) return fromNested;
+
+  const id = pickNumber(item.product_id);
+  if (id == null) return null;
+
+  // Fall back: top-level product_id + content like "Product: Name"
+  const content = pickString(item.content) ?? pickString(item.message);
+  let name: string | null = null;
+  if (content) {
+    const match = content.match(/^product\s*[:#]?\s*(.+)$/i);
+    name = (match?.[1] ?? content).trim() || null;
+  }
+
+  return {
+    id,
+    name,
+    thumbnail: null,
     price: pickNumber(item.price),
     currency: pickString(item.currency) ?? "INR",
     unit: pickString(item.unit),
@@ -379,8 +415,16 @@ export function normalizeChatMessage(
     pickNumber(item.conversation_id) ?? pickNumber(item.conversationId);
   if (id == null || conversationId == null) return null;
 
-  const product = normalizeProductPreview(item.product);
-  const quotation = normalizeQuotationPreview(item.quotation);
+  const product = resolveChatProductPreview(item);
+  const metadata = readRecord(item.metadata) ?? readRecord(item.meta);
+  const quotation =
+    normalizeQuotationPreview(item.quotation) ??
+    (metadata?.quotation_id != null
+      ? normalizeQuotationPreview({
+          ...metadata,
+          id: metadata.quotation_id,
+        })
+      : null);
   const media = readRecord(item.media);
   const attachment =
     readRecord(item.attachment) ??
@@ -659,6 +703,40 @@ export function normalizeChatConversation(raw: unknown): ApiChatConversation | n
     is_active: typeof item.is_active === "boolean" ? item.is_active : null,
     created_at: pickString(item.created_at),
     updated_at: pickString(item.updated_at),
+  };
+}
+
+/**
+ * Merge conversation snapshots without wiping identity fields.
+ * Socket `conversation:updated` often only sends last_message / unread —
+ * spreading that over inbox rows clears seller/buyer and shows "Seller".
+ */
+export function mergeConversationMeta(
+  existing: ApiChatConversation | undefined,
+  incoming: ApiChatConversation
+): ApiChatConversation {
+  if (!existing) return incoming;
+  return {
+    ...existing,
+    ...incoming,
+    id: incoming.id ?? existing.id,
+    rfq_id: incoming.rfq_id ?? existing.rfq_id ?? null,
+    inquiry_id: incoming.inquiry_id ?? existing.inquiry_id ?? null,
+    rfq_title: incoming.rfq_title ?? existing.rfq_title ?? null,
+    rfq_reference: incoming.rfq_reference ?? existing.rfq_reference ?? null,
+    last_context: incoming.last_context ?? existing.last_context ?? null,
+    buyer: incoming.buyer ?? existing.buyer ?? null,
+    seller: incoming.seller ?? existing.seller ?? null,
+    other_party: incoming.other_party ?? existing.other_party ?? null,
+    buyer_id: incoming.buyer_id ?? existing.buyer_id ?? null,
+    seller_id: incoming.seller_id ?? existing.seller_id ?? null,
+    participants:
+      incoming.participants && incoming.participants.length > 0
+        ? incoming.participants
+        : existing.participants,
+    last_message: incoming.last_message ?? existing.last_message ?? null,
+    last_message_at: incoming.last_message_at ?? existing.last_message_at ?? null,
+    unread_count: incoming.unread_count ?? existing.unread_count ?? 0,
   };
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MessageSquare } from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
@@ -27,6 +27,8 @@ import type { ApiInquiry } from "@/types/inquiry";
 
 export default function BuyerProductInquiryDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const inquiryId = Number(params.id);
   const [inquiry, setInquiry] = useState<ApiInquiry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,14 @@ export default function BuyerProductInquiryDetailPage() {
     void load();
   }, [load]);
 
+  // Open chat when arriving from send-inquiry (`?chat=1`), then clean the URL.
+  useEffect(() => {
+    if (loading || !inquiry) return;
+    if (searchParams.get("chat") !== "1") return;
+    setChatOpen(true);
+    router.replace(`/buyer/product-inquiries/${inquiry.id}`, { scroll: false });
+  }, [loading, inquiry, searchParams, router]);
+
   async function handleCancel() {
     if (!inquiry) return;
     setActionLoading(true);
@@ -69,7 +79,7 @@ export default function BuyerProductInquiryDetailPage() {
     if (!inquiry?.quotation?.id) return;
     setActionLoading(true);
     try {
-      const updated = await acceptInquiryQuotation(inquiry.quotation.id);
+      const updated = await acceptInquiryQuotation(inquiry.quotation.id, inquiry.id);
       setInquiry(updated);
       showSuccessToast("Quotation accepted");
     } catch (err) {
@@ -83,7 +93,7 @@ export default function BuyerProductInquiryDetailPage() {
     if (!inquiry?.quotation?.id) return;
     setActionLoading(true);
     try {
-      const updated = await rejectInquiryQuotation(inquiry.quotation.id);
+      const updated = await rejectInquiryQuotation(inquiry.quotation.id, inquiry.id);
       setInquiry(updated);
       showSuccessToast("Quotation rejected — seller can re-quote");
     } catch (err) {

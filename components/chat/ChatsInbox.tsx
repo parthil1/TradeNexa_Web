@@ -19,7 +19,7 @@ import { useChat } from "@/context/ChatContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { fetchConversations } from "@/services/chatService";
-import { effectiveConversationUnread } from "@/utils/chatHelpers";
+import { effectiveConversationUnread, mergeConversationMeta } from "@/utils/chatHelpers";
 import { getInitials } from "@/utils/catalogHelpers";
 import type { ApiChatConversation, ChatRole } from "@/types/chat";
 
@@ -122,7 +122,7 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
   const rows = useMemo(() => {
     return items.map((item) => {
       const live = conversationsMeta[item.id];
-      return live ? { ...item, ...live, id: item.id } : item;
+      return live ? mergeConversationMeta(item, live) : item;
     });
   }, [items, conversationsMeta]);
 

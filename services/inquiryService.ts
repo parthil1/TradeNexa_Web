@@ -42,19 +42,74 @@ function buildListParams(params?: InquiryListParams) {
   return query;
 }
 
-function unwrapInquiry(data: unknown): ApiInquiry {
-  const inquiry =
+function isBlankApiPayload(data: unknown): boolean {
+  if (data == null) return true;
+  if (typeof data !== "object") return false;
+  return Object.keys(data as Record<string, unknown>).length === 0;
+}
+
+/** Soft parse — never logs / throws (mutations often return empty `{}`). */
+function tryNormalizeInquiry(data: unknown): ApiInquiry | null {
+  if (isBlankApiPayload(data)) return null;
+  return (
     normalizeInquiry(data) ??
     normalizeInquiry(
       data && typeof data === "object" && "inquiry" in data
         ? (data as { inquiry: unknown }).inquiry
         : null
-    );
+    )
+  );
+}
+
+function unwrapInquiry(data: unknown): ApiInquiry {
+  const inquiry = tryNormalizeInquiry(data);
   if (!inquiry) {
     console.error("[inquiry] unexpected payload:", data);
     throw new Error("Failed to parse inquiry response");
   }
   return inquiry;
+}
+
+/** Some mutation endpoints return 201/204 with an empty body — refetch detail. */
+async function unwrapInquiryOrRefetch(
+  data: unknown,
+  inquiryId: number
+): Promise<ApiInquiry> {
+  const parsed = tryNormalizeInquiry(data);
+  if (parsed) return parsed;
+  return fetchInquiryById(inquiryId, { mark_viewed: false });
+}
+
+/**
+ * Quotation mutations may return inquiry, quotation, or empty `{}`.
+ * Prefer parsing; otherwise load via quotation.inquiry_id or fallbackInquiryId.
+ */
+async function unwrapInquiryOrQuotationRefetch(
+  data: unknown,
+  fallbackInquiryId?: number
+): Promise<ApiInquiry> {
+  const parsed = tryNormalizeInquiry(data);
+  if (parsed) return parsed;
+
+  if (!isBlankApiPayload(data)) {
+    const quote =
+      normalizeInquiryQuotation(data) ??
+      normalizeInquiryQuotation(
+        data && typeof data === "object" && "quotation" in data
+          ? (data as { quotation: unknown }).quotation
+          : null
+      );
+    if (quote?.inquiry_id) {
+      return fetchInquiryById(quote.inquiry_id, { mark_viewed: false });
+    }
+  }
+
+  if (fallbackInquiryId != null && fallbackInquiryId > 0) {
+    return fetchInquiryById(fallbackInquiryId, { mark_viewed: false });
+  }
+
+  console.error("[inquiry] unexpected quotation mutation payload:", data);
+  throw new Error("Failed to parse inquiry quotation response");
 }
 
 function unwrapConversation(data: unknown): ApiChatConversation {
@@ -131,13 +186,13 @@ export async function updateInquiry(
   payload: UpdateInquiryPayload
 ): Promise<ApiInquiry> {
   const response = await apiClient.put(`${API_ENDPOINTS.INQUIRIES}/${id}`, payload);
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrRefetch(unwrapApiPayload(response.data), id);
 }
 
 /** POST /inquiries/:id/cancel — buyer cancel */
 export async function cancelInquiry(id: number): Promise<ApiInquiry> {
   const response = await postNoBody(`${API_ENDPOINTS.INQUIRIES}/${id}/cancel`);
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrRefetch(unwrapApiPayload(response.data), id);
 }
 
 /** POST /inquiries/:id/reject — seller reject */
@@ -152,7 +207,7 @@ export async function rejectInquiry(
         }
       : {};
   const response = await apiClient.post(`${API_ENDPOINTS.INQUIRIES}/${id}/reject`, body);
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrRefetch(unwrapApiPayload(response.data), id);
 }
 
 /** POST /inquiries/:id/quotations — seller send quote */
@@ -164,49 +219,54 @@ export async function submitInquiryQuotation(
     `${API_ENDPOINTS.INQUIRIES}/${inquiryId}/quotations`,
     payload
   );
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  // Backend often returns 201 with empty `{}` — treat success and reload inquiry.
+  return unwrapInquiryOrRefetch(unwrapApiPayload(response.data), inquiryId);
 }
 
 /** PUT /inquiries/quotations/:quotationId — update quote */
 export async function updateInquiryQuotation(
   quotationId: number,
-  payload: UpdateInquiryQuotationPayload
+  payload: UpdateInquiryQuotationPayload,
+  inquiryId?: number
 ): Promise<ApiInquiry> {
   const response = await apiClient.put(
     `${API_ENDPOINTS.INQUIRIES_QUOTATIONS}/${quotationId}`,
     payload
   );
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrQuotationRefetch(unwrapApiPayload(response.data), inquiryId);
 }
 
 /** POST /inquiries/quotations/:quotationId/withdraw */
 export async function withdrawInquiryQuotation(
-  quotationId: number
+  quotationId: number,
+  inquiryId?: number
 ): Promise<ApiInquiry> {
   const response = await postNoBody(
     `${API_ENDPOINTS.INQUIRIES_QUOTATIONS}/${quotationId}/withdraw`
   );
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrQuotationRefetch(unwrapApiPayload(response.data), inquiryId);
 }
 
 /** POST /inquiries/quotations/:quotationId/accept — buyer */
 export async function acceptInquiryQuotation(
-  quotationId: number
+  quotationId: number,
+  inquiryId?: number
 ): Promise<ApiInquiry> {
   const response = await postNoBody(
     `${API_ENDPOINTS.INQUIRIES_QUOTATIONS}/${quotationId}/accept`
   );
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrQuotationRefetch(unwrapApiPayload(response.data), inquiryId);
 }
 
 /** POST /inquiries/quotations/:quotationId/reject — buyer */
 export async function rejectInquiryQuotation(
-  quotationId: number
+  quotationId: number,
+  inquiryId?: number
 ): Promise<ApiInquiry> {
   const response = await postNoBody(
     `${API_ENDPOINTS.INQUIRIES_QUOTATIONS}/${quotationId}/reject`
   );
-  return unwrapInquiry(unwrapApiPayload(response.data));
+  return unwrapInquiryOrQuotationRefetch(unwrapApiPayload(response.data), inquiryId);
 }
 
 /** GET /inquiries/seller/quotations */

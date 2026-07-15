@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import { Button } from "@/components/common/Button";
-import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchProductById } from "@/services/catalogService";
 import {
@@ -30,6 +29,7 @@ import {
   resolveImageUrl,
 } from "@/utils/catalogHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { toApiDateTime } from "@/utils/dateFormat";
 import type { ApiProductDetail } from "@/types/catalog";
 
 type FormErrors = Partial<Record<"quantity" | "message" | "expected_price", string>>;
@@ -93,9 +93,6 @@ export default function SendInquiryPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [openingExisting, setOpeningExisting] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [conversationId, setConversationId] = useState<number | null>(null);
-  const [inquiryId, setInquiryId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!productId || Number.isNaN(productId)) {
@@ -156,9 +153,7 @@ export default function SendInquiryPage() {
         router.push("/buyer/product-inquiries");
         return;
       }
-      setInquiryId(existing.id);
-      setConversationId(existing.conversation_id ?? null);
-      setChatOpen(true);
+      router.replace(`/buyer/product-inquiries/${existing.id}?chat=1`);
     } catch (err) {
       showErrorToast(getInquiryErrorMessage(err, "Could not open inquiry chat"));
     } finally {
@@ -221,14 +216,12 @@ export default function SendInquiryPage() {
         ...(expectedPrice.trim() ? { expected_price: Number(expectedPrice) } : {}),
         ...(product?.pricing?.currency ? { currency: product.pricing.currency } : {}),
         ...(requiredBefore
-          ? { required_before: new Date(requiredBefore).toISOString() }
+          ? { required_before: toApiDateTime(requiredBefore) }
           : {}),
       });
 
       showSuccessToast("Inquiry sent — opening chat");
-      setInquiryId(inquiry.id);
-      setConversationId(inquiry.conversation_id ?? null);
-      setChatOpen(true);
+      router.replace(`/buyer/product-inquiries/${inquiry.id}?chat=1`);
     } catch (err) {
       const fieldErrors = getApiFieldErrors(err);
       setErrors({
@@ -557,23 +550,6 @@ export default function SendInquiryPage() {
           </motion.div>
         )}
       </div>
-
-      <ChatSidePanel
-        open={chatOpen}
-        onClose={() => {
-          setChatOpen(false);
-          if (inquiryId) {
-            router.push(`/buyer/product-inquiries/${inquiryId}`);
-          }
-        }}
-        title="Chat with Seller"
-        role="buyer"
-        conversationId={conversationId}
-        inquiryId={conversationId ? null : inquiryId}
-        productId={productId || null}
-        productName={productName}
-        otherPartyName={sellerName}
-      />
     </div>
   );
 }

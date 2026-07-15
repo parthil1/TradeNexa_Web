@@ -41,6 +41,7 @@ import {
   applyMessageOwnership,
   countsAsUnreadChatMessage,
   effectiveConversationUnread,
+  mergeConversationMeta,
 } from "@/utils/chatHelpers";
 import { showErrorToast } from "@/utils/toast";
 import type {
@@ -255,14 +256,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           const rawUnread = conversation.unread_count ?? 0;
           const effectiveUnread = effectiveConversationUnread(conversation);
           systemInflation += Math.max(0, rawUnread - effectiveUnread);
-          next[conversation.id] = {
-            ...existing,
+          next[conversation.id] = mergeConversationMeta(existing, {
             ...conversation,
             rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
             // Keep API unread_count raw — effectiveConversationUnread at badge time
             // strips SYSTEM tip without double-counting.
             unread_count: rawUnread,
-          };
+          });
         }
         return next;
       });
@@ -394,15 +394,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 const existing = prev[conversation.id];
                 return {
                   ...prev,
-                  [conversation.id]: {
-                    ...existing,
+                  [conversation.id]: mergeConversationMeta(existing, {
                     ...conversation,
                     rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
                     unread_count: Math.max(
                       conversation.unread_count ?? 0,
                       existing?.unread_count ?? 0
                     ),
-                  },
+                  }),
                 };
               });
             })
@@ -539,15 +538,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         return {
           ...prev,
-          [conversation.id]: {
-            ...existing,
+          [conversation.id]: mergeConversationMeta(existing, {
             ...conversation,
             rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
             unread_count: nextUnread,
             last_message: conversation.last_message ?? existing?.last_message ?? null,
             last_message_at:
               conversation.last_message_at ?? existing?.last_message_at ?? null,
-          },
+          }),
         };
       });
     };
@@ -689,14 +687,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const existing = prev[conversation.id];
       return {
         ...prev,
-        [conversation.id]: {
-          ...existing,
-          ...conversation,
-          rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
-        },
+        [conversation.id]: mergeConversationMeta(existing, conversation),
       };
     });
-
   }, []);
 
   const hydrateRfqConversations = useCallback(
@@ -708,13 +701,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           const next = { ...prev };
           for (const conversation of results) {
             const existing = next[conversation.id];
-            next[conversation.id] = {
-              ...existing,
+            next[conversation.id] = mergeConversationMeta(existing, {
               ...conversation,
               // Always stamp the RFQ we asked for so card badges can match.
               rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? rfqId,
               unread_count: conversation.unread_count ?? existing?.unread_count ?? 0,
-            };
+            });
           }
           return next;
         });

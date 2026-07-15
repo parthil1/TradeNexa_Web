@@ -515,7 +515,12 @@ export default function ChatMessageBubble({
           ) : null}
 
           {message.message_type === "PRODUCT" && !message.product ? (
-            <p className="text-xs text-muted-fg">Product #{message.product_id}</p>
+            <p className="text-sm text-foreground">
+              {message.content?.trim() ||
+                (message.product_id != null
+                  ? `Product #${message.product_id}`
+                  : "Shared a product")}
+            </p>
           ) : null}
           {message.message_type === "QUOTATION" && !message.quotation ? (
             <p className="text-xs text-muted-fg">Quotation #{message.quotation_id}</p>
