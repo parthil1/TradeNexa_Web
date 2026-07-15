@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 interface PortalPageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   action?: ReactNode;
 }
 
@@ -14,7 +14,7 @@ export default function PortalPageHeader({ title, subtitle, action }: PortalPage
           {title}
         </h1>
         {subtitle ? (
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-fg">{subtitle}</p>
+          <div className="max-w-2xl text-sm leading-relaxed text-muted-fg">{subtitle}</div>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

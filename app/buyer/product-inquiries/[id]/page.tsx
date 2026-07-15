@@ -2,8 +2,17 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, MessageSquare } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar,
+  Clock,
+  IndianRupee,
+  Loader2,
+  MessageSquare,
+  Package,
+} from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import { Button } from "@/components/common/Button";
@@ -23,9 +32,32 @@ import {
   inquiryCounterpartyName,
   inquiryProductTitle,
 } from "@/utils/inquiryHelpers";
-import { formatPrice } from "@/utils/catalogHelpers";
+import { formatPrice, getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import type { ApiInquiry } from "@/types/inquiry";
+
+function SnapshotStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } }}
+      className="flex items-start gap-2 rounded-lg bg-card/70 p-2.5 sm:bg-transparent sm:p-0"
+    >
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-muted-fg">{label}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{value}</p>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function BuyerProductInquiryDetailPage() {
   const params = useParams();
@@ -55,7 +87,6 @@ export default function BuyerProductInquiryDetailPage() {
     void load();
   }, [load]);
 
-  // Open chat when arriving from send-inquiry (`?chat=1`), then clean the URL.
   useEffect(() => {
     if (loading || !inquiry) return;
     if (searchParams.get("chat") !== "1") return;
@@ -125,26 +156,61 @@ export default function BuyerProductInquiryDetailPage() {
   const title = inquiryProductTitle(inquiry);
   const sellerName = inquiryCounterpartyName(inquiry, "buyer");
   const sellerLogo = inquiryCounterpartyLogo(inquiry, "buyer");
+  const sellerLogoUrl = resolveImageUrl(sellerLogo);
   const quote = inquiry.quotation;
   const status = String(inquiry.status ?? "").toLowerCase();
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
-  const canCancelInquiry =
-    status === "pending" && quoteStatus !== "ACCEPTED";
+  const canCancelInquiry = status === "pending" && quoteStatus !== "ACCEPTED";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
       <PortalBackLink href="/buyer/product-inquiries" />
       <PortalPageHeader
         title={title}
-        subtitle={inquiry.inquiry_number || `Inquiry #${inquiry.id}`}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{inquiry.inquiry_number || `Inquiry #${inquiry.id}`}</span>
+            <span className="text-border" aria-hidden>
+              ·
+            </span>
+            <Link
+              href={`/buyer/product/${inquiry.product_id}`}
+              className="font-medium text-primary hover:underline"
+            >
+              View product
+            </Link>
+          </span>
+        }
         action={<InquiryStatusBadge status={inquiry.status} />}
       />
 
-      <div className="surface-card space-y-4 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted-fg">Seller</p>
-            <p className="font-semibold text-foreground">{sellerName}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="space-y-4 sm:space-y-5"
+      >
+        {/* Seller strip */}
+        <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-soft text-sm font-bold text-primary">
+              {sellerLogoUrl ? (
+                <Image
+                  src={sellerLogoUrl}
+                  alt=""
+                  width={44}
+                  height={44}
+                  className="h-full w-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                getInitials(sellerName)
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-foreground">{sellerName}</p>
+              <p className="text-xs text-muted-fg">Inquiry sent to this seller</p>
+            </div>
           </div>
           <Button
             type="button"
@@ -157,89 +223,115 @@ export default function BuyerProductInquiryDetailPage() {
           </Button>
         </div>
 
-        <dl className="grid gap-3 sm:grid-cols-2 text-sm">
-          <div>
-            <dt className="text-muted-fg">Quantity</dt>
-            <dd className="font-semibold text-foreground">
-              {inquiry.quantity} {inquiry.unit || ""}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-fg">Created</dt>
-            <dd className="font-semibold text-foreground">
-              {formatInquiryDate(inquiry.created_at)}
-            </dd>
-          </div>
-          {inquiry.expected_price != null ? (
-            <div>
-              <dt className="text-muted-fg">Expected price</dt>
-              <dd className="font-semibold text-foreground">
-                {formatPrice(inquiry.expected_price, inquiry.currency || "INR")}
-              </dd>
-            </div>
-          ) : null}
-          <div>
-            <dt className="text-muted-fg">Product</dt>
-            <dd>
-              <Link
-                href={`/buyer/product/${inquiry.product_id}`}
-                className="font-semibold text-primary"
-              >
-                View product
-              </Link>
-            </dd>
-          </div>
-        </dl>
-
-        {inquiry.message ? (
-          <div>
-            <p className="text-sm text-muted-fg">Your message</p>
-            <p className="mt-1 text-sm leading-relaxed text-foreground">{inquiry.message}</p>
-          </div>
-        ) : null}
-
-        {quote ? (
-          <InquiryQuotationDetails
-            quote={quote}
-            currency={inquiry.currency}
-            title="Seller quotation"
-            showSeller
-            actions={
-              inquiry.status === "quoted" ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    loading={actionLoading}
-                    onClick={() => void handleAcceptQuote()}
-                  >
-                    Accept quote
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={actionLoading}
-                    onClick={() => void handleRejectQuote()}
-                  >
-                    Reject quote
-                  </Button>
-                </div>
-              ) : null
-            }
+        {/* Snapshot band */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: {},
+            show: { transition: { staggerChildren: 0.06 } },
+          }}
+          className="grid grid-cols-2 gap-2.5 rounded-xl border border-primary/15 bg-primary-soft/40 p-3 sm:grid-cols-4 sm:gap-3 sm:p-4"
+        >
+          <SnapshotStat
+            icon={Package}
+            label="Quantity"
+            value={`${inquiry.quantity} ${inquiry.unit || ""}`.trim()}
           />
+          {inquiry.expected_price != null ? (
+            <SnapshotStat
+              icon={IndianRupee}
+              label="Target price"
+              value={formatPrice(inquiry.expected_price, inquiry.currency || "INR")}
+            />
+          ) : null}
+          {inquiry.required_before ? (
+            <SnapshotStat
+              icon={Calendar}
+              label="Required by"
+              value={formatInquiryDate(inquiry.required_before)}
+            />
+          ) : null}
+          <SnapshotStat
+            icon={Clock}
+            label="Submitted"
+            value={formatInquiryDate(inquiry.created_at)}
+          />
+        </motion.div>
+
+        {/* Message */}
+        {inquiry.message ? (
+          <div className="surface-card flex gap-3 p-4 sm:p-5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-fg">
+              <MessageSquare className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
+                Your message
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-foreground/90">
+                {inquiry.message}
+              </p>
+            </div>
+          </div>
         ) : null}
+
+        {/* Quotation — decision point */}
+        <AnimatePresence>
+          {quote ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="overflow-hidden rounded-xl border border-border border-l-4 border-l-primary bg-card shadow-[var(--shadow-card)]"
+            >
+              <div className="[&>div]:rounded-none [&>div]:border-0 [&>div]:bg-transparent">
+                <InquiryQuotationDetails
+                  quote={quote}
+                  currency={inquiry.currency}
+                  title="Seller's quotation"
+                  showSeller
+                  actions={
+                    inquiry.status === "quoted" ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="primary"
+                          loading={actionLoading}
+                          onClick={() => void handleAcceptQuote()}
+                        >
+                          Accept quote
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={actionLoading}
+                          onClick={() => void handleRejectQuote()}
+                        >
+                          Reject quote
+                        </Button>
+                      </div>
+                    ) : null
+                  }
+                />
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
 
         {canCancelInquiry ? (
-          <Button
-            type="button"
-            variant="secondary"
-            loading={actionLoading}
-            onClick={() => void handleCancel()}
-          >
-            Cancel inquiry
-          </Button>
+          <div className="flex justify-end border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              loading={actionLoading}
+              onClick={() => void handleCancel()}
+            >
+              Cancel inquiry
+            </Button>
+          </div>
         ) : null}
-      </div>
+      </motion.div>
 
       <ChatSidePanel
         open={chatOpen}

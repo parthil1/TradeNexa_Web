@@ -2,8 +2,17 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
-import { Loader2, MessageSquare } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar,
+  Clock,
+  IndianRupee,
+  Loader2,
+  MessageSquare,
+  Package,
+} from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import { Button } from "@/components/common/Button";
@@ -24,9 +33,32 @@ import {
   inquiryCounterpartyName,
   inquiryProductTitle,
 } from "@/utils/inquiryHelpers";
-import { formatPrice } from "@/utils/catalogHelpers";
+import { formatPrice, getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import type { ApiInquiry } from "@/types/inquiry";
+
+function SnapshotStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } }}
+      className="flex items-start gap-2 rounded-lg bg-card/70 p-2.5 sm:bg-transparent sm:p-0"
+    >
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-muted-fg">{label}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{value}</p>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function SellerInquiryDetailPage() {
   const params = useParams();
@@ -107,6 +139,7 @@ export default function SellerInquiryDetailPage() {
   const title = inquiryProductTitle(inquiry);
   const buyerName = inquiryCounterpartyName(inquiry, "seller");
   const buyerLogo = inquiryCounterpartyLogo(inquiry, "seller");
+  const buyerLogoUrl = resolveImageUrl(buyerLogo);
   const quote = inquiry.quotation;
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
   const canQuote = inquiry.status === "pending" && !quote;
@@ -124,15 +157,50 @@ export default function SellerInquiryDetailPage() {
       <PortalBackLink href="/seller/inquiries" />
       <PortalPageHeader
         title={title}
-        subtitle={inquiry.inquiry_number || `Inquiry #${inquiry.id}`}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{inquiry.inquiry_number || `Inquiry #${inquiry.id}`}</span>
+            <span className="text-border" aria-hidden>
+              ·
+            </span>
+            <Link
+              href={`/seller/product/${inquiry.product_id}`}
+              className="font-medium text-primary hover:underline"
+            >
+              View product
+            </Link>
+          </span>
+        }
         action={<InquiryStatusBadge status={inquiry.status} />}
       />
 
-      <div className="surface-card space-y-4 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted-fg">Buyer</p>
-            <p className="font-semibold text-foreground">{buyerName}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="space-y-4 sm:space-y-5"
+      >
+        {/* Buyer strip */}
+        <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-soft text-sm font-bold text-primary">
+              {buyerLogoUrl ? (
+                <Image
+                  src={buyerLogoUrl}
+                  alt=""
+                  width={44}
+                  height={44}
+                  className="h-full w-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                getInitials(buyerName)
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-foreground">{buyerName}</p>
+              <p className="text-xs text-muted-fg">Inquiry from this buyer</p>
+            </div>
           </div>
           <Button
             type="button"
@@ -145,93 +213,120 @@ export default function SellerInquiryDetailPage() {
           </Button>
         </div>
 
-        <dl className="grid gap-3 sm:grid-cols-2 text-sm">
-          <div>
-            <dt className="text-muted-fg">Quantity</dt>
-            <dd className="font-semibold text-foreground">
-              {inquiry.quantity} {inquiry.unit || ""}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-fg">Received</dt>
-            <dd className="font-semibold text-foreground">
-              {formatInquiryDate(inquiry.created_at)}
-            </dd>
-          </div>
-          {inquiry.expected_price != null ? (
-            <div>
-              <dt className="text-muted-fg">Buyer target</dt>
-              <dd className="font-semibold text-foreground">
-                {formatPrice(inquiry.expected_price, inquiry.currency || "INR")}
-              </dd>
-            </div>
-          ) : null}
-          <div>
-            <dt className="text-muted-fg">Product</dt>
-            <dd>
-              <Link
-                href={`/seller/product/${inquiry.product_id}`}
-                className="font-semibold text-primary"
-              >
-                View product
-              </Link>
-            </dd>
-          </div>
-        </dl>
-
-        {inquiry.message ? (
-          <div>
-            <p className="text-sm text-muted-fg">Buyer message</p>
-            <p className="mt-1 text-sm leading-relaxed text-foreground">{inquiry.message}</p>
-          </div>
-        ) : null}
-
-        {quote ? (
-          <InquiryQuotationDetails
-            quote={quote}
-            currency={inquiry.currency}
-            title="Your quotation"
-            actions={
-              canUpdateQuote || canWithdraw ? (
-                <div className="flex flex-wrap gap-2">
-                  {canUpdateQuote ? (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => setQuoteOpen(true)}
-                    >
-                      Update quotation
-                    </Button>
-                  ) : null}
-                  {canWithdraw ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      loading={actionLoading}
-                      onClick={() => void handleWithdrawQuote()}
-                    >
-                      Withdraw quotation
-                    </Button>
-                  ) : null}
-                </div>
-              ) : null
-            }
+        {/* Snapshot band */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: {},
+            show: { transition: { staggerChildren: 0.06 } },
+          }}
+          className="grid grid-cols-2 gap-2.5 rounded-xl border border-primary/15 bg-primary-soft/40 p-3 sm:grid-cols-4 sm:gap-3 sm:p-4"
+        >
+          <SnapshotStat
+            icon={Package}
+            label="Quantity"
+            value={`${inquiry.quantity} ${inquiry.unit || ""}`.trim()}
           />
+          {inquiry.expected_price != null ? (
+            <SnapshotStat
+              icon={IndianRupee}
+              label="Buyer target"
+              value={formatPrice(inquiry.expected_price, inquiry.currency || "INR")}
+            />
+          ) : null}
+          {inquiry.required_before ? (
+            <SnapshotStat
+              icon={Calendar}
+              label="Required by"
+              value={formatInquiryDate(inquiry.required_before)}
+            />
+          ) : null}
+          <SnapshotStat
+            icon={Clock}
+            label="Received"
+            value={formatInquiryDate(inquiry.created_at)}
+          />
+        </motion.div>
+
+        {/* Buyer message */}
+        {inquiry.message ? (
+          <div className="surface-card flex gap-3 p-4 sm:p-5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-fg">
+              <MessageSquare className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
+                Buyer message
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-foreground/90">
+                {inquiry.message}
+              </p>
+            </div>
+          </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          {canQuote ? (
-            <Button type="button" variant="primary" onClick={() => setQuoteOpen(true)}>
-              Send quotation
-            </Button>
+        {/* Quotation — decision / response */}
+        <AnimatePresence>
+          {quote ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="overflow-hidden rounded-xl border border-border border-l-4 border-l-primary bg-card shadow-[var(--shadow-card)]"
+            >
+              <div className="[&>div]:rounded-none [&>div]:border-0 [&>div]:bg-transparent">
+                <InquiryQuotationDetails
+                  quote={quote}
+                  currency={inquiry.currency}
+                  title="Your quotation"
+                  actions={
+                    canUpdateQuote || canWithdraw ? (
+                      <div className="flex flex-wrap gap-2">
+                        {canUpdateQuote ? (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            onClick={() => setQuoteOpen(true)}
+                          >
+                            Update quotation
+                          </Button>
+                        ) : null}
+                        {canWithdraw ? (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            loading={actionLoading}
+                            onClick={() => void handleWithdrawQuote()}
+                          >
+                            Withdraw quotation
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null
+                  }
+                />
+              </div>
+            </motion.div>
           ) : null}
-          {canReject ? (
-            <Button type="button" variant="secondary" onClick={() => setRejectOpen(true)}>
-              Reject inquiry
-            </Button>
-          ) : null}
-        </div>
-      </div>
+        </AnimatePresence>
+
+        {/* Pending actions */}
+        {canQuote || canReject ? (
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+            {canReject ? (
+              <Button type="button" variant="secondary" onClick={() => setRejectOpen(true)}>
+                Reject inquiry
+              </Button>
+            ) : null}
+            {canQuote ? (
+              <Button type="button" variant="primary" onClick={() => setQuoteOpen(true)}>
+                Send quotation
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </motion.div>
 
       <RejectInquiryModal
         isOpen={rejectOpen}
