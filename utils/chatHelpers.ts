@@ -6,6 +6,7 @@ import type {
   ApiChatQuotationPreview,
   ChatMessageType,
   ChatRole,
+  ChatUnreadConversationSnap,
   ChatUnreadSummary,
   CreateConversationPayload,
   ChatListParams,
@@ -791,6 +792,11 @@ export function normalizeUnreadSummary(raw: unknown): ChatUnreadSummary {
   const item = readRecord(raw) ?? {};
   const asBuyer = pickNumber(item.as_buyer) ?? undefined;
   const asSeller = pickNumber(item.as_seller) ?? undefined;
+  const conversationsRaw = Array.isArray(item.conversations) ? item.conversations : [];
+  const conversations = conversationsRaw
+    .map(normalizeUnreadConversationSnap)
+    .filter((c): c is ChatUnreadConversationSnap => c !== null);
+
   return {
     // Guide badge fields: total, as_buyer, as_seller
     total_unread:
@@ -800,8 +806,77 @@ export function normalizeUnreadSummary(raw: unknown): ChatUnreadSummary {
       ((asBuyer ?? 0) + (asSeller ?? 0) || 0),
     as_buyer: asBuyer,
     as_seller: asSeller,
+    conversations: conversations.length > 0 ? conversations : undefined,
     conversations_unread: pickNumber(item.conversations_unread) ?? undefined,
   };
+}
+
+function normalizeUnreadConversationSnap(raw: unknown): ChatUnreadConversationSnap | null {
+  const item = readRecord(raw);
+  if (!item) return null;
+  const id = pickNumber(item.conversation_id) ?? pickNumber(item.id);
+  if (id == null) return null;
+
+  let lastMessage: string | null = null;
+  if (typeof item.last_message === "string") {
+    lastMessage = item.last_message.trim() || null;
+  } else {
+    const nested = readRecord(item.last_message);
+    lastMessage =
+      pickString(nested?.content) ??
+      pickString(nested?.message) ??
+      pickString(nested?.text) ??
+      null;
+  }
+
+  return {
+    conversation_id: id,
+    unread_count: Math.max(0, pickNumber(item.unread_count) ?? 0),
+    last_message_at: pickString(item.last_message_at),
+    last_message: lastMessage,
+    last_message_sender_id: pickNumber(item.last_message_sender_id),
+  };
+}
+
+/**
+ * Guide: merge socket unread_summary.conversations into REST-rich conversation meta.
+ * Keeps unread_count, last_message preview, and last_message_at fresh without wiping identity.
+ */
+export function applyUnreadInboxSnapshot(
+  existing: Record<number, ApiChatConversation>,
+  summary: ChatUnreadSummary
+): Record<number, ApiChatConversation> {
+  const snaps = summary.conversations;
+  if (!snaps?.length) return existing;
+
+  const next = { ...existing };
+  for (const snap of snaps) {
+    const id = snap.conversation_id;
+    const prev = next[id];
+    next[id] = mergeConversationMeta(prev, {
+      id,
+      conversation_id: id,
+      unread_count: snap.unread_count,
+      last_message_at: snap.last_message_at ?? prev?.last_message_at ?? null,
+      last_message: snap.last_message ?? prev?.last_message ?? null,
+      last_message_sender_id:
+        snap.last_message_sender_id ?? prev?.last_message_sender_id ?? null,
+    });
+  }
+  return next;
+}
+
+/** Inbox order: newest last_message_at first (guide unread_summary sort). */
+export function sortConversationsByLastMessage(
+  rows: ApiChatConversation[]
+): ApiChatConversation[] {
+  return [...rows].sort((a, b) => {
+    const ta = a.last_message_at ? Date.parse(a.last_message_at) : 0;
+    const tb = b.last_message_at ? Date.parse(b.last_message_at) : 0;
+    const na = Number.isFinite(ta) ? ta : 0;
+    const nb = Number.isFinite(tb) ? tb : 0;
+    return nb - na;
+  });
 }
 
 export function unwrapChatPaginated<T>(

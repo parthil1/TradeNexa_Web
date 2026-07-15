@@ -14,10 +14,8 @@ export function formatChatBadgeCount(count: number): string {
 /**
  * Unread count for the Chats nav item.
  *
- * Source of truth: `unreadSummary`, kept live by Socket.IO
- * (`message:new` / `receive_message`, `conversation:updated`, `messages_read`)
- * and seeded via REST unread-summary on connect.
- * Prefer role-scoped counts when the API provides them.
+ * Source of truth: socket `unread_summary` (total / as_buyer / as_seller),
+ * kept live per Chat_Unread_Socket_Guide. Role-scoped when available.
  */
 export function useChatUnreadBadge(): number {
   const { unreadSummary, conversationsMeta, socketStatus } = useChat();
@@ -28,13 +26,13 @@ export function useChatUnreadBadge(): number {
       activeRole === "seller"
         ? unreadSummary.as_seller
         : unreadSummary.as_buyer;
-    const fromSummary =
-      roleScoped != null && roleScoped > 0
-        ? roleScoped
-        : unreadSummary.total_unread ?? 0;
+    // Prefer role-scoped count including 0 — do not fall through to total
+    // (total mixes buyer + seller unread across both portals).
+    if (typeof roleScoped === "number") return Math.max(0, roleScoped);
+
+    const fromSummary = unreadSummary.total_unread ?? 0;
     if (fromSummary > 0) return fromSummary;
 
-    // Fallback: sum of known conversation unreads (also updated by the same socket events).
     const metaValues = Object.values(conversationsMeta);
     if (metaValues.length === 0) return 0;
     return metaValues.reduce(

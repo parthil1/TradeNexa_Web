@@ -101,13 +101,23 @@ export interface ApiChatConversation {
   updated_at?: string | null;
 }
 
+export interface ChatUnreadConversationSnap {
+  conversation_id: number;
+  unread_count: number;
+  last_message_at?: string | null;
+  last_message?: string | null;
+  last_message_sender_id?: number | null;
+}
+
 export interface ChatUnreadSummary {
   /** Normalized badge total (maps API `total` / `total_unread`). */
   total_unread: number;
-  /** Guide: GET /chats/unread-summary → as_buyer */
+  /** Guide: unread_summary / GET → as_buyer */
   as_buyer?: number;
-  /** Guide: GET /chats/unread-summary → as_seller */
+  /** Guide: unread_summary / GET → as_seller */
   as_seller?: number;
+  /** Guide socket unread_summary.conversations — live unread + last activity */
+  conversations?: ChatUnreadConversationSnap[];
   conversations_unread?: number;
 }
 

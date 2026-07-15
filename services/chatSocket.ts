@@ -402,6 +402,18 @@ export function emitMessageRead(conversationId: number, lastReadMessageId?: numb
 }
 
 /**
+ * Guide: Live Unread Inbox — request a fresh `unread_summary` snapshot.
+ * Server replies on this socket only (user room).
+ */
+export function emitGetUnreadSummary() {
+  const s = connectChatSocket();
+  emitWhenConnected(s, "get_unread_summary", undefined);
+  if (process.env.NODE_ENV === "development") {
+    console.info("[chat-socket] emit get_unread_summary");
+  }
+}
+
+/**
  * Socket.IO may emit a single object, or split args like
  * `(conversation_id, message)` / `(message, ackFn)`. Normalize to one payload.
  */
@@ -476,7 +488,10 @@ export function unwrapSocketPayload(payload: unknown): unknown {
       "conversation_id" in data ||
       "message" in data ||
       "user_id" in data ||
-      "unread_count" in data
+      "unread_count" in data ||
+      "total" in data ||
+      "as_buyer" in data ||
+      "conversations" in data
     ) {
       return unwrapSocketPayload(record.data);
     }

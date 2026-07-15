@@ -20,7 +20,7 @@ import { useChat } from "@/context/ChatContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { fetchConversations } from "@/services/chatService";
-import { conversationCounterpartyLogo, effectiveConversationUnread, mergeConversationMeta } from "@/utils/chatHelpers";
+import { conversationCounterpartyLogo, effectiveConversationUnread, mergeConversationMeta, sortConversationsByLastMessage } from "@/utils/chatHelpers";
 import { getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import type { ApiChatConversation, ChatRole } from "@/types/chat";
 
@@ -161,17 +161,28 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
   }, [items, upsertConversationMeta]);
 
   const rows = useMemo(() => {
-    return items.map((item) => {
+    // Guide: REST rich rows + socket unread_summary fields, sorted last_message_at DESC.
+    const merged = items.map((item) => {
       const live = conversationsMeta[item.id];
       return live ? mergeConversationMeta(item, live) : item;
     });
+    return sortConversationsByLastMessage(merged);
   }, [items, conversationsMeta]);
 
   const totalUnread = useMemo(() => {
     const roleScoped = isSeller ? unreadSummary.as_seller : unreadSummary.as_buyer;
-    if (typeof roleScoped === "number") return roleScoped;
+    if (typeof roleScoped === "number") return Math.max(0, roleScoped);
+    if (typeof unreadSummary.total_unread === "number") {
+      return Math.max(0, unreadSummary.total_unread);
+    }
     return rows.reduce((sum, c) => sum + effectiveConversationUnread(c), 0);
-  }, [isSeller, unreadSummary.as_buyer, unreadSummary.as_seller, rows]);
+  }, [
+    isSeller,
+    unreadSummary.as_buyer,
+    unreadSummary.as_seller,
+    unreadSummary.total_unread,
+    rows,
+  ]);
 
   useEffect(() => {
     if (!selected?.id) return;
@@ -236,7 +247,12 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
               </div>
               <button
                 type="button"
-                onClick={() => setSearchOpen((v) => !v)}
+                onClick={() => {
+                  setSearchOpen((open) => {
+                    if (open) setSearch("");
+                    return !open;
+                  });
+                }}
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${
                   searchOpen
                     ? "border-primary/30 bg-primary-soft text-primary"
@@ -256,17 +272,49 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="shrink-0 overflow-hidden border-b border-border bg-card px-4 pb-3"
+                className="shrink-0 overflow-hidden border-b border-border bg-card"
               >
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-placeholder" />
-                  <input
-                    autoFocus
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search by name or company…"
-                    className="input-base !rounded-lg !bg-muted !pl-10"
-                  />
+                <div className="px-4 py-3">
+                  <div
+                    className={`group flex h-10 items-center gap-2 rounded-lg border bg-muted px-3 transition-colors ${
+                      search
+                        ? "border-primary/30 ring-2 ring-primary/10"
+                        : "border-border focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/10"
+                    }`}
+                  >
+                    <Search
+                      className={`h-4 w-4 shrink-0 transition-colors ${
+                        search
+                          ? "text-primary"
+                          : "text-muted-placeholder group-focus-within:text-primary"
+                      }`}
+                      aria-hidden
+                    />
+                    <input
+                      autoFocus
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search by name or company…"
+                      className="h-full w-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-placeholder"
+                    />
+                    <AnimatePresence initial={false}>
+                      {search ? (
+                        <motion.button
+                          key="clear"
+                          type="button"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.12 }}
+                          onClick={() => setSearch("")}
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-fg transition-colors hover:bg-primary-soft hover:text-primary"
+                          aria-label="Clear search"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </motion.button>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </motion.div>
             ) : null}

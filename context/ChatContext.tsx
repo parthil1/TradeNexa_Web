@@ -16,7 +16,9 @@ import {
   coalesceIncomingSocketPayload,
   connectChatSocket,
   disconnectChatSocket,
+  emitGetUnreadSummary,
   emitMessageRead,
+  getChatSocketStatus,
   joinConversation,
   leaveConversation,
   subscribeChatEvent,
@@ -37,8 +39,10 @@ import {
 import {
   normalizeChatConversation,
   normalizeChatMessage,
+  normalizeUnreadSummary,
   resolveAuthNumericUserId,
   applyMessageOwnership,
+  applyUnreadInboxSnapshot,
   countsAsUnreadChatMessage,
   effectiveConversationUnread,
   mergeConversationMeta,
@@ -167,8 +171,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const unreadSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Avoid REST seed overwriting a fresh socket unread bump (eventual consistency). */
   const lastLocalUnreadBumpAtRef = useRef(0);
-  /** Dedupe unread bumps when message:new / receive_message both arrive. */
-  const recentUnreadMessageIdsRef = useRef<Set<number>>(new Set());
   /** How message pages are numbered for each conversation after the initial fetch. */
   const pagingModeRef = useRef<Record<number, "desc" | "asc-tail">>({});
   const pageByConversationRef = useRef<Record<number, number>>({});
@@ -215,12 +217,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setUnreadSummary({ total_unread: 0 });
       return;
     }
+    // Guide: prefer live unread_summary via socket; REST totals-only as fallback.
+    if (getChatSocketStatus() === "connected") {
+      emitGetUnreadSummary();
+      return;
+    }
     try {
       const summary = await fetchUnreadSummary();
       setUnreadSummary((prev) => {
         const nextTotal = summary.total_unread ?? 0;
         const prevTotal = prev.total_unread ?? 0;
-        // Keep a recent live bump if REST briefly lags behind Socket.IO.
         if (
           prevTotal > nextTotal &&
           Date.now() - lastLocalUnreadBumpAtRef.current < 3000
@@ -230,6 +236,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             total_unread: prevTotal,
             as_buyer: summary.as_buyer ?? prev.as_buyer,
             as_seller: summary.as_seller ?? prev.as_seller,
+            conversations: summary.conversations ?? prev.conversations,
           };
         }
         return summary;
@@ -303,11 +310,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     void refreshUnread();
     void syncConversationsUnread();
 
-    // Re-seed unread from REST whenever the socket (re)connects, then rely on
-    // live message:new / conversation:updated / messages_read for the nav badge.
+    // Seed badge via socket unread_summary (auto on connect + get_unread_summary).
+    // REST conversations list still hydrates rich rows (avatar / last_context).
     const unsubStatus = subscribeChatSocketStatus((next) => {
       if (next === "connected") {
-        void refreshUnread();
+        emitGetUnreadSummary();
       }
     });
 
@@ -343,26 +350,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         ]),
       }));
 
-      // Only person messages bump unread — system/status events do not.
-      const isIncomingUnread =
-        activeIdRef.current !== owned.conversation_id &&
-        countsAsUnreadChatMessage(owned);
+      // Guide: badges/order come from unread_summary — message:new only feeds the open
+      // thread + last-message preview. Avoid double-counting unread bump + snapshot.
+      const touchesInboxPreview =
+        countsAsUnreadChatMessage(owned) || Boolean(owned.is_mine);
 
-      if (isIncomingUnread) {
-        // Dedupe if both alias + canonical events reach the handler in some setups.
-        if (recentUnreadMessageIdsRef.current.has(owned.id)) {
-          return;
-        }
-        recentUnreadMessageIdsRef.current.add(owned.id);
-        if (recentUnreadMessageIdsRef.current.size > 200) {
-          recentUnreadMessageIdsRef.current.clear();
-        }
-
-        const socketRfqId = pickSocketRfqId(payload);
-        const knownRfqId =
-          conversationsMetaRef.current[owned.conversation_id]?.rfq_id ?? null;
-
-        lastLocalUnreadBumpAtRef.current = Date.now();
+      if (touchesInboxPreview) {
         setConversationsMeta((prev) => {
           const existing = prev[owned.conversation_id];
           return {
@@ -370,47 +363,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             [owned.conversation_id]: {
               ...(existing ?? { id: owned.conversation_id }),
               id: owned.conversation_id,
-              rfq_id: existing?.rfq_id ?? socketRfqId ?? knownRfqId ?? null,
-              unread_count: (existing?.unread_count ?? 0) + 1,
+              rfq_id:
+                existing?.rfq_id ??
+                pickSocketRfqId(payload) ??
+                conversationsMetaRef.current[owned.conversation_id]?.rfq_id ??
+                null,
               last_message: owned,
               last_message_at: owned.created_at ?? existing?.last_message_at ?? null,
+              last_message_sender_id: owned.sender_id ?? existing?.last_message_sender_id ?? null,
             },
           };
         });
-        setUnreadSummary((prev) => {
-          const roleKey =
-            activeRoleRef.current === "seller" ? "as_seller" : "as_buyer";
-          return {
-            ...prev,
-            total_unread: (prev.total_unread ?? 0) + 1,
-            [roleKey]: ((prev[roleKey] as number | undefined) ?? 0) + 1,
-          };
-        });
-
-        // Resolve rfq_id if we still don't have one (needed for quotation card badges).
-        // Socket-first: only one light GET for the missing RFQ link — no inbox/list refresh.
-        if (socketRfqId == null && knownRfqId == null) {
-          void fetchConversation(owned.conversation_id)
-            .then((conversation) => {
-              setConversationsMeta((prev) => {
-                const existing = prev[conversation.id];
-                return {
-                  ...prev,
-                  [conversation.id]: mergeConversationMeta(existing, {
-                    ...conversation,
-                    rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
-                    unread_count: Math.max(
-                      conversation.unread_count ?? 0,
-                      existing?.unread_count ?? 0
-                    ),
-                  }),
-                };
-              });
-            })
-            .catch(() => {
-              /* ignore */
-            });
-        }
       }
     };
 
@@ -467,7 +430,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             };
           });
         }
-        // Confirm with REST shortly after self-read so badge matches server.
+        // Confirm with socket unread_summary (guide) shortly after self-read.
         window.setTimeout(() => {
           void refreshUnread();
         }, 400);
@@ -502,7 +465,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
 
     const onConversationUpdated = (...args: unknown[]) => {
-      // Guide: conversation:updated → refresh inbox row from socket payload (no REST).
+      // Soft merge inbox row fields. Totals come from unread_summary (do not delta badge).
       const payload = coalesceIncomingSocketPayload(args);
       const conversation = normalizeChatConversation(unwrapSocketPayload(payload));
       if (!conversation) {
@@ -512,31 +475,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       setConversationsMeta((prev) => {
         const existing = prev[conversation.id];
-        const prevUnread = existing?.unread_count ?? 0;
         const nextUnread =
           conversation.unread_count != null
             ? effectiveConversationUnread(conversation)
-            : prevUnread;
-        const delta =
-          conversation.unread_count != null ? nextUnread - prevUnread : 0;
-
-        if (delta !== 0) {
-          if (delta > 0) lastLocalUnreadBumpAtRef.current = Date.now();
-          queueMicrotask(() => {
-            setUnreadSummary((summary) => {
-              const roleKey =
-                activeRoleRef.current === "seller" ? "as_seller" : "as_buyer";
-              return {
-                ...summary,
-                total_unread: Math.max(0, (summary.total_unread ?? 0) + delta),
-                [roleKey]: Math.max(
-                  0,
-                  ((summary[roleKey] as number | undefined) ?? 0) + delta
-                ),
-              };
-            });
-          });
-        }
+            : existing?.unread_count ?? 0;
 
         return {
           ...prev,
@@ -550,6 +492,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }),
         };
       });
+    };
+
+    const onUnreadSummary = (...args: unknown[]) => {
+      // Guide: unread_summary → absolute badge totals + per-conversation unread/last msg.
+      const payload = coalesceIncomingSocketPayload(args);
+      const summary = normalizeUnreadSummary(unwrapSocketPayload(payload));
+      lastLocalUnreadBumpAtRef.current = Date.now();
+      setUnreadSummary(summary);
+      setConversationsMeta((prev) => applyUnreadInboxSnapshot(prev, summary));
     };
 
     const onChatError = (...args: unknown[]) => {
@@ -573,6 +524,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           return subscribeChatEvent(event, onMessageRead);
         case "conversation:updated":
           return subscribeChatEvent(event, onConversationUpdated);
+        case "unread_summary":
+          return subscribeChatEvent(event, onUnreadSummary);
         case "chat:error":
           return subscribeChatEvent(event, onChatError);
         default:
@@ -873,7 +826,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       lastMessageId: number,
       remainingUnread?: number
     ) => {
-      // Guide: mark read via socket message:read (no REST /read).
+      // Guide: mark read via socket message:read — expect unread_summary after.
       emitMessageRead(conversationId, lastMessageId);
 
       const nextUnread = Math.max(0, remainingUnread ?? 0);
@@ -895,11 +848,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         };
       });
       if (cleared > 0) {
-        setUnreadSummary((prev) => ({
-          ...prev,
-          total_unread: Math.max(0, (prev.total_unread ?? 0) - cleared),
-        }));
+        setUnreadSummary((prev) => {
+          const roleKey =
+            activeRoleRef.current === "seller" ? "as_seller" : "as_buyer";
+          return {
+            ...prev,
+            total_unread: Math.max(0, (prev.total_unread ?? 0) - cleared),
+            [roleKey]: Math.max(
+              0,
+              ((prev[roleKey] as number | undefined) ?? 0) - cleared
+            ),
+          };
+        });
       }
+      // Pull absolute snapshot so nav + inbox match server after read.
+      window.setTimeout(() => {
+        emitGetUnreadSummary();
+      }, 300);
     },
     []
   );

@@ -13,6 +13,8 @@ export const CHAT_SOCKET_LISTEN_EVENTS = [
   "message:new",
   "conversation:updated",
   "message:read",
+  /** Live Unread Inbox guide — full badge + per-conversation snapshot */
+  "unread_summary",
   "chat:error",
 ] as const;
 
@@ -30,6 +32,8 @@ export const CHAT_SOCKET_EMIT_EVENTS = [
   "conversation:join",
   "conversation:leave",
   "message:read",
+  /** Request a fresh unread_summary snapshot */
+  "get_unread_summary",
 ] as const;
 
 export type ChatSocketListenEvent = (typeof CHAT_SOCKET_LISTEN_EVENTS)[number];
