@@ -466,16 +466,24 @@ export function getChatFileDisplayName(message: {
   media_url?: string | null;
   file_url?: string | null;
 }): string {
+  const content = message.content?.trim();
+  const contentName =
+    content && looksLikePlainFileName(content) ? content : null;
+
   const explicit = message.file_name?.trim();
-  if (explicit && !/^document$/i.test(explicit) && !/^image$/i.test(explicit)) {
+  if (
+    explicit &&
+    !/^document$/i.test(explicit) &&
+    !/^image$/i.test(explicit) &&
+    !looksLikeGeneratedStorageName(explicit)
+  ) {
     return explicit;
   }
 
+  if (contentName) return contentName;
+
   const fromUrl = fileNameFromUrl(message.media_url || message.file_url);
   if (fromUrl) return fromUrl;
-
-  const content = message.content?.trim();
-  if (content && looksLikePlainFileName(content)) return content;
 
   return message.message_type === "IMAGE" ? "Image" : "Document";
 }
@@ -484,6 +492,12 @@ function looksLikePlainFileName(value: string): boolean {
   if (!value || value.length > 240) return false;
   if (value.includes("://") || value.includes("\n")) return false;
   return /\.[\w]{2,5}$/i.test(value);
+}
+
+/** Backend storage keys like `1784144393500458.pdf` — not useful as a display name. */
+function looksLikeGeneratedStorageName(name: string): boolean {
+  const base = name.replace(/\.[^.]+$/, "").trim();
+  return /^\d{10,}$/.test(base);
 }
 
 function fileNameFromUrl(url?: string | null): string | null {
@@ -578,6 +592,11 @@ export function normalizeChatMessage(
     pickString(item.filename) ??
     pickString(item.original_name) ??
     pickString(item.originalName) ??
+    pickString(metadata?.file_name) ??
+    pickString(metadata?.fileName) ??
+    pickString(metadata?.filename) ??
+    pickString(metadata?.original_name) ??
+    pickString(metadata?.originalName) ??
     pickString(media?.name) ??
     pickString(media?.file_name) ??
     pickString(media?.fileName) ??
@@ -606,6 +625,10 @@ export function normalizeChatMessage(
       pickString(item.key) ??
       pickString(item.storage_key) ??
       pickString(item.storageKey) ??
+      pickString(metadata?.file_url) ??
+      pickString(metadata?.fileUrl) ??
+      pickString(metadata?.file_path) ??
+      pickString(metadata?.filePath) ??
       (typeof item.media === "string" ? pickString(item.media) : null) ??
       pickString(media?.url) ??
       pickString(media?.file_url) ??
@@ -684,18 +707,22 @@ export function normalizeChatMessage(
     quotation,
     rfq,
     media_url: mediaUrl,
-    file_url: pickString(item.file_url) ?? pickString(item.fileUrl) ?? mediaUrl,
+    file_url:
+      pickString(item.file_url) ??
+      pickString(item.fileUrl) ??
+      pickString(metadata?.file_url) ??
+      pickString(metadata?.fileUrl) ??
+      mediaUrl,
     file_name:
       fileName ??
+      (content && looksLikePlainFileName(content) ? content : null) ??
       fileNameFromUrl(mediaUrl) ??
-      (resolvedType === "IMAGE" || resolvedType === "DOCUMENT"
-        ? content && looksLikePlainFileName(content)
-          ? content
-          : null
-        : null),
+      null,
     file_size:
       pickNumber(item.file_size) ??
       pickNumber(item.fileSize) ??
+      pickNumber(metadata?.file_size) ??
+      pickNumber(metadata?.fileSize) ??
       pickNumber(media?.size) ??
       pickNumber(attachment?.size),
   };
