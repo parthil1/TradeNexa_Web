@@ -22,13 +22,14 @@ export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
 }
 
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(function DateInput(
-  { error, className = "", type = "date", onClick, ...rest },
+  { error, className = "", type = "date", onClick, lang = "en-GB", ...rest },
   ref
 ) {
   return (
     <input
       ref={ref}
       type={type}
+      lang={lang}
       className={dateInputClassName(error, className)}
       onClick={(e) => {
         openDatePicker(e.currentTarget);

@@ -36,6 +36,7 @@ export const Input: React.FC<InputProps> = ({
     <input
       id={id}
       type={type}
+      lang={isPickerInput ? "en-GB" : undefined}
       className={inputStyles}
       aria-invalid={!!error}
       {...pickerHandlers}

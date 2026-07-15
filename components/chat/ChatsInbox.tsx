@@ -138,7 +138,19 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
     if (!live) return;
     setSelected((prev) => {
       if (!prev || prev.id !== live.id) return prev;
-      return { ...prev, ...live, id: prev.id };
+      // Soft-merge preview fields only — avoid churning open-chat props
+      // (rfq_id / inquiry_id / parties) that would re-boot ChatPanel.
+      const nextPreview =
+        live.last_message !== prev.last_message ||
+        live.last_message_at !== prev.last_message_at ||
+        live.unread_count !== prev.unread_count;
+      if (!nextPreview) return prev;
+      return {
+        ...prev,
+        last_message: live.last_message ?? prev.last_message,
+        last_message_at: live.last_message_at ?? prev.last_message_at,
+        unread_count: live.unread_count ?? prev.unread_count,
+      };
     });
   }, [conversationsMeta, selected?.id]);
 
@@ -340,17 +352,17 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
         >
           {selected ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 md:hidden">
+              <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-3 sm:px-4">
                 <button
                   type="button"
                   onClick={closeThread}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-fg transition-colors hover:bg-muted hover:text-primary"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-fg transition-colors hover:bg-muted hover:text-primary md:hidden"
                   aria-label="Back to chats"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                     isSeller
                       ? "bg-portal-seller-light text-portal-seller"
                       : "bg-primary-soft text-primary"
@@ -358,10 +370,12 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                 >
                   {getInitials(counterpartyName(selected, chatRole))}
                 </span>
-                <span className="truncate text-sm font-semibold text-foreground">
-                  {counterpartyName(selected, chatRole)}
-                </span>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
+                    {counterpartyName(selected, chatRole)}
+                  </h2>
+                </div>
+              </header>
               <div className="min-h-0 flex-1">
                 <ChatPanel
                   key={selected.id}

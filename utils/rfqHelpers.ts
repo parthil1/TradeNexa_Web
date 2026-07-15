@@ -1,6 +1,7 @@
 import type { ApiPagination, PaginatedResult } from "@/types/catalog";
 import type { ApiQuotation, ApiRfqDetail, ApiRfqListItem, QuotationStatus, RfqStatus } from "@/types/rfq";
 import { unwrapPaginatedResult } from "@/utils/catalogHelpers";
+import { formatDateDdMmYyyy } from "@/utils/dateFormat";
 
 function pickString(value: unknown): string | null {
   if (typeof value === "string" && value.trim()) return value.trim();
@@ -527,10 +528,7 @@ export function formatRfqQuoteCount(count?: number | null): string {
 }
 
 export function formatRfqDate(value?: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return formatDateDdMmYyyy(value);
 }
 
 export function isRfqDraft(status?: string | null): boolean {

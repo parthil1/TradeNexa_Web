@@ -8,6 +8,7 @@ import type {
   InquiryStatus,
 } from "@/types/inquiry";
 import type { ApiPagination } from "@/types/catalog";
+import { formatDateDdMmYyyy } from "@/utils/dateFormat";
 
 function pickNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -233,14 +234,7 @@ export function formatInquiryStatusLabel(status: string): string {
 }
 
 export function formatInquiryDate(value?: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateDdMmYyyy(value);
 }
 
 export function inquiryProductTitle(inquiry: ApiInquiry): string {

@@ -340,17 +340,24 @@ export default function ChatPanel({
     return () => {
       cancelled = true;
     };
+    // Intentionally depend only on conversation identity / open targets.
+    // Do NOT re-boot when parent re-renders after send (conversation:updated
+    // refreshing selected meta / otherPartyName), or the thread flash-reloads.
   }, [
     initialConversationId,
     inquiryId,
     rfqId,
     role,
     sellerId,
-    otherPartyName,
     loadMessages,
     setActiveConversationId,
     upsertConversationMeta,
   ]);
+
+  // Keep header label fresh without reopening the conversation.
+  useEffect(() => {
+    if (otherPartyName?.trim()) setHeaderName(otherPartyName.trim());
+  }, [otherPartyName]);
 
   // Clear active conversation only when the chat panel fully unmounts.
   useEffect(() => {

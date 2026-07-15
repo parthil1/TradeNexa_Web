@@ -479,6 +479,7 @@ export default function SendInquiryPage() {
                           value={requiredBefore}
                           onChange={(e) => setRequiredBefore(e.target.value)}
                           type="date"
+                          lang="en-GB"
                           className="input-base !pl-10"
                           disabled={formDisabled}
                         />
