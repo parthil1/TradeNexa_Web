@@ -4,6 +4,7 @@ import type {
   ApiChatParticipant,
   ApiChatProductPreview,
   ApiChatQuotationPreview,
+  ApiChatRfqPreview,
   ChatMessageType,
   ChatRole,
   ChatUnreadConversationSnap,
@@ -152,16 +153,66 @@ function resolveChatProductPreview(item: Record<string, unknown>): ApiChatProduc
 function normalizeQuotationPreview(raw: unknown): ApiChatQuotationPreview | null {
   const item = readRecord(raw);
   if (!item) return null;
-  const id = pickNumber(item.id);
+  const nested = readRecord(item.quotation);
+  const src = nested ?? item;
+  const id =
+    pickNumber(src.id) ??
+    pickNumber(src.quotation_id) ??
+    pickNumber(item.quotation_id) ??
+    pickNumber(item.id);
   if (id == null) return null;
   return {
     id,
-    price: pickNumber(item.price),
-    quantity: pickNumber(item.quantity),
-    unit: pickString(item.unit),
-    delivery_days: pickNumber(item.delivery_days),
-    currency: pickString(item.currency) ?? "INR",
-    status: pickString(item.status),
+    price: pickNumber(src.price) ?? pickNumber(item.price),
+    quantity: pickNumber(src.quantity) ?? pickNumber(item.quantity),
+    unit: pickString(src.unit) ?? pickString(item.unit),
+    delivery_days: pickNumber(src.delivery_days) ?? pickNumber(item.delivery_days),
+    currency: pickString(src.currency) ?? pickString(item.currency) ?? "INR",
+    status: pickString(src.status) ?? pickString(item.status),
+    quotation_number:
+      pickString(src.quotation_number) ??
+      pickString(item.quotation_number) ??
+      pickString(item.content),
+    total_amount: pickNumber(src.total_amount) ?? pickNumber(item.total_amount),
+    gst_percentage: pickNumber(src.gst_percentage) ?? pickNumber(item.gst_percentage),
+    gst_amount: pickNumber(src.gst_amount) ?? pickNumber(item.gst_amount),
+    transportation_charge:
+      pickNumber(src.transportation_charge) ?? pickNumber(item.transportation_charge),
+    validity_days: pickNumber(src.validity_days) ?? pickNumber(item.validity_days),
+    payment_terms: pickString(src.payment_terms) ?? pickString(item.payment_terms),
+    remarks: pickString(src.remarks) ?? pickString(item.remarks),
+    rfq_id: pickNumber(src.rfq_id) ?? pickNumber(item.rfq_id),
+    rfq_title:
+      pickString(item.rfq_title) ??
+      pickString(readRecord(item.rfq)?.title) ??
+      pickString(item.title),
+    rfq_number:
+      pickString(item.rfq_number) ?? pickString(readRecord(item.rfq)?.rfq_number),
+  };
+}
+
+function normalizeRfqPreview(raw: unknown): ApiChatRfqPreview | null {
+  const item = readRecord(raw);
+  if (!item) return null;
+  const nested = readRecord(item.rfq);
+  const src = nested ?? item;
+  const id = pickNumber(src.id) ?? pickNumber(src.rfq_id) ?? pickNumber(item.rfq_id);
+  if (id == null) return null;
+  return {
+    id,
+    title: pickString(src.title) ?? pickString(item.rfq_title) ?? pickString(item.title),
+    rfq_number: pickString(src.rfq_number) ?? pickString(item.rfq_number),
+    quantity: pickNumber(src.quantity) ?? pickNumber(item.quantity),
+    unit: pickString(src.unit) ?? pickString(item.unit),
+    currency: pickString(src.currency) ?? pickString(item.currency) ?? "INR",
+    expected_price: pickNumber(src.expected_price) ?? pickNumber(item.expected_price),
+    category_name: pickString(src.category_name) ?? pickString(item.category_name),
+    subcategory_name: pickString(src.subcategory_name) ?? pickString(item.subcategory_name),
+    city: pickString(src.city) ?? pickString(item.city),
+    status: pickString(src.status) ?? pickString(item.status),
+    description: pickString(src.description) ?? pickString(item.description),
+    quotation_deadline:
+      pickString(src.quotation_deadline) ?? pickString(item.quotation_deadline),
   };
 }
 
@@ -465,13 +516,41 @@ export function normalizeChatMessage(
 
   const product = resolveChatProductPreview(item);
   const metadata = readRecord(item.metadata) ?? readRecord(item.meta);
-  const quotation =
+  const quotationRaw =
     normalizeQuotationPreview(item.quotation) ??
-    (metadata?.quotation_id != null
+    normalizeQuotationPreview(metadata?.quotation) ??
+    (metadata
       ? normalizeQuotationPreview({
           ...metadata,
-          id: metadata.quotation_id,
+          id: metadata.quotation_id ?? metadata.id,
         })
+      : null);
+  const rfqMetaRecord = readRecord(metadata?.rfq);
+  const quotation = quotationRaw
+    ? {
+        ...quotationRaw,
+        rfq_id:
+          quotationRaw.rfq_id ??
+          pickNumber(metadata?.rfq_id) ??
+          pickNumber(rfqMetaRecord?.id) ??
+          null,
+        rfq_title:
+          quotationRaw.rfq_title ??
+          pickString(metadata?.rfq_title) ??
+          pickString(rfqMetaRecord?.title) ??
+          null,
+        rfq_number:
+          quotationRaw.rfq_number ??
+          pickString(metadata?.rfq_number) ??
+          pickString(rfqMetaRecord?.rfq_number) ??
+          null,
+      }
+    : null;
+  const rfq =
+    normalizeRfqPreview(item.rfq) ??
+    normalizeRfqPreview(metadata?.rfq) ??
+    (metadata?.rfq_id != null || metadata?.context_type === "rfq"
+      ? normalizeRfqPreview(metadata)
       : null);
   const media = readRecord(item.media);
   const attachment =
@@ -596,9 +675,14 @@ export function normalizeChatMessage(
     read_at: pickString(item.read_at),
     delivered_at: pickString(item.delivered_at),
     product_id: pickNumber(item.product_id) ?? product?.id ?? null,
-    quotation_id: pickNumber(item.quotation_id) ?? quotation?.id ?? null,
+    quotation_id:
+      pickNumber(item.quotation_id) ??
+      pickNumber(metadata?.quotation_id) ??
+      quotation?.id ??
+      null,
     product,
     quotation,
+    rfq,
     media_url: mediaUrl,
     file_url: pickString(item.file_url) ?? pickString(item.fileUrl) ?? mediaUrl,
     file_name:

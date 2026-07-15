@@ -41,6 +41,33 @@ export interface ApiChatQuotationPreview {
   delivery_days?: number | null;
   currency?: string | null;
   status?: string | null;
+  quotation_number?: string | null;
+  total_amount?: number | null;
+  gst_percentage?: number | null;
+  gst_amount?: number | null;
+  transportation_charge?: number | null;
+  validity_days?: number | null;
+  payment_terms?: string | null;
+  remarks?: string | null;
+  rfq_id?: number | null;
+  rfq_title?: string | null;
+  rfq_number?: string | null;
+}
+
+export interface ApiChatRfqPreview {
+  id: number;
+  title?: string | null;
+  rfq_number?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  currency?: string | null;
+  expected_price?: number | null;
+  category_name?: string | null;
+  subcategory_name?: string | null;
+  city?: string | null;
+  status?: string | null;
+  description?: string | null;
+  quotation_deadline?: string | null;
 }
 
 export interface ApiChatMessage {
@@ -61,6 +88,8 @@ export interface ApiChatMessage {
   quotation_id?: number | null;
   product?: ApiChatProductPreview | null;
   quotation?: ApiChatQuotationPreview | null;
+  /** RFQ context from QUOTATION message metadata */
+  rfq?: ApiChatRfqPreview | null;
   media_url?: string | null;
   file_url?: string | null;
   file_name?: string | null;

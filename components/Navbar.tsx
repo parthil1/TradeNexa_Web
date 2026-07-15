@@ -19,6 +19,15 @@ import AuthModal from "@/components/AuthModal";
 import CompleteProfileModal from "@/components/CompleteProfileModal";
 import { Logo } from "@/components/common/Logo";
 import { Button } from "@/components/common/Button";
+import type { UserRole } from "@/types/auth";
+
+function formatVerifiedRoleLabel(role: UserRole | string): string {
+  const value = String(role).toLowerCase();
+  if (value === "both") return "Buyer & Seller";
+  if (value === "buyer") return "Buyer";
+  if (value === "seller") return "Seller";
+  return role;
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -198,17 +207,9 @@ export default function Navbar() {
                               </p>
                               <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
                                 <CheckCircle2 className="h-3 w-3" aria-hidden />
-                                Verified {user.role.toUpperCase()}
+                                Verified {formatVerifiedRoleLabel(user.role)}
                               </span>
                             </div>
-                            <Link
-                              href={dashboardHref}
-                              onClick={() => setIsUserMenuOpen(false)}
-                              className="mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted"
-                            >
-                              <LayoutDashboard className="h-4 w-4 text-primary" aria-hidden />
-                              My Dashboard
-                            </Link>
                             <button
                               type="button"
                               onClick={() => {

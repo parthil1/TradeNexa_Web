@@ -25,7 +25,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import type { ApiChatMessage } from "@/types/chat";
+import type { ApiChatMessage, ChatRole } from "@/types/chat";
 import { getChatFileDisplayName, isSystemChatMessage } from "@/utils/chatHelpers";
 import { formatPrice, getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 
@@ -95,6 +95,7 @@ export default function ChatMessageBubble({
   showAvatar = false,
   showTimestamp = true,
   avatarName,
+  role,
   className = "",
 }: {
   message: ApiChatMessage;
@@ -103,6 +104,8 @@ export default function ChatMessageBubble({
   /** When false, timestamp stays available on hover only (still rendered). */
   showTimestamp?: boolean;
   avatarName?: string | null;
+  /** Portal role — used for RFQ / product deep links. */
+  role?: ChatRole;
   className?: string;
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -123,9 +126,31 @@ export default function ChatMessageBubble({
   const imageUrl = resolveImageUrl(rawBackendSrc);
   const imageFileName = getChatFileDisplayName(message);
   const quote = message.quotation;
-  const quoteTotal =
+  const quoteCurrency = quote?.currency || "INR";
+  const quoteBase =
     quote?.price != null && quote?.quantity != null
       ? quote.price * quote.quantity
+      : null;
+  const quoteGstAmount =
+    quote?.gst_amount != null
+      ? quote.gst_amount
+      : quoteBase != null && quote?.gst_percentage != null
+        ? quoteBase * (quote.gst_percentage / 100)
+        : null;
+  const quoteTotal =
+    quote?.total_amount != null
+      ? quote.total_amount
+      : quoteBase != null
+        ? quoteBase +
+          (quoteGstAmount ?? 0) +
+          (quote?.transportation_charge ?? 0)
+        : null;
+  const rfqId = message.rfq?.id ?? quote?.rfq_id ?? null;
+  const rfqHref =
+    rfqId != null
+      ? role === "seller"
+        ? `/seller/lead/${rfqId}`
+        : `/buyer/rfq/${rfqId}`
       : null;
   const timeLabel = formatTime(message.created_at);
   const canShowImage = Boolean(imageUrl) && !imageBroken;
@@ -349,15 +374,12 @@ export default function ChatMessageBubble({
           ) : null}
 
           {message.message_type === "QUOTATION" && quote ? (
-            <div className="min-w-[200px]">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-fg">
-                Quotation #{quote.id}
-              </p>
-              <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+            <div className="min-w-[220px] max-w-[280px]">
+              <div className="grid grid-cols-2 gap-2.5">
                 <MetaCell
                   label="Unit price"
                   value={
-                    quote.price != null ? formatPrice(quote.price, quote.currency) : "—"
+                    quote.price != null ? formatPrice(quote.price, quoteCurrency) : "—"
                   }
                 />
                 <MetaCell
@@ -375,12 +397,55 @@ export default function ChatMessageBubble({
                   }
                 />
                 <MetaCell
-                  label="Total"
+                  label="GST"
                   value={
-                    quoteTotal != null ? formatPrice(quoteTotal, quote.currency) : "—"
+                    quote.gst_percentage != null
+                      ? `${quote.gst_percentage}%${
+                          quoteGstAmount != null
+                            ? ` (${formatPrice(quoteGstAmount, quoteCurrency)})`
+                            : ""
+                        }`
+                      : "—"
                   }
                 />
               </div>
+
+              {quoteTotal != null ? (
+                <div className="mt-2.5 rounded-lg border border-primary/15 bg-primary-soft/40 px-2.5 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-fg">
+                    Total
+                  </p>
+                  <p className="mt-0.5 text-sm font-bold text-primary">
+                    {formatPrice(quoteTotal, quoteCurrency)}
+                  </p>
+                  {quoteBase != null && quote.gst_percentage != null ? (
+                    <p className="mt-0.5 text-[10px] text-muted-fg">
+                      {formatPrice(quoteBase, quoteCurrency)}
+                      {` + ${quote.gst_percentage}% GST`}
+                      {quote.transportation_charge != null &&
+                      quote.transportation_charge > 0
+                        ? ` + ${formatPrice(quote.transportation_charge, quoteCurrency)} transport`
+                        : ""}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {quote.validity_days != null ? (
+                <p className="mt-2 text-[11px] text-muted-fg">
+                  Valid for {quote.validity_days} days
+                </p>
+              ) : null}
+
+              {rfqHref ? (
+                <Link
+                  href={rfqHref}
+                  className="mt-2.5 inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
+                >
+                  View RFQ
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
             </div>
           ) : null}
 

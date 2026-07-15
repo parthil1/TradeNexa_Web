@@ -636,9 +636,7 @@ export function getQuotationStatusHint(status?: string | null): string | null {
 export function computeQuotationSubtotal(
   quotation: Pick<ApiQuotation, "price" | "quantity" | "total_amount">
 ): number | null {
-  if (quotation.total_amount != null && Number.isFinite(quotation.total_amount)) {
-    return quotation.total_amount;
-  }
+  // Base line amount only (before GST / transport) — do not treat total_amount as subtotal.
   if (
     quotation.price != null &&
     quotation.quantity != null &&
@@ -657,11 +655,33 @@ export function computeQuotationTotalWithGst(
   >
 ): { subtotal: number; gstAmount: number; total: number } | null {
   const subtotal = computeQuotationSubtotal(quotation);
-  if (subtotal == null) return null;
-  const gstPct = quotation.gst_percentage ?? 0;
-  const gstAmount = subtotal * (gstPct / 100);
-  const transport = quotation.transportation_charge ?? 0;
-  return { subtotal, gstAmount, total: subtotal + gstAmount + transport };
+  const transport =
+    quotation.transportation_charge != null && Number.isFinite(quotation.transportation_charge)
+      ? quotation.transportation_charge
+      : 0;
+  const gstPct =
+    quotation.gst_percentage != null && Number.isFinite(quotation.gst_percentage)
+      ? quotation.gst_percentage
+      : 0;
+
+  if (subtotal != null) {
+    const gstAmount = subtotal * (gstPct / 100);
+    const computed = subtotal + gstAmount + transport;
+    const apiTotal = quotation.total_amount;
+    return {
+      subtotal,
+      gstAmount,
+      // Prefer server total when present (already tax-inclusive).
+      total:
+        apiTotal != null && Number.isFinite(apiTotal) ? apiTotal : computed,
+    };
+  }
+
+  if (quotation.total_amount != null && Number.isFinite(quotation.total_amount)) {
+    return { subtotal: quotation.total_amount, gstAmount: 0, total: quotation.total_amount };
+  }
+
+  return null;
 }
 
 /** Map RFQ list tab id to API `status` query param (omit for "all"). */

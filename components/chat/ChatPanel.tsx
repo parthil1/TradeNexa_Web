@@ -704,6 +704,7 @@ export default function ChatPanel({
                     showAvatar={messageLayout[index]?.showAvatar}
                     showTimestamp={messageLayout[index]?.showTimestamp}
                     avatarName={headerName}
+                    role={role}
                     className={messageLayout[index]?.gapClass}
                   />
                 </div>
