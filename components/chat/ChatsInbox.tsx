@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -19,8 +20,8 @@ import { useChat } from "@/context/ChatContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { fetchConversations } from "@/services/chatService";
-import { effectiveConversationUnread, mergeConversationMeta } from "@/utils/chatHelpers";
-import { getInitials } from "@/utils/catalogHelpers";
+import { conversationCounterpartyLogo, effectiveConversationUnread, mergeConversationMeta } from "@/utils/chatHelpers";
+import { getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import type { ApiChatConversation, ChatRole } from "@/types/chat";
 
 function previewText(conversation: ApiChatConversation): string {
@@ -70,6 +71,46 @@ function counterpartyName(conversation: ApiChatConversation, role: ChatRole): st
     other?.company_name?.trim() ||
     other?.name?.trim() ||
     (role === "buyer" ? "Seller" : "Buyer")
+  );
+}
+
+function PartyAvatar({
+  conversation,
+  role,
+  name,
+  size = "md",
+  tone = "buyer",
+}: {
+  conversation: ApiChatConversation;
+  role: ChatRole;
+  name: string;
+  size?: "md" | "lg";
+  tone?: "buyer" | "seller";
+}) {
+  const logoUrl = resolveImageUrl(conversationCounterpartyLogo(conversation, role));
+  const dim = size === "lg" ? "h-10 w-10 text-sm" : "h-11 w-11 text-sm";
+  const toneClass =
+    tone === "seller"
+      ? "bg-portal-seller-light text-portal-seller"
+      : "bg-primary-soft text-primary";
+
+  return (
+    <span
+      className={`relative flex ${dim} shrink-0 items-center justify-center overflow-hidden rounded-full font-bold ${toneClass}`}
+    >
+      {logoUrl ? (
+        <Image
+          src={logoUrl}
+          alt=""
+          width={size === "lg" ? 40 : 44}
+          height={size === "lg" ? 40 : 44}
+          className="h-full w-full object-cover"
+          unoptimized
+        />
+      ) : (
+        getInitials(name)
+      )}
+    </span>
   );
 }
 
@@ -286,15 +327,12 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                             transition={{ type: "spring", stiffness: 500, damping: 40 }}
                           />
                         ) : null}
-                        <span
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                            isSeller
-                              ? "bg-portal-seller-light text-portal-seller"
-                              : "bg-primary-soft text-primary"
-                          }`}
-                        >
-                          {getInitials(name)}
-                        </span>
+                        <PartyAvatar
+                          conversation={conversation}
+                          role={chatRole}
+                          name={name}
+                          tone={isSeller ? "seller" : "buyer"}
+                        />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-2">
                             <span
@@ -361,15 +399,13 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                    isSeller
-                      ? "bg-portal-seller-light text-portal-seller"
-                      : "bg-primary-soft text-primary"
-                  }`}
-                >
-                  {getInitials(counterpartyName(selected, chatRole))}
-                </span>
+                <PartyAvatar
+                  conversation={selected}
+                  role={chatRole}
+                  name={counterpartyName(selected, chatRole)}
+                  size="lg"
+                  tone={isSeller ? "seller" : "buyer"}
+                />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
                     {counterpartyName(selected, chatRole)}

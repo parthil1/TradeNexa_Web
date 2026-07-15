@@ -17,6 +17,9 @@ export interface ApiChatParticipant {
   user_id?: number;
   name?: string | null;
   company_name?: string | null;
+  /** Guide conversations list: `user.profile_image` */
+  profile_image?: string | null;
+  company_logo?: string | null;
   role?: string | null;
   is_online?: boolean | null;
 }

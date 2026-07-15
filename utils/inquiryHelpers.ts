@@ -233,6 +233,16 @@ export function formatInquiryStatusLabel(status: string): string {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
+/** Quotation statuses are usually UPPER_SNAKE — show as Title Case words. */
+export function formatInquiryQuotationStatusLabel(status?: string | null): string {
+  const raw = String(status ?? "").trim();
+  if (!raw) return "Unknown";
+  return raw
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function formatInquiryDate(value?: string | null): string {
   return formatDateDdMmYyyy(value);
 }
@@ -253,5 +263,17 @@ export function inquiryCounterpartyName(
     party?.company_name?.trim() ||
     party?.full_name?.trim() ||
     (role === "buyer" ? "Seller" : "Buyer")
+  );
+}
+
+export function inquiryCounterpartyLogo(
+  inquiry: ApiInquiry,
+  role: "buyer" | "seller"
+): string | null {
+  const party = role === "buyer" ? inquiry.seller : inquiry.buyer;
+  return (
+    party?.company_logo?.trim() ||
+    party?.profile_image?.trim() ||
+    null
   );
 }

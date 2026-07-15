@@ -9,6 +9,7 @@ import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import { Button } from "@/components/common/Button";
 import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import InquiryStatusBadge from "@/components/inquiry/InquiryStatusBadge";
+import InquiryQuotationDetails from "@/components/inquiry/InquiryQuotationDetails";
 import {
   acceptInquiryQuotation,
   cancelInquiry,
@@ -18,6 +19,7 @@ import {
 } from "@/services/inquiryService";
 import {
   formatInquiryDate,
+  inquiryCounterpartyLogo,
   inquiryCounterpartyName,
   inquiryProductTitle,
 } from "@/utils/inquiryHelpers";
@@ -122,6 +124,7 @@ export default function BuyerProductInquiryDetailPage() {
 
   const title = inquiryProductTitle(inquiry);
   const sellerName = inquiryCounterpartyName(inquiry, "buyer");
+  const sellerLogo = inquiryCounterpartyLogo(inquiry, "buyer");
   const quote = inquiry.quotation;
   const status = String(inquiry.status ?? "").toLowerCase();
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
@@ -196,43 +199,34 @@ export default function BuyerProductInquiryDetailPage() {
         ) : null}
 
         {quote ? (
-          <div className="rounded-xl border border-border bg-muted/50 p-4">
-            <p className="text-sm font-semibold text-foreground">Seller quotation</p>
-            <p className="mt-2 text-lg font-bold text-primary">
-              {formatPrice(quote.price ?? 0, inquiry.currency || "INR")}
-              {quote.unit ? (
-                <span className="ml-1 text-sm font-medium text-muted-fg">/ {quote.unit}</span>
-              ) : null}
-            </p>
-            {quote.total_amount != null ? (
-              <p className="mt-1 text-sm text-muted-fg">
-                Total {formatPrice(quote.total_amount, inquiry.currency || "INR")}
-              </p>
-            ) : null}
-            {quote.remarks ? (
-              <p className="mt-2 text-sm text-muted-fg">{quote.remarks}</p>
-            ) : null}
-            {inquiry.status === "quoted" ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  loading={actionLoading}
-                  onClick={() => void handleAcceptQuote()}
-                >
-                  Accept quote
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={actionLoading}
-                  onClick={() => void handleRejectQuote()}
-                >
-                  Reject quote
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          <InquiryQuotationDetails
+            quote={quote}
+            currency={inquiry.currency}
+            title="Seller quotation"
+            showSeller
+            actions={
+              inquiry.status === "quoted" ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    loading={actionLoading}
+                    onClick={() => void handleAcceptQuote()}
+                  >
+                    Accept quote
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={actionLoading}
+                    onClick={() => void handleRejectQuote()}
+                  >
+                    Reject quote
+                  </Button>
+                </div>
+              ) : null
+            }
+          />
         ) : null}
 
         {canCancelInquiry ? (
@@ -257,6 +251,7 @@ export default function BuyerProductInquiryDetailPage() {
         productId={inquiry.product_id}
         productName={title}
         otherPartyName={sellerName}
+        otherPartyLogo={sellerLogo}
       />
     </div>
   );

@@ -944,6 +944,7 @@ export default function PortalProductDetailView({
         productId={product.id}
         productName={basic.name}
         otherPartyName={product.seller?.company?.name}
+        otherPartyLogo={product.seller?.company?.logo}
       />
     </div>
   );

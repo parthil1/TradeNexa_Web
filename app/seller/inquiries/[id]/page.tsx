@@ -9,7 +9,9 @@ import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import { Button } from "@/components/common/Button";
 import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import InquiryStatusBadge from "@/components/inquiry/InquiryStatusBadge";
+import InquiryQuotationDetails from "@/components/inquiry/InquiryQuotationDetails";
 import { SubmitInquiryQuotationModal } from "@/components/inquiry/SubmitInquiryQuotationForm";
+import { RejectInquiryModal } from "@/components/inquiry/RejectInquiryModal";
 import {
   fetchInquiryById,
   getInquiryErrorMessage,
@@ -18,6 +20,7 @@ import {
 } from "@/services/inquiryService";
 import {
   formatInquiryDate,
+  inquiryCounterpartyLogo,
   inquiryCounterpartyName,
   inquiryProductTitle,
 } from "@/utils/inquiryHelpers";
@@ -33,7 +36,7 @@ export default function SellerInquiryDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!inquiryId || Number.isNaN(inquiryId)) return;
@@ -53,14 +56,15 @@ export default function SellerInquiryDetailPage() {
     void load();
   }, [load]);
 
-  async function handleReject() {
+  async function handleReject(reason: string) {
     if (!inquiry) return;
     setActionLoading(true);
     try {
       const updated = await rejectInquiry(inquiry.id, {
-        reason: rejectReason.trim() || undefined,
+        reason: reason || undefined,
       });
       setInquiry(updated);
+      setRejectOpen(false);
       showSuccessToast("Inquiry rejected");
     } catch (err) {
       showErrorToast(getInquiryErrorMessage(err, "Could not reject inquiry"));
@@ -102,18 +106,14 @@ export default function SellerInquiryDetailPage() {
 
   const title = inquiryProductTitle(inquiry);
   const buyerName = inquiryCounterpartyName(inquiry, "seller");
+  const buyerLogo = inquiryCounterpartyLogo(inquiry, "seller");
   const quote = inquiry.quotation;
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
   const canQuote = inquiry.status === "pending" && !quote;
   const canReject = inquiry.status === "pending";
   const canUpdateQuote =
     Boolean(quote?.id) &&
-    inquiry.status !== "accepted" &&
-    inquiry.status !== "cancelled" &&
-    inquiry.status !== "closed" &&
-    (quoteStatus === "SUBMITTED" ||
-      quoteStatus === "UPDATED" ||
-      quoteStatus === "REJECTED");
+    (quoteStatus === "SUBMITTED" || quoteStatus === "UPDATED");
   const canWithdraw =
     inquiry.status === "quoted" &&
     quote &&
@@ -187,40 +187,36 @@ export default function SellerInquiryDetailPage() {
         ) : null}
 
         {quote ? (
-          <div className="rounded-xl border border-border bg-muted/50 p-4">
-            <p className="text-sm font-semibold text-foreground">Your quotation</p>
-            <p className="mt-2 text-lg font-bold text-primary">
-              {formatPrice(quote.price ?? 0, inquiry.currency || "INR")}
-            </p>
-            {quote.total_amount != null ? (
-              <p className="mt-1 text-sm text-muted-fg">
-                Total {formatPrice(quote.total_amount, inquiry.currency || "INR")}
-              </p>
-            ) : null}
-            {canUpdateQuote || canWithdraw ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {canUpdateQuote ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => setQuoteOpen(true)}
-                  >
-                    Update quotation
-                  </Button>
-                ) : null}
-                {canWithdraw ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    loading={actionLoading}
-                    onClick={() => void handleWithdrawQuote()}
-                  >
-                    Withdraw quotation
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          <InquiryQuotationDetails
+            quote={quote}
+            currency={inquiry.currency}
+            title="Your quotation"
+            actions={
+              canUpdateQuote || canWithdraw ? (
+                <div className="flex flex-wrap gap-2">
+                  {canUpdateQuote ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => setQuoteOpen(true)}
+                    >
+                      Update quotation
+                    </Button>
+                  ) : null}
+                  {canWithdraw ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      loading={actionLoading}
+                      onClick={() => void handleWithdrawQuote()}
+                    >
+                      Withdraw quotation
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null
+            }
+          />
         ) : null}
 
         <div className="flex flex-wrap gap-2">
@@ -229,31 +225,21 @@ export default function SellerInquiryDetailPage() {
               Send quotation
             </Button>
           ) : null}
-        </div>
-
-        {canReject ? (
-          <div className="space-y-2 border-t border-border pt-4">
-            <label className="block text-sm font-medium text-foreground">
-              Reject reason (optional)
-            </label>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={2}
-              className="w-full resize-y rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
-              placeholder="Unable to fulfill quantity…"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              loading={actionLoading}
-              onClick={() => void handleReject()}
-            >
+          {canReject ? (
+            <Button type="button" variant="secondary" onClick={() => setRejectOpen(true)}>
               Reject inquiry
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
+
+      <RejectInquiryModal
+        isOpen={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        productTitle={title}
+        submitting={actionLoading}
+        onConfirm={handleReject}
+      />
 
       <SubmitInquiryQuotationModal
         isOpen={quoteOpen}
@@ -277,6 +263,7 @@ export default function SellerInquiryDetailPage() {
         productId={inquiry.product_id}
         productName={title}
         otherPartyName={buyerName}
+        otherPartyLogo={buyerLogo}
       />
     </div>
   );

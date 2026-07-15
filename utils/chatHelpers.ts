@@ -5,6 +5,7 @@ import type {
   ApiChatProductPreview,
   ApiChatQuotationPreview,
   ChatMessageType,
+  ChatRole,
   ChatUnreadSummary,
   CreateConversationPayload,
   ChatListParams,
@@ -45,9 +46,55 @@ function normalizeParticipant(raw: unknown): ApiChatParticipant | null {
       pickString(item.full_name) ??
       pickString(item.fullName),
     company_name: pickString(item.company_name) ?? pickString(item.company),
+    profile_image:
+      pickString(item.profile_image) ??
+      pickString(item.profileImage) ??
+      pickString(item.avatar) ??
+      pickString(item.image),
+    company_logo:
+      pickString(item.company_logo) ??
+      pickString(item.companyLogo) ??
+      pickString(item.logo),
     role: pickString(item.role),
     is_online: typeof item.is_online === "boolean" ? item.is_online : null,
   };
+}
+
+function mergeParticipant(
+  existing: ApiChatParticipant | null | undefined,
+  incoming: ApiChatParticipant | null | undefined
+): ApiChatParticipant | null {
+  if (!existing && !incoming) return null;
+  if (!incoming) return existing ?? null;
+  if (!existing) return incoming;
+  return {
+    ...existing,
+    ...incoming,
+    id: incoming.id ?? existing.id,
+    user_id: incoming.user_id ?? existing.user_id,
+    name: incoming.name ?? existing.name ?? null,
+    company_name: incoming.company_name ?? existing.company_name ?? null,
+    profile_image: incoming.profile_image ?? existing.profile_image ?? null,
+    company_logo: incoming.company_logo ?? existing.company_logo ?? null,
+    role: incoming.role ?? existing.role ?? null,
+    is_online: incoming.is_online ?? existing.is_online ?? null,
+  };
+}
+
+/** Counterparty avatar from conversations API (`user.profile_image`). */
+export function conversationCounterpartyLogo(
+  conversation: ApiChatConversation | null | undefined,
+  role: ChatRole
+): string | null {
+  if (!conversation) return null;
+  const other =
+    conversation.other_party ??
+    (role === "buyer" ? conversation.seller : conversation.buyer);
+  return (
+    other?.profile_image?.trim() ||
+    other?.company_logo?.trim() ||
+    null
+  );
 }
 
 function normalizeProductPreview(raw: unknown): ApiChatProductPreview | null {
@@ -725,9 +772,9 @@ export function mergeConversationMeta(
     rfq_title: incoming.rfq_title ?? existing.rfq_title ?? null,
     rfq_reference: incoming.rfq_reference ?? existing.rfq_reference ?? null,
     last_context: incoming.last_context ?? existing.last_context ?? null,
-    buyer: incoming.buyer ?? existing.buyer ?? null,
-    seller: incoming.seller ?? existing.seller ?? null,
-    other_party: incoming.other_party ?? existing.other_party ?? null,
+    buyer: mergeParticipant(existing.buyer, incoming.buyer),
+    seller: mergeParticipant(existing.seller, incoming.seller),
+    other_party: mergeParticipant(existing.other_party, incoming.other_party),
     buyer_id: incoming.buyer_id ?? existing.buyer_id ?? null,
     seller_id: incoming.seller_id ?? existing.seller_id ?? null,
     participants:

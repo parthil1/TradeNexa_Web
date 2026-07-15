@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import {
   AlertCircle,
   ChevronRight,
@@ -23,8 +24,8 @@ import {
 } from "@/services/chatService";
 import { openInquiryChat } from "@/services/inquiryService";
 import { joinConversation } from "@/services/chatSocket";
-import { countsAsUnreadChatMessage, isSystemChatMessage } from "@/utils/chatHelpers";
-import { getInitials } from "@/utils/catalogHelpers";
+import { conversationCounterpartyLogo, countsAsUnreadChatMessage, isSystemChatMessage } from "@/utils/chatHelpers";
+import { getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { showErrorToast } from "@/utils/toast";
 import type { ApiChatConversation, ApiChatMessage, ChatRole } from "@/types/chat";
 import type { ApiQuotation } from "@/types/rfq";
@@ -123,6 +124,7 @@ export default function ChatPanel({
   const [missingSellerId, setMissingSellerId] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [headerName, setHeaderName] = useState(otherPartyName || "Chat");
+  const [headerLogo, setHeaderLogo] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -279,6 +281,7 @@ export default function ChatPanel({
           other?.name ||
           (role === "buyer" ? "Seller" : "Buyer")
       );
+      setHeaderLogo(conversationCounterpartyLogo(conversation, role));
       await loadMessages(conversation.id, 1, false);
     }
 
@@ -585,6 +588,7 @@ export default function ChatPanel({
     Boolean(conversationId) && !bootLoading && !chatUnavailable;
   const composerDisabled = !canCompose;
   const errorCopy = humanizeChatBootError(bootError ?? "", missingSellerId);
+  const headerLogoUrl = resolveImageUrl(headerLogo);
 
   return (
     <section className={shellClass}>
@@ -600,8 +604,19 @@ export default function ChatPanel({
         <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5">
           <div className="flex min-w-0 items-start gap-3">
             <div className="relative shrink-0">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-base font-bold text-primary">
-                {getInitials(headerName)}
+              <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary-soft text-base font-bold text-primary">
+                {headerLogoUrl ? (
+                  <Image
+                    src={headerLogoUrl}
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  getInitials(headerName)
+                )}
               </span>
             </div>
             <div className="min-w-0 pt-0.5">
