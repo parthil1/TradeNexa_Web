@@ -16,15 +16,33 @@ async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistrati
     return null;
   }
   try {
-    return await navigator.serviceWorker.register(FCM_SW_PATH, { scope: "/" });
-  } catch (err) {
-    console.warn("[fcm] Service worker registration failed:", err);
+    const registration = await navigator.serviceWorker.register(FCM_SW_PATH, {
+      scope: "/",
+    });
+    await navigator.serviceWorker.ready;
+    return registration;
+  } catch {
     return null;
   }
 }
 
 /**
- * Request notification permission (if needed) and return an FCM registration token.
+ * Ask for notification permission while still in a user-gesture (e.g. Send OTP click).
+ * Browsers only show the dialog when permission is still "default".
+ */
+export async function ensureNotificationPermission(): Promise<NotificationPermission> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "denied";
+  }
+  if (Notification.permission === "default") {
+    return Notification.requestPermission();
+  }
+  return Notification.permission;
+}
+
+/**
+ * Request notification permission (if needed) and return the Firebase FCM token.
+ * That token is sent as `device.device_token` on verify-otp / register.
  * Returns "" when Firebase is not configured or permission is denied so login still works.
  */
 export async function getFcmToken(): Promise<string> {
@@ -33,22 +51,18 @@ export async function getFcmToken(): Promise<string> {
   const cached = localStorage.getItem(FCM_TOKEN_STORAGE_KEY)?.trim();
   if (cached) return cached;
 
-  if (!isFirebaseConfigured() || !FIREBASE_VAPID_KEY) {
-    console.warn(
-      "[fcm] Firebase env vars missing — login will send an empty device_token. Add NEXT_PUBLIC_FIREBASE_* to .env.local."
-    );
-    return "";
+  if (!("Notification" in window)) return "";
+
+  // Ask before other checks so the Allow dialog is not skipped when env is slow/misread.
+  let permission = Notification.permission;
+  if (permission === "default") {
+    permission = await Notification.requestPermission();
   }
+  if (permission !== "granted") return "";
+
+  if (!isFirebaseConfigured() || !FIREBASE_VAPID_KEY) return "";
 
   try {
-    if (!("Notification" in window)) return "";
-
-    let permission = Notification.permission;
-    if (permission === "default") {
-      permission = await Notification.requestPermission();
-    }
-    if (permission !== "granted") return "";
-
     const messaging = await getFirebaseMessaging();
     if (!messaging) return "";
 
@@ -63,13 +77,12 @@ export async function getFcmToken(): Promise<string> {
       localStorage.setItem(FCM_TOKEN_STORAGE_KEY, trimmed);
     }
     return trimmed;
-  } catch (err) {
-    console.warn("[fcm] Failed to get FCM token:", err);
+  } catch {
     return "";
   }
 }
 
-/** Nested `device` object for verify-otp / register body. */
+/** Nested `device` object for verify-otp / register — `device_token` is the Firebase FCM token. */
 export async function buildLoginDevicePayload(): Promise<{
   device_type: typeof WEB_DEVICE_TYPE;
   device_token: string;

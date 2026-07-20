@@ -16,8 +16,8 @@ export async function GET() {
 
   const body = `
 /* Firebase Messaging service worker — generated from env */
-importScripts("https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging-compat.js");
 
 firebase.initializeApp(${JSON.stringify(config)});
 firebase.messaging();

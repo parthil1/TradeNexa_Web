@@ -15,6 +15,10 @@ import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import {
+  ensureNotificationPermission,
+  getFcmToken,
+} from "@/services/fcmService";
+import {
   Smartphone,
   ShieldCheck,
   ArrowRight,
@@ -347,6 +351,11 @@ function AuthModalFlow({ isOpen }: { isOpen: boolean }) {
       return;
     }
     setErrors({});
+
+    // Ask for notifications on the Send OTP click (user gesture).
+    // OTP auto-submit often has no gesture, so browsers skip the Allow dialog there.
+    await ensureNotificationPermission();
+    void getFcmToken();
 
     const success = await sendOtpAction(phone, countryCode);
     if (success) {
