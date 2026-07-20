@@ -311,7 +311,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           otp: Number(otp),
           device,
         };
-        console.log("[login] verify-otp body:", body);
         const response = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, body);
 
         const data = unwrapApiPayload<Record<string, unknown>>(response.data);
@@ -369,7 +368,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           business_type_id: formData.businessTypeId,
           device,
         };
-        console.log("[register] body:", body);
 
         const response = await apiClient.post(API_ENDPOINTS.REGISTER, body);
         const data = unwrapApiPayload<Record<string, unknown>>(response.data);
