@@ -50,24 +50,39 @@ export async function getFcmToken(): Promise<string> {
   if (typeof window === "undefined") return "";
 
   const cached = localStorage.getItem(FCM_TOKEN_STORAGE_KEY)?.trim();
-  if (cached) return cached;
+  if (cached) {
+    console.log("[fcm] using cached Firebase token:", cached);
+    return cached;
+  }
 
-  if (!("Notification" in window)) return "";
+  if (!("Notification" in window)) {
+    console.warn("[fcm] Notifications API not available");
+    return "";
+  }
 
   // Ask before other checks so the Allow dialog is not skipped when env is slow/misread.
   let permission = Notification.permission;
   if (permission === "default") {
     permission = await Notification.requestPermission();
   }
+  console.log("[fcm] notification permission:", permission);
   if (permission !== "granted") return "";
 
-  if (!isFirebaseConfigured() || !FIREBASE_VAPID_KEY) return "";
+  if (!isFirebaseConfigured() || !FIREBASE_VAPID_KEY) {
+    console.warn("[fcm] Firebase config or VAPID key missing — cannot get token");
+    return "";
+  }
 
   try {
     const messaging = await getFirebaseMessaging();
-    if (!messaging) return "";
+    if (!messaging) {
+      console.warn("[fcm] Firebase messaging unavailable");
+      return "";
+    }
 
     const registration = await registerMessagingServiceWorker();
+    console.log("[fcm] service worker registered:", Boolean(registration));
+
     const token = await getToken(messaging, {
       vapidKey: FIREBASE_VAPID_KEY,
       ...(registration ? { serviceWorkerRegistration: registration } : {}),
@@ -76,9 +91,13 @@ export async function getFcmToken(): Promise<string> {
     const trimmed = token?.trim() || "";
     if (trimmed) {
       localStorage.setItem(FCM_TOKEN_STORAGE_KEY, trimmed);
+      console.log("[fcm] Firebase token received:", trimmed);
+    } else {
+      console.warn("[fcm] getToken returned empty");
     }
     return trimmed;
-  } catch {
+  } catch (err) {
+    console.warn("[fcm] failed to get Firebase token:", err);
     return "";
   }
 }
