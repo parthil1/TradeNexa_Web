@@ -24,6 +24,7 @@ import {
   type ApiUserProfile,
 } from "@/utils/authHelpers";
 import { buildProfileFormData } from "@/utils/buildProfileFormData";
+import { buildLoginDevicePayload } from "@/services/fcmService";
 import { deleteProfile } from "@/services/profileService";
 import {
   AsyncOperationState,
@@ -303,11 +304,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fallbackError: "Failed to verify OTP code",
       successMessage: "OTP verified successfully",
       action: async () => {
-        const response = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, {
+        const device = await buildLoginDevicePayload();
+        const body = {
           firebase_verification_id: firebaseVerificationId,
           mobile_number: sessionMobileNumber,
           otp: Number(otp),
-        });
+          device,
+        };
+        console.log("[login] verify-otp body:", body);
+        const response = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, body);
 
         const data = unwrapApiPayload<Record<string, unknown>>(response.data);
         const session = parseAuthSession(data);
@@ -354,6 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fallbackError: "Registration failed",
       action: async () => {
         await ensureRolesLoaded();
+        const device = await buildLoginDevicePayload();
 
         const body = {
           mobile_number: sessionMobileNumber,
@@ -361,7 +367,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: formData.email.trim(),
           role_id: userRoleToRoleId(formData.role),
           business_type_id: formData.businessTypeId,
+          device,
         };
+        console.log("[register] body:", body);
 
         const response = await apiClient.post(API_ENDPOINTS.REGISTER, body);
         const data = unwrapApiPayload<Record<string, unknown>>(response.data);

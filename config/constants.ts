@@ -1,5 +1,2 @@
-/** Device payload for register API */
-export const REGISTER_DEVICE = {
-  device_type: process.env.NEXT_PUBLIC_DEVICE_TYPE || "android",
-  device_token: process.env.NEXT_PUBLIC_DEVICE_TOKEN || "firebase_device_token",
-};
+/** Static web device type used on login/register. */
+export const WEB_DEVICE_TYPE = "web" as const;

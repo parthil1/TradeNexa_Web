@@ -61,12 +61,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addInquiry = (inquiry: InquiryData) => {
     setInquiries((prev) => [...prev, inquiry]);
-    console.log("Mock Inquiry Received:", inquiry);
   };
 
   const addRegistration = (data: RegistrationData) => {
     setRegistrations((prev) => [...prev, data]);
-    console.log("Mock Registration Received:", data);
   };
 
   return (
