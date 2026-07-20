@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# generated FCM service worker (written by next.config.ts from env)
+/public/firebase-messaging-sw.js
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

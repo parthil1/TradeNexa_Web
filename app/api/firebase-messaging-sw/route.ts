@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 /**
- * Serves firebase-messaging-sw.js with NEXT_PUBLIC_FIREBASE_* baked in.
- * Register via: navigator.serviceWorker.register("/api/firebase-messaging-sw")
+ * Legacy path — prefer /firebase-messaging-sw.js (static, generated at build).
+ * Kept so older clients registering /api/firebase-messaging-sw still work after deploy.
  */
 export async function GET() {
   const config = {

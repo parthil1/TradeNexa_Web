@@ -6,7 +6,8 @@ import {
 } from "@/config/firebase";
 
 const FCM_TOKEN_STORAGE_KEY = "fcm_token";
-const FCM_SW_PATH = "/api/firebase-messaging-sw";
+/** Root static SW (generated at build from NEXT_PUBLIC_FIREBASE_*). */
+const FCM_SW_PATH = "/firebase-messaging-sw.js";
 
 /** Static device type for web login / verify-otp. */
 export const WEB_DEVICE_TYPE = "web" as const;
