@@ -60,6 +60,7 @@ import {
   findMyInquiryForProduct,
   getInquiryErrorMessage,
 } from "@/services/inquiryService";
+import { isActiveInquiryStatus } from "@/utils/inquiryHelpers";
 import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import {
   approvalStatusHint,
@@ -371,6 +372,27 @@ export default function PortalProductDetailView({
   const [openingChat, setOpeningChat] = useState(false);
 
   const { basic_details: basic, pricing, marketplace, ratings, user_actions } = product;
+  /** True while an active (pending/quoted/accepted) inquiry exists for this product. */
+  const [hasActiveInquiry, setHasActiveInquiry] = useState(
+    user_actions?.is_inquiry_sent === true
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || user_actions?.is_inquiry_sent !== true) {
+      setHasActiveInquiry(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const existing = await findMyInquiryForProduct(product.id);
+      if (cancelled) return;
+      setHasActiveInquiry(existing ? isActiveInquiryStatus(existing.status) : false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [product.id, isAuthenticated, user_actions?.is_inquiry_sent]);
+
   const hasWishlistAction = user_actions?.is_favourite != null;
   const wishlisted = isWishlisted(
     product.id,
@@ -425,7 +447,7 @@ export default function PortalProductDetailView({
   const acceptInquiry =
     marketplace.accept_inquiry !== false && product.accept_inquiry !== false;
   const canContactSeller = user_actions?.can_contact_seller !== false;
-  const inquiryAlreadySent = user_actions?.is_inquiry_sent === true;
+  const inquiryAlreadySent = hasActiveInquiry;
   const showInquiryCta =
     !isSellerView && acceptInquiry && canContactSeller && links.product;
   const approvalStatus = product.approval_status ?? null;
@@ -467,9 +489,8 @@ export default function PortalProductDetailView({
     }
     setOpeningChat(true);
     try {
-      const existing = await findMyInquiryForProduct(product.id);
+      const existing = await findMyInquiryForProduct(product.id, { activeOnly: true });
       if (!existing) {
-        showErrorToast("No inquiry found for this product yet.");
         router.push(`/buyer/send-inquiry?product=${product.id}`);
         return;
       }

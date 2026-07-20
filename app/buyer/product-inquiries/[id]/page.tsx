@@ -12,6 +12,7 @@ import {
   Loader2,
   MessageSquare,
   Package,
+  Send,
 } from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
@@ -31,6 +32,7 @@ import {
   inquiryCounterpartyLogo,
   inquiryCounterpartyName,
   inquiryProductTitle,
+  canResubmitInquiry,
 } from "@/utils/inquiryHelpers";
 import { formatPrice, getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
@@ -161,6 +163,8 @@ export default function BuyerProductInquiryDetailPage() {
   const status = String(inquiry.status ?? "").toLowerCase();
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
   const canCancelInquiry = status === "pending" && quoteStatus !== "ACCEPTED";
+  const canSendNewInquiry = canResubmitInquiry(status);
+  const rejectReason = inquiry.reject_reason?.trim();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
@@ -209,19 +213,46 @@ export default function BuyerProductInquiryDetailPage() {
             </span>
             <div className="min-w-0">
               <p className="truncate font-semibold text-foreground">{sellerName}</p>
-              <p className="text-xs text-muted-fg">Inquiry sent to this seller</p>
+              <p className="text-xs text-muted-fg">
+                {canSendNewInquiry
+                  ? status === "rejected"
+                    ? "Seller declined this inquiry"
+                    : status === "cancelled"
+                      ? "You cancelled this inquiry"
+                      : "This inquiry is closed"
+                  : "Inquiry sent to this seller"}
+              </p>
             </div>
           </div>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => setChatOpen(true)}
-            className="inline-flex items-center gap-2"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Open chat
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canSendNewInquiry ? (
+              <Link href={`/buyer/send-inquiry?product=${inquiry.product_id}`}>
+                <Button type="button" variant="primary" className="inline-flex items-center gap-2">
+                  <Send className="h-4 w-4" />
+                  Send new inquiry
+                </Button>
+              </Link>
+            ) : null}
+            <Button
+              type="button"
+              variant={canSendNewInquiry ? "secondary" : "primary"}
+              onClick={() => setChatOpen(true)}
+              className="inline-flex items-center gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Open chat
+            </Button>
+          </div>
         </div>
+
+        {canSendNewInquiry && rejectReason ? (
+          <div className="rounded-xl border border-error/20 bg-error-soft/60 px-4 py-3 sm:px-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-error">
+              Rejection reason
+            </p>
+            <p className="mt-1 text-sm text-foreground/90">{rejectReason}</p>
+          </div>
+        ) : null}
 
         {/* Snapshot band */}
         <motion.div

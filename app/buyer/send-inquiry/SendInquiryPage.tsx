@@ -28,9 +28,11 @@ import {
   productGradient,
   resolveImageUrl,
 } from "@/utils/catalogHelpers";
+import { isActiveInquiryStatus } from "@/utils/inquiryHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { toApiDateTime } from "@/utils/dateFormat";
 import type { ApiProductDetail } from "@/types/catalog";
+import type { ApiInquiry } from "@/types/inquiry";
 
 type FormErrors = Partial<Record<"quantity" | "message" | "expected_price", string>>;
 
@@ -93,6 +95,9 @@ export default function SendInquiryPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [openingExisting, setOpeningExisting] = useState(false);
+  /** Active inquiry blocks a new send; rejected/cancelled/closed allows resubmit. */
+  const [activeInquiry, setActiveInquiry] = useState<ApiInquiry | null>(null);
+  const [checkingInquiry, setCheckingInquiry] = useState(false);
 
   useEffect(() => {
     if (!productId || Number.isNaN(productId)) {
@@ -127,11 +132,44 @@ export default function SendInquiryPage() {
     }
   }, [product]);
 
+  useEffect(() => {
+    if (!productId || Number.isNaN(productId) || !product) {
+      setActiveInquiry(null);
+      setCheckingInquiry(false);
+      return;
+    }
+    if (product.user_actions?.is_inquiry_sent !== true) {
+      setActiveInquiry(null);
+      setCheckingInquiry(false);
+      return;
+    }
+    let cancelled = false;
+    setCheckingInquiry(true);
+    void (async () => {
+      try {
+        const existing = await findMyInquiryForProduct(productId);
+        if (cancelled) return;
+        if (existing && isActiveInquiryStatus(existing.status)) {
+          setActiveInquiry(existing);
+        } else {
+          setActiveInquiry(null);
+        }
+      } catch {
+        if (!cancelled) setActiveInquiry(null);
+      } finally {
+        if (!cancelled) setCheckingInquiry(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, product]);
+
   const acceptInquiry =
     product?.marketplace?.accept_inquiry !== false && product?.accept_inquiry !== false;
   const canContact = product?.user_actions?.can_contact_seller !== false;
-  const alreadySent = product?.user_actions?.is_inquiry_sent === true;
-  const formDisabled = alreadySent || !acceptInquiry || !canContact;
+  const alreadySent = activeInquiry != null;
+  const formDisabled = alreadySent || !acceptInquiry || !canContact || checkingInquiry;
 
   const backHref = useMemo(() => {
     if (productId) return `/buyer/product/${productId}`;
@@ -148,9 +186,11 @@ export default function SendInquiryPage() {
     if (!productId) return;
     setOpeningExisting(true);
     try {
-      const existing = await findMyInquiryForProduct(productId);
+      const existing =
+        activeInquiry ??
+        (await findMyInquiryForProduct(productId, { activeOnly: true }));
       if (!existing) {
-        router.push("/buyer/product-inquiries");
+        // Prior inquiry was rejected/cancelled — allow a new send instead of chat.
         return;
       }
       router.replace(`/buyer/product-inquiries/${existing.id}?chat=1`);
@@ -352,7 +392,11 @@ export default function SendInquiryPage() {
               </div>
             </div>
 
-            {alreadySent ? (
+            {checkingInquiry ? (
+              <div className="flex justify-center rounded-2xl border border-border bg-card py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : alreadySent ? (
               <div className="rounded-2xl border border-primary/20 bg-primary-soft/60 p-5 sm:p-6">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">

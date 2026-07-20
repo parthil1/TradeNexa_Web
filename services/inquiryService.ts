@@ -2,6 +2,7 @@ import apiClient from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { unwrapApiPayload } from "@/utils/authHelpers";
 import {
+  isActiveInquiryStatus,
   normalizeInquiry,
   normalizeInquiryQuotation,
   unwrapInquiryPaginated,
@@ -293,21 +294,23 @@ export async function openInquiryChat(inquiryId: number): Promise<ApiChatConvers
 
 /** Find the buyer's inquiry for a product (for Continue Chat CTAs). */
 export async function findMyInquiryForProduct(
-  productId: number
+  productId: number,
+  options?: { activeOnly?: boolean }
 ): Promise<ApiInquiry | null> {
   try {
     const list = await fetchMyInquiries({
       page: 1,
-      limit: 5,
+      limit: 10,
       product_id: productId,
       sort_by: "created_at",
       sort_order: "desc",
     });
-    return (
-      list.results.find((item) => item.product_id === productId) ??
-      list.results[0] ??
-      null
-    );
+    const forProduct = list.results.filter((item) => item.product_id === productId);
+    const pool = forProduct.length > 0 ? forProduct : list.results;
+    if (options?.activeOnly) {
+      return pool.find((item) => isActiveInquiryStatus(item.status)) ?? null;
+    }
+    return pool[0] ?? null;
   } catch (err) {
     console.warn("[inquiry] findMyInquiryForProduct failed:", err);
     return null;

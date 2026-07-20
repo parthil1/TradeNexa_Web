@@ -247,6 +247,30 @@ export function formatInquiryDate(value?: string | null): string {
   return formatDateDdMmYyyy(value);
 }
 
+/** Statuses that still block sending another inquiry for the same product. */
+export const ACTIVE_INQUIRY_STATUSES: InquiryStatus[] = [
+  "pending",
+  "quoted",
+  "accepted",
+];
+
+/** Terminal statuses — buyer may send a new inquiry for the same product. */
+export const RESUBMITTABLE_INQUIRY_STATUSES: InquiryStatus[] = [
+  "rejected",
+  "cancelled",
+  "closed",
+];
+
+export function isActiveInquiryStatus(status?: string | null): boolean {
+  const normalized = String(status ?? "").trim().toLowerCase();
+  return ACTIVE_INQUIRY_STATUSES.includes(normalized as InquiryStatus);
+}
+
+export function canResubmitInquiry(status?: string | null): boolean {
+  const normalized = String(status ?? "").trim().toLowerCase();
+  return RESUBMITTABLE_INQUIRY_STATUSES.includes(normalized as InquiryStatus);
+}
+
 export function inquiryProductTitle(inquiry: ApiInquiry): string {
   return (
     inquiry.product?.name?.trim() ||
