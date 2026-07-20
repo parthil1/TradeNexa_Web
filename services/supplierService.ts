@@ -41,9 +41,24 @@ function normalizeSupplier(raw: unknown): ApiSupplier | null {
     rating: pickNumber(item.rating),
     response_rate: pickNumber(item.response_rate),
     years_in_business: pickNumber(item.years_in_business),
+    profile_views_count: pickNumber(item.profile_views_count),
+    latitude: pickNumber(item.latitude),
+    longitude: pickNumber(item.longitude),
     city: pickString(item.city),
     state: pickString(item.state),
+    is_active: typeof item.is_active === "boolean" ? item.is_active : null,
   };
+}
+
+/** GET /api/v1/suppliers/:id — seller profile details */
+export async function fetchSupplierById(id: number): Promise<ApiSupplier> {
+  const response = await apiClient.get(`${API_ENDPOINTS.SUPPLIERS}/${id}`);
+  const data = unwrapApiPayload<unknown>(response.data);
+  const supplier = normalizeSupplier(data);
+  if (!supplier) {
+    throw new Error("Seller details could not be loaded");
+  }
+  return supplier;
 }
 
 /** GET /api/v1/suppliers — searchable seller list for private RFQs */
