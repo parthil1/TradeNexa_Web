@@ -42,10 +42,8 @@ import VideoThumb from "@/components/catalog/VideoThumb";
 import {
   buildProductSpecs,
   formatSellerLocation,
-  getExperienceLabel,
   getProductDescription,
   getSellerContactPhone,
-  getSellerRole,
   listedDaysLabel,
 } from "@/utils/productDetailHelpers";
 import PortalProductCard from "@/components/portal/PortalProductCard";
@@ -60,7 +58,9 @@ import {
   findMyInquiryForProduct,
   getInquiryErrorMessage,
 } from "@/services/inquiryService";
+import { fetchSupplierById } from "@/services/supplierService";
 import { isActiveInquiryStatus } from "@/utils/inquiryHelpers";
+import type { ApiSupplier } from "@/types/supplier";
 import ChatSidePanel from "@/components/chat/ChatSidePanel";
 import {
   approvalStatusHint,
@@ -243,71 +243,119 @@ function SupplierCard({
   compact?: boolean;
 }) {
   const { seller } = product;
-  const location = formatSellerLocation(seller.location);
-  const role = getSellerRole(product);
-  const logoUrl = resolveImageUrl(seller.company?.logo);
   const contactPhone = getSellerContactPhone(product);
-  const experienceLabel = getExperienceLabel(product);
-  const locationLine = [location, role].filter(Boolean).join(" • ");
-  const companyName = seller.company?.name ?? "Supplier";
   const contactPhoneDisplay = seller.contact?.phone;
   const contactEmail = seller.contact?.email;
 
+  const [supplier, setSupplier] = useState<ApiSupplier | null>(null);
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    if (!seller.id) {
+      setSupplier(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchSupplierById(seller.id);
+        if (!cancelled) setSupplier(data);
+      } catch {
+        if (!cancelled) setSupplier(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [seller.id]);
+
+  const companyName =
+    supplier?.company_name?.trim() || seller.company?.name || "Supplier";
+  const logoUrl = resolveImageUrl(supplier?.logo ?? seller.company?.logo);
+  const showLogo = Boolean(logoUrl) && !logoFailed;
+  const verified = supplier?.verified === true;
+  const location =
+    [supplier?.city?.trim(), supplier?.state?.trim()].filter(Boolean).join(", ") ||
+    formatSellerLocation(seller.location);
+  const years = supplier?.years_in_business ?? seller.company?.experience_years ?? 0;
+  const rating = supplier?.rating ?? seller.rating?.average ?? 0;
+  const responseRate = supplier?.response_rate ?? 0;
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [logoUrl]);
+
   return (
-    <div className={`${cardClass} ${compact ? "p-4" : "p-5 lg:p-6"}`}>
+    <div
+      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] ${
+        compact ? "p-4" : "p-5 lg:p-6"
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
-          <div
-            className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-soft font-semibold text-primary ${
-              compact ? "h-10 w-10 text-sm" : "h-12 w-12 text-base"
-            }`}
-          >
-          {logoUrl ? (
+        <span
+          className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/10 bg-primary-soft font-semibold text-primary ${
+            compact ? "h-11 w-11 text-sm" : "h-14 w-14 text-base"
+          }`}
+        >
+          {showLogo ? (
             <Image
-              src={logoUrl}
+              src={logoUrl as string}
               alt={companyName}
-              width={48}
-              height={48}
+              width={56}
+              height={56}
               className="h-full w-full object-cover"
               unoptimized
+              onError={() => setLogoFailed(true)}
             />
           ) : (
             getInitials(companyName)
           )}
-        </div>
-        <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />
+        </span>
+        {verified ? (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 text-[11px] font-semibold text-white">
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+            Verified
+          </span>
+        ) : null}
       </div>
 
-      <p className={`mt-3 font-semibold text-foreground ${compact ? "text-sm" : "mt-4 text-base lg:text-lg"}`}>
+      <p
+        className={`mt-3 font-semibold tracking-tight text-foreground ${
+          compact ? "text-sm" : "mt-4 text-base lg:text-lg"
+        }`}
+      >
         {companyName}
       </p>
-      {locationLine ? (
-        <p className="mt-1 flex items-start gap-1 text-sm text-muted-fg">
-          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {locationLine}
+      {location ? (
+        <p className="mt-1.5 flex items-center gap-1 text-sm text-muted-fg">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          {location}
         </p>
       ) : null}
 
       <div className={`grid grid-cols-3 gap-2 ${compact ? "mt-3" : "mt-5"}`}>
-        <div className={`rounded-xl bg-muted text-center ${compact ? "p-2" : "p-3"}`}>
+        <div className={`rounded-xl bg-primary-soft/50 text-center ${compact ? "p-2" : "p-3"}`}>
           <p className={`font-semibold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
-            {experienceLabel}
+            {years}
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Experience</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Years in business</p>
         </div>
-        <div className={`rounded-xl bg-muted text-center ${compact ? "p-2" : "p-3"}`}>
-          <p className={`font-semibold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
-            {formatRating(seller.rating.average)}{" "}
-            <Star className="inline h-3 w-3 fill-amber-400 text-amber-400" />
+        <div className={`rounded-xl bg-primary-soft/50 text-center ${compact ? "p-2" : "p-3"}`}>
+          <p
+            className={`inline-flex items-center justify-center gap-1 font-semibold text-foreground ${
+              compact ? "text-xs" : "text-sm"
+            }`}
+          >
+            {Number(rating).toFixed(1)}
+            <Star className="h-3 w-3 fill-warning text-warning" aria-hidden />
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Seller Rating</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Rating</p>
         </div>
-        <div className={`rounded-xl bg-muted text-center ${compact ? "p-2" : "p-3"}`}>
+        <div className={`rounded-xl bg-primary-soft/50 text-center ${compact ? "p-2" : "p-3"}`}>
           <p className={`font-semibold text-foreground ${compact ? "text-xs" : "text-sm"}`}>
-            {seller.rating.total_reviews != null && seller.rating.total_reviews > 0
-              ? seller.rating.total_reviews
-              : "—"}
+            {responseRate}%
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Reviews</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-fg">Response rate</p>
         </div>
       </div>
 
@@ -315,7 +363,7 @@ function SupplierCard({
         {supplierHref ? (
           <Link
             href={supplierHref(seller.id)}
-            className={`flex flex-1 items-center justify-center rounded-xl border border-border font-bold text-primary transition hover:border-primary/40 hover:bg-primary-soft ${
+            className={`flex flex-1 items-center justify-center rounded-xl border border-primary/20 bg-card font-bold text-primary transition hover:border-primary/40 hover:bg-primary-soft ${
               compact ? "py-2 text-xs" : "py-2.5 text-sm"
             }`}
           >

@@ -9,14 +9,13 @@ export interface ProductSpecRow {
 type SellerLocation = ApiProductDetail["seller"]["location"] | null | undefined;
 
 export function formatSellerLocation(location: SellerLocation): string {
-  if (!location) return "India";
-  const parts = [
-    location.address?.trim(),
-    location.city,
-    location.state,
-    location.country,
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join(", ") : "India";
+  if (!location) return "";
+  const cityState = [location.city?.trim(), location.state?.trim()].filter(Boolean);
+  if (cityState.length > 0) return cityState.join(", ");
+  const country = location.country?.trim();
+  if (country) return country;
+  const address = location.address?.trim();
+  return address || "";
 }
 
 export function getProductDescription(product: ApiProductDetail): string {

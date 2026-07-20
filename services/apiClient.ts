@@ -1,4 +1,8 @@
-import axios, { type InternalAxiosRequestConfig } from "axios";
+import axios, {
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
 import { API_BASE_URL } from "@/config/api";
 import { API_ENDPOINTS } from "@/config/endpoints";
 import { getAccessToken, getRefreshToken, unwrapApiPayload } from "@/utils/authHelpers";
@@ -9,6 +13,55 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+/**
+ * Deduplicate identical in-flight GET/HEAD requests.
+ * React Strict Mode (and fast remounts after client redirects) often fire the
+ * same useEffect twice — without this, every page load doubles XHR traffic.
+ */
+const inflightSafeRequests = new Map<string, Promise<AxiosResponse>>();
+
+function stableSerializeParams(params: unknown): string {
+  if (params == null) return "";
+  if (typeof params !== "object") return String(params);
+  try {
+    const record = params as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    return JSON.stringify(keys.map((key) => [key, record[key]]));
+  } catch {
+    return String(params);
+  }
+}
+
+function buildSafeRequestKey(config: AxiosRequestConfig): string | null {
+  const method = (config.method ?? "get").toLowerCase();
+  if (method !== "get" && method !== "head") return null;
+
+  const base = config.baseURL ?? API_BASE_URL ?? "";
+  const url = config.url ?? "";
+  const params = stableSerializeParams(config.params);
+  return `${method}:${base}${url}?${params}`;
+}
+
+const originalRequest = apiClient.request.bind(apiClient);
+apiClient.request = function requestWithDedupe<T = unknown, R = AxiosResponse<T>, D = unknown>(
+  config: AxiosRequestConfig<D>
+): Promise<R> {
+  const key = buildSafeRequestKey(config);
+  if (!key) {
+    return originalRequest<T, R, D>(config);
+  }
+
+  const existing = inflightSafeRequests.get(key);
+  if (existing) return existing as Promise<R>;
+
+  const promise = originalRequest<T, R, D>(config).finally(() => {
+    inflightSafeRequests.delete(key);
+  }) as Promise<AxiosResponse>;
+
+  inflightSafeRequests.set(key, promise);
+  return promise as Promise<R>;
+};
 
 /** Tracks whether a failed request has already been retried once (prevents infinite refresh loops). */
 type RetryableRequestConfig = InternalAxiosRequestConfig & {

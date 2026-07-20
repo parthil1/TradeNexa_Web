@@ -71,20 +71,21 @@ export default function BuyerSupplierPage() {
     }
 
     let cancelled = false;
+
     async function load() {
       setLoading(true);
+      setSupplier(null);
       try {
         const data = await fetchSupplierById(supplierId);
         if (!cancelled) setSupplier(data);
       } catch (err) {
-        if (!cancelled) {
-          setSupplier(null);
-          const message =
-            err && typeof err === "object" && "message" in err
-              ? String((err as { message?: unknown }).message ?? "")
-              : "";
-          showErrorToast(message.trim() || "Could not load seller profile");
-        }
+        if (cancelled) return;
+        setSupplier(null);
+        const message =
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message?: unknown }).message ?? "")
+            : "";
+        showErrorToast(message.trim() || "Could not load seller profile");
       } finally {
         if (!cancelled) setLoading(false);
       }
