@@ -624,7 +624,8 @@ export function isQuotationActionableForBuyer(
     return true;
   }
 
-  if (value.includes("PENDING") || value.includes("SUBMIT")) {
+  // Submitted, pending, or seller-updated quotes are still open for buyer decision.
+  if (value.includes("PENDING") || value.includes("SUBMIT") || value.includes("UPDATE")) {
     return true;
   }
 
@@ -775,7 +776,11 @@ export function canSellerUpdateQuotation(status?: string | null): boolean {
     return false;
   }
   if (value.includes("REVISION") || value.includes("NEGOTIAT")) return false;
-  return value.includes("PENDING") || value.includes("SUBMIT");
+  return (
+    value.includes("PENDING") ||
+    value.includes("SUBMIT") ||
+    value.includes("UPDATE")
+  );
 }
 
 /** Seller can withdraw only while a quote is still awaiting buyer decision (not after RFQ is awarded). */
