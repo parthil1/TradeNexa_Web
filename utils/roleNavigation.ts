@@ -56,3 +56,9 @@ export function writeStoredActiveRole(role: ActiveRole): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, role);
 }
+
+/** Default FCM / deep-link chats path from `tradenexa_active_role`. */
+export function getChatsPathForActiveRole(role?: ActiveRole | null): string {
+  const resolved = role ?? readStoredActiveRole();
+  return resolved === "seller" ? "/seller/chats" : "/buyer/chats";
+}

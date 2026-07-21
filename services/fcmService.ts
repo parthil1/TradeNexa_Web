@@ -4,6 +4,11 @@ import {
   getFirebaseMessaging,
   isFirebaseConfigured,
 } from "@/config/firebase";
+import {
+  getChatsPathForActiveRole,
+  type ActiveRole,
+  readStoredActiveRole,
+} from "@/utils/roleNavigation";
 
 const FCM_TOKEN_STORAGE_KEY = "fcm_token";
 /**
@@ -17,6 +22,24 @@ export const WEB_DEVICE_TYPE = "web" as const;
 
 export type FcmForegroundHandler = (payload: MessagePayload) => void;
 
+/** SW cannot read localStorage — keep active role in SW memory for click redirects. */
+export function syncActiveRoleToServiceWorker(role?: ActiveRole | null): void {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  const resolved = role ?? readStoredActiveRole() ?? "buyer";
+  const message = { type: "SET_ACTIVE_ROLE", role: resolved };
+
+  void navigator.serviceWorker.ready.then((registration) => {
+    registration.active?.postMessage(message);
+  });
+  navigator.serviceWorker.controller?.postMessage(message);
+}
+
+function resolveFcmRedirectUrl(payloadUrl?: string | null): string {
+  const trimmed = payloadUrl?.trim();
+  if (trimmed && trimmed !== "/") return trimmed;
+  return getChatsPathForActiveRole();
+}
+
 async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
     return null;
@@ -26,6 +49,7 @@ async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistrati
       scope: "/",
     });
     await navigator.serviceWorker.ready;
+    syncActiveRoleToServiceWorker();
     return registration;
   } catch {
     return null;
@@ -127,7 +151,7 @@ export function getFcmNotificationContent(payload: MessagePayload): {
   return {
     title: payload.notification?.title || data.title || "TradeNexa",
     body: payload.notification?.body || data.body || "",
-    url: data.url || "/",
+    url: resolveFcmRedirectUrl(data.url),
   };
 }
 

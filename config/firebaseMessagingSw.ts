@@ -16,6 +16,26 @@ firebase.initializeApp({
 });
 const messaging = firebase.messaging();
 
+// Mirrored from localStorage \`tradenexa_active_role\` via postMessage (SW has no localStorage).
+let cachedActiveRole = "buyer";
+
+function defaultChatsUrl() {
+  return cachedActiveRole === "seller" ? "/seller/chats" : "/buyer/chats";
+}
+
+function resolveNotificationUrl(raw) {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  if (trimmed && trimmed !== "/") return trimmed;
+  return defaultChatsUrl();
+}
+
+self.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type === "SET_ACTIVE_ROLE" && (data.role === "buyer" || data.role === "seller")) {
+    cachedActiveRole = data.role;
+  }
+});
+
 messaging.onBackgroundMessage((payload) => {
   // Notification payloads are shown by the browser; handle data-only here.
   if (payload.notification) return;
@@ -25,8 +45,8 @@ messaging.onBackgroundMessage((payload) => {
     body: payload.data?.body || "",
     icon: payload.data?.icon || "/favicon-96x96.png",
     data: {
-      url: payload.data?.url || payload.fcmOptions?.link || "/",
       ...(payload.data || {}),
+      url: resolveNotificationUrl(payload.data?.url || payload.fcmOptions?.link),
     },
   };
   return self.registration.showNotification(title, options);
@@ -34,7 +54,7 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification?.data?.url || "/";
+  const targetUrl = resolveNotificationUrl(event.notification?.data?.url);
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

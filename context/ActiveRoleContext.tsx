@@ -8,6 +8,7 @@ import {
   readStoredActiveRole,
   writeStoredActiveRole,
 } from "@/utils/roleNavigation";
+import { syncActiveRoleToServiceWorker } from "@/services/fcmService";
 
 interface ActiveRoleContextValue {
   activeRole: ActiveRole;
@@ -27,6 +28,7 @@ export function ActiveRoleProvider({ children }: { children: React.ReactNode }) 
   const setActiveRole = useCallback((role: ActiveRole) => {
     setActiveRoleState(role);
     writeStoredActiveRole(role);
+    syncActiveRoleToServiceWorker(role);
   }, []);
 
   const syncActiveRoleForUser = useCallback((userRole: UserRole | null) => {
@@ -38,12 +40,16 @@ export function ActiveRoleProvider({ children }: { children: React.ReactNode }) 
     setCanSwitchRole(userRole === "both");
 
     if (userRole === "both") {
-      const stored = readStoredActiveRole();
-      setActiveRoleState(stored ?? "buyer");
+      const stored = readStoredActiveRole() ?? "buyer";
+      setActiveRoleState(stored);
+      syncActiveRoleToServiceWorker(stored);
       return;
     }
 
-    setActiveRoleState(getDefaultActiveRole(userRole));
+    const role = getDefaultActiveRole(userRole);
+    setActiveRoleState(role);
+    writeStoredActiveRole(role);
+    syncActiveRoleToServiceWorker(role);
   }, []);
 
   return (

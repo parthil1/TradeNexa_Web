@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import {
   getFcmNotificationContent,
   subscribeForegroundMessages,
+  syncActiveRoleToServiceWorker,
 } from "@/services/fcmService";
 
 /**
@@ -15,6 +16,8 @@ export function FcmListener() {
   useEffect(() => {
     let unsubscribe = () => {};
     let cancelled = false;
+
+    syncActiveRoleToServiceWorker();
 
     void (async () => {
       const unsub = await subscribeForegroundMessages((payload) => {
