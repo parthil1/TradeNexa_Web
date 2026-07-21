@@ -30,15 +30,13 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
 
     const portal = getPortalForPath(pathname);
 
+    // Always sync so buyer_seller gets canSwitchRole=true (shows Switch Role UI)
+    // even when the URL already matches the stored activeRole.
+    syncActiveRoleForUser(user.role);
+
     // buyer_seller: URL portal wins so FCM deep links switch role before any redirect.
-    if (user.role === "both") {
-      if (portal && portal !== activeRole) {
-        setActiveRole(portal);
-      } else if (!portal) {
-        syncActiveRoleForUser(user.role);
-      }
-    } else {
-      syncActiveRoleForUser(user.role);
+    if (user.role === "both" && portal && portal !== activeRole) {
+      setActiveRole(portal);
     }
 
     if (portal === "buyer" && !canAccessBuyerPortal(user.role)) {
