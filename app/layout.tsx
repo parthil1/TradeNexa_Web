@@ -8,6 +8,7 @@ import { WishlistProvider } from "@/context/WishlistContext";
 import { ChatProvider } from "@/context/ChatContext";
 import { GeoLocationProvider } from "@/context/GeoLocationContext";
 import AppChrome from "@/components/layout/AppChrome";
+import { FcmListener } from "@/components/fcm/FcmListener";
 import { Toaster } from "react-hot-toast";
 import { TOAST_DURATION_MS } from "@/utils/toast";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
                 <GeoLocationProvider>
                   <AppProvider>
                     <AppChrome>{children}</AppChrome>
+                    <FcmListener />
                   </AppProvider>
                 </GeoLocationProvider>
               </ChatProvider>

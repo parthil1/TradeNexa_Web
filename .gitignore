@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Old static SW (config now served from /api/firebase-messaging-sw via env)
+/public/firebase-messaging-sw.js
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

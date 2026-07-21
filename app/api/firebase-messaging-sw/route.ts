@@ -1,27 +1,17 @@
 import { NextResponse } from "next/server";
+import {
+  buildFirebaseMessagingSwSource,
+  getFirebaseWebConfigFromEnv,
+} from "@/config/firebaseMessagingSw";
+
+export const dynamic = "force-dynamic";
 
 /**
- * Legacy path — prefer /firebase-messaging-sw.js (static, generated at build).
- * Kept so older clients registering /api/firebase-messaging-sw still work after deploy.
+ * Firebase messaging SW — config from NEXT_PUBLIC_FIREBASE_* env (not hardcoded).
+ * Also exposed as /firebase-messaging-sw.js via next.config rewrite.
  */
 export async function GET() {
-  const config = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "",
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "",
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
-  };
-
-  const body = `
-/* Firebase Messaging service worker — generated from env */
-importScripts("https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging-compat.js");
-
-firebase.initializeApp(${JSON.stringify(config)});
-firebase.messaging();
-`.trim();
+  const body = buildFirebaseMessagingSwSource(getFirebaseWebConfigFromEnv());
 
   return new NextResponse(body, {
     status: 200,

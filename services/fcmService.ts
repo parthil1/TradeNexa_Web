@@ -1,4 +1,4 @@
-import { getToken } from "firebase/messaging";
+import { getToken, onMessage, type MessagePayload } from "firebase/messaging";
 import {
   FIREBASE_VAPID_KEY,
   getFirebaseMessaging,
@@ -6,11 +6,16 @@ import {
 } from "@/config/firebase";
 
 const FCM_TOKEN_STORAGE_KEY = "fcm_token";
-/** Root static SW (generated at build from NEXT_PUBLIC_FIREBASE_*). */
+/**
+ * Registered at this URL; next.config rewrites it to /api/firebase-messaging-sw
+ * so firebase.initializeApp uses NEXT_PUBLIC_FIREBASE_* from env at runtime.
+ */
 const FCM_SW_PATH = "/firebase-messaging-sw.js";
 
 /** Static device type for web login / verify-otp. */
 export const WEB_DEVICE_TYPE = "web" as const;
+
+export type FcmForegroundHandler = (payload: MessagePayload) => void;
 
 async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
@@ -60,7 +65,6 @@ export async function getFcmToken(): Promise<string> {
     return "";
   }
 
-  // Ask before other checks so the Allow dialog is not skipped when env is slow/misread.
   let permission = Notification.permission;
   if (permission === "default") {
     permission = await Notification.requestPermission();
@@ -112,4 +116,38 @@ export async function buildLoginDevicePayload(): Promise<{
     device_type: WEB_DEVICE_TYPE,
     device_token,
   };
+}
+
+export function getFcmNotificationContent(payload: MessagePayload): {
+  title: string;
+  body: string;
+  url: string;
+} {
+  const data = payload.data ?? {};
+  return {
+    title: payload.notification?.title || data.title || "TradeNexa",
+    body: payload.notification?.body || data.body || "",
+    url: data.url || "/",
+  };
+}
+
+/**
+ * Register the messaging SW and listen for foreground push messages.
+ * Returns an unsubscribe function.
+ */
+export async function subscribeForegroundMessages(
+  handler: FcmForegroundHandler
+): Promise<() => void> {
+  if (typeof window === "undefined") return () => {};
+  if (!isFirebaseConfigured()) return () => {};
+
+  await registerMessagingServiceWorker();
+
+  const messaging = await getFirebaseMessaging();
+  if (!messaging) return () => {};
+
+  return onMessage(messaging, (payload) => {
+    console.log("[fcm] foreground message:", payload);
+    handler(payload);
+  });
 }
