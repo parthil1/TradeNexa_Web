@@ -5,10 +5,13 @@ import {
   isFirebaseConfigured,
 } from "@/config/firebase";
 import {
-  getChatsPathForActiveRole,
   type ActiveRole,
   readStoredActiveRole,
 } from "@/utils/roleNavigation";
+import {
+  resolveFcmNavigationPath,
+  type FcmPushData,
+} from "@/utils/fcmNavigation";
 
 const FCM_TOKEN_STORAGE_KEY = "fcm_token";
 /**
@@ -34,10 +37,8 @@ export function syncActiveRoleToServiceWorker(role?: ActiveRole | null): void {
   navigator.serviceWorker.controller?.postMessage(message);
 }
 
-function resolveFcmRedirectUrl(payloadUrl?: string | null): string {
-  const trimmed = payloadUrl?.trim();
-  if (trimmed && trimmed !== "/") return trimmed;
-  return getChatsPathForActiveRole();
+function resolveFcmRedirectUrl(data: FcmPushData): string {
+  return resolveFcmNavigationPath(data, readStoredActiveRole() ?? "buyer");
 }
 
 async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | null> {
@@ -146,12 +147,14 @@ export function getFcmNotificationContent(payload: MessagePayload): {
   title: string;
   body: string;
   url: string;
+  data: FcmPushData;
 } {
-  const data = payload.data ?? {};
+  const data = (payload.data ?? {}) as FcmPushData;
   return {
     title: payload.notification?.title || data.title || "TradeNexa",
     body: payload.notification?.body || data.body || "",
-    url: resolveFcmRedirectUrl(data.url),
+    url: resolveFcmRedirectUrl(data),
+    data,
   };
 }
 

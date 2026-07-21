@@ -1,4 +1,6 @@
 /** Shared Firebase messaging service-worker source (background receive + click). */
+import { buildFcmNavigationSwHelpersSource } from "@/utils/fcmNavigation";
+
 export function buildFirebaseMessagingSwSource(config: Record<string, string>): string {
   // Values come from NEXT_PUBLIC_FIREBASE_* via getFirebaseWebConfigFromEnv().
   // They must be inlined into the SW script — browsers cannot read process.env here.
@@ -19,14 +21,13 @@ const messaging = firebase.messaging();
 // Mirrored from localStorage \`tradenexa_active_role\` via postMessage (SW has no localStorage).
 let cachedActiveRole = "buyer";
 
-function defaultChatsUrl() {
-  return cachedActiveRole === "seller" ? "/seller/chats" : "/buyer/chats";
-}
+${buildFcmNavigationSwHelpersSource()}
 
-function resolveNotificationUrl(raw) {
-  const trimmed = typeof raw === "string" ? raw.trim() : "";
-  if (trimmed && trimmed !== "/") return trimmed;
-  return defaultChatsUrl();
+function resolvePushTargetUrl(data, clientPortal) {
+  const role = clientPortal === "seller" || clientPortal === "buyer"
+    ? clientPortal
+    : cachedActiveRole;
+  return resolveFcmNavigationPath(data || {}, role);
 }
 
 self.addEventListener("message", (event) => {
@@ -40,13 +41,14 @@ messaging.onBackgroundMessage((payload) => {
   // Notification payloads are shown by the browser; handle data-only here.
   if (payload.notification) return;
 
-  const title = payload.data?.title || "TradeNexa";
+  const data = payload.data || {};
+  const title = data.title || "TradeNexa";
   const options = {
-    body: payload.data?.body || "",
-    icon: payload.data?.icon || "/favicon-96x96.png",
+    body: data.body || "",
+    icon: data.icon || "/favicon-96x96.png",
     data: {
-      ...(payload.data || {}),
-      url: resolveNotificationUrl(payload.data?.url || payload.fcmOptions?.link),
+      ...data,
+      url: resolvePushTargetUrl(data, cachedActiveRole),
     },
   };
   return self.registration.showNotification(title, options);
@@ -54,11 +56,10 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const dataUrl = event.notification?.data?.url;
+  const pushData = event.notification?.data || {};
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      // Prefer an open tab's portal for buyer_seller users (more accurate than SW memory).
       let portalFromClient = "";
       for (const client of clientList) {
         try {
@@ -74,13 +75,7 @@ self.addEventListener("notificationclick", (event) => {
         } catch (_) {}
       }
 
-      const trimmed = typeof dataUrl === "string" ? dataUrl.trim() : "";
-      let targetUrl = trimmed && trimmed !== "/" ? trimmed : "";
-      if (!targetUrl) {
-        if (portalFromClient === "seller") targetUrl = "/seller/chats";
-        else if (portalFromClient === "buyer") targetUrl = "/buyer/chats";
-        else targetUrl = defaultChatsUrl();
-      }
+      const targetUrl = resolvePushTargetUrl(pushData, portalFromClient);
 
       for (const client of clientList) {
         if ("focus" in client) {

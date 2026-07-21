@@ -21,7 +21,7 @@ export function FcmListener() {
 
     void (async () => {
       const unsub = await subscribeForegroundMessages((payload) => {
-        const { title, body, url } = getFcmNotificationContent(payload);
+        const { title, body, url, data } = getFcmNotificationContent(payload);
         const message = body ? `${title}: ${body}` : title;
 
         toast(message, {
@@ -38,11 +38,11 @@ export function FcmListener() {
             const n = new Notification(title, {
               body,
               icon: "/favicon-96x96.png",
-              data: { url },
+              data: { ...data, url },
             });
             n.onclick = () => {
               window.focus();
-              if (url && url !== window.location.pathname) {
+              if (url && url !== `${window.location.pathname}${window.location.search}`) {
                 window.location.assign(url);
               }
               n.close();

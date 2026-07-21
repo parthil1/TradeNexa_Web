@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -122,6 +123,8 @@ interface ChatsInboxProps {
 }
 
 export default function ChatsInbox({ role }: ChatsInboxProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { syncConversationsUnread, upsertConversationMeta, conversationsMeta, unreadSummary } =
     useChat();
   const chatRole = role;
@@ -131,6 +134,7 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
   const [selected, setSelected] = useState<ApiChatConversation | null>(null);
+  const deepLinkConversationId = Number(searchParams.get("conversation") || "");
 
   useEffect(() => {
     void syncConversationsUnread();
@@ -159,6 +163,16 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
       upsertConversationMeta(conversation);
     }
   }, [items, upsertConversationMeta]);
+
+  // FCM OPEN_CHAT → /{role}/chats?conversation={id}
+  useEffect(() => {
+    if (!Number.isFinite(deepLinkConversationId) || deepLinkConversationId <= 0) return;
+    if (selected?.id === deepLinkConversationId) return;
+    const match = items.find((c) => c.id === deepLinkConversationId);
+    if (!match) return;
+    upsertConversationMeta(match);
+    setSelected(match);
+  }, [deepLinkConversationId, items, selected?.id, upsertConversationMeta]);
 
   const rows = useMemo(() => {
     // Guide: REST rich rows + socket unread_summary fields, sorted last_message_at DESC.
@@ -209,10 +223,13 @@ export default function ChatsInbox({ role }: ChatsInboxProps) {
   function selectConversation(conversation: ApiChatConversation) {
     upsertConversationMeta(conversation);
     setSelected(conversation);
+    const base = isSeller ? "/seller/chats" : "/buyer/chats";
+    router.replace(`${base}?conversation=${conversation.id}`, { scroll: false });
   }
 
   function closeThread() {
     setSelected(null);
+    router.replace(isSeller ? "/seller/chats" : "/buyer/chats", { scroll: false });
     void syncConversationsUnread();
     void reload();
   }
