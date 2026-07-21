@@ -34,7 +34,7 @@ export function FcmListener() {
           try {
             const n = new Notification(title, {
               body,
-              icon: "/favicon.ico",
+              icon: "/tradenexa-logo.png",
               data: { url },
             });
             n.onclick = () => {

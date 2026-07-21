@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   title: "TradeNexa - India's Smart B2B Marketplace",
   description:
     "Connect buyers with verified sellers across India. Grow your business through a powerful digital marketplace.",
+  icons: {
+    icon: "/tradenexa-logo.png",
+    shortcut: "/tradenexa-logo.png",
+    apple: "/tradenexa-logo.png",
+  },
 };
 
 export default function RootLayout({

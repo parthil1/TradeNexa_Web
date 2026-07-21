@@ -23,7 +23,7 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.data?.title || "TradeNexa";
   const options = {
     body: payload.data?.body || "",
-    icon: payload.data?.icon || "/favicon.ico",
+    icon: payload.data?.icon || "/tradenexa-logo.png",
     data: {
       url: payload.data?.url || payload.fcmOptions?.link || "/",
       ...(payload.data || {}),
