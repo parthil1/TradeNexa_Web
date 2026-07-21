@@ -6,6 +6,7 @@ import {
 } from "@/config/firebase";
 import {
   type ActiveRole,
+  applyActiveRoleForUrl,
   readStoredActiveRole,
 } from "@/utils/roleNavigation";
 import {
@@ -35,6 +36,36 @@ export function syncActiveRoleToServiceWorker(role?: ActiveRole | null): void {
     registration.active?.postMessage(message);
   });
   navigator.serviceWorker.controller?.postMessage(message);
+}
+
+/**
+ * Switch active role to match the deep-link portal, then navigate.
+ * Fixes buyer_seller users landing on the wrong portal home.
+ */
+export function navigateFromFcmNotification(url: string): void {
+  if (typeof window === "undefined" || !url) return;
+  const role = applyActiveRoleForUrl(url);
+  if (role) syncActiveRoleToServiceWorker(role);
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (url !== current) {
+    window.location.assign(url);
+  }
+}
+
+/** Listen for background SW notification clicks that need a role switch + navigate. */
+export function subscribeFcmServiceWorkerNavigation(): () => void {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    return () => {};
+  }
+
+  const onMessage = (event: MessageEvent) => {
+    const data = event.data;
+    if (!data || data.type !== "FCM_NAVIGATE" || typeof data.url !== "string") return;
+    navigateFromFcmNotification(data.url);
+  };
+
+  navigator.serviceWorker.addEventListener("message", onMessage);
+  return () => navigator.serviceWorker.removeEventListener("message", onMessage);
 }
 
 function resolveFcmRedirectUrl(data: FcmPushData): string {

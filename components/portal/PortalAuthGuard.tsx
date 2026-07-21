@@ -28,14 +28,17 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
       return;
     }
 
-    syncActiveRoleForUser(user.role);
-
     const portal = getPortalForPath(pathname);
 
-    // buyer_seller ("both"): keep tradenexa_active_role aligned with the portal
-    // currently open so FCM defaults to that side's /chats.
-    if (user.role === "both" && portal && portal !== activeRole) {
-      setActiveRole(portal);
+    // buyer_seller: URL portal wins so FCM deep links switch role before any redirect.
+    if (user.role === "both") {
+      if (portal && portal !== activeRole) {
+        setActiveRole(portal);
+      } else if (!portal) {
+        syncActiveRoleForUser(user.role);
+      }
+    } else {
+      syncActiveRoleForUser(user.role);
     }
 
     if (portal === "buyer" && !canAccessBuyerPortal(user.role)) {

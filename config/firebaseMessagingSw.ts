@@ -23,6 +23,15 @@ let cachedActiveRole = "buyer";
 
 ${buildFcmNavigationSwHelpersSource()}
 
+function portalFromUrl(url) {
+  try {
+    var path = new URL(url, self.location.origin).pathname;
+    if (path === "/seller" || path.indexOf("/seller/") === 0) return "seller";
+    if (path === "/buyer" || path.indexOf("/buyer/") === 0) return "buyer";
+  } catch (e) {}
+  return null;
+}
+
 self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "SET_ACTIVE_ROLE" && (data.role === "buyer" || data.role === "seller")) {
@@ -51,14 +60,15 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const pushData = event.notification?.data || {};
   const targetUrl = resolveFcmNavigationPath(pushData, cachedActiveRole);
+  const role = portalFromUrl(targetUrl);
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if ("focus" in client) {
-          if ("navigate" in client) client.navigate(targetUrl);
-          return client.focus();
-        }
+        // Page applies role to localStorage then navigates (SW cannot write localStorage).
+        client.postMessage({ type: "FCM_NAVIGATE", url: targetUrl, role: role });
+        if ("focus" in client) return client.focus();
+        return undefined;
       }
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })

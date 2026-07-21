@@ -57,6 +57,25 @@ export function writeStoredActiveRole(role: ActiveRole): void {
   localStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, role);
 }
 
+/**
+ * Align `tradenexa_active_role` with a portal URL (e.g. FCM deep link).
+ * Returns the portal role when the path is under /buyer or /seller.
+ */
+export function applyActiveRoleForUrl(urlOrPath: string): ActiveRole | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const path = urlOrPath.startsWith("http")
+      ? new URL(urlOrPath).pathname
+      : urlOrPath.split("?")[0]?.split("#")[0] || "";
+    const portal = getPortalForPath(path);
+    if (!portal) return null;
+    writeStoredActiveRole(portal);
+    return portal;
+  } catch {
+    return null;
+  }
+}
+
 /** Default FCM / deep-link chats path from `tradenexa_active_role`. */
 export function getChatsPathForActiveRole(role?: ActiveRole | null): string {
   const resolved = role ?? readStoredActiveRole();

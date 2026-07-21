@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { toast } from "react-hot-toast";
 import {
   getFcmNotificationContent,
+  navigateFromFcmNotification,
+  subscribeFcmServiceWorkerNavigation,
   subscribeForegroundMessages,
   syncActiveRoleToServiceWorker,
 } from "@/services/fcmService";
@@ -18,6 +20,7 @@ export function FcmListener() {
     let cancelled = false;
 
     syncActiveRoleToServiceWorker();
+    const unsubSwNav = subscribeFcmServiceWorkerNavigation();
 
     void (async () => {
       const unsub = await subscribeForegroundMessages((payload) => {
@@ -42,9 +45,7 @@ export function FcmListener() {
             });
             n.onclick = () => {
               window.focus();
-              if (url && url !== `${window.location.pathname}${window.location.search}`) {
-                window.location.assign(url);
-              }
+              navigateFromFcmNotification(url);
               n.close();
             };
           } catch {
@@ -63,6 +64,7 @@ export function FcmListener() {
     return () => {
       cancelled = true;
       unsubscribe();
+      unsubSwNav();
     };
   }, []);
 
