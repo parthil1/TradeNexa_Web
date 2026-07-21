@@ -25,7 +25,7 @@ export const WEB_DEVICE_TYPE = "web" as const;
 
 export type FcmForegroundHandler = (payload: MessagePayload) => void;
 
-/** SW cannot read localStorage — keep active role in SW memory for click redirects. */
+/** Keep SW `cachedActiveRole` in sync for CHAT_MESSAGE click routing only. */
 export function syncActiveRoleToServiceWorker(role?: ActiveRole | null): void {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
   const resolved = role ?? readStoredActiveRole() ?? "buyer";

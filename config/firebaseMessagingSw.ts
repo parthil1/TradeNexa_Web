@@ -18,17 +18,10 @@ firebase.initializeApp({
 });
 const messaging = firebase.messaging();
 
-// Mirrored from localStorage \`tradenexa_active_role\` via postMessage (SW has no localStorage).
+// Mirrored from localStorage \`tradenexa_active_role\` — used only for CHAT_MESSAGE clicks.
 let cachedActiveRole = "buyer";
 
 ${buildFcmNavigationSwHelpersSource()}
-
-function resolvePushTargetUrl(data, clientPortal) {
-  const role = clientPortal === "seller" || clientPortal === "buyer"
-    ? clientPortal
-    : cachedActiveRole;
-  return resolveFcmNavigationPath(data || {}, role);
-}
 
 self.addEventListener("message", (event) => {
   const data = event.data || {};
@@ -48,7 +41,7 @@ messaging.onBackgroundMessage((payload) => {
     icon: data.icon || "/favicon-96x96.png",
     data: {
       ...data,
-      url: resolvePushTargetUrl(data, cachedActiveRole),
+      url: resolveFcmNavigationPath(data, cachedActiveRole),
     },
   };
   return self.registration.showNotification(title, options);
@@ -57,26 +50,10 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const pushData = event.notification?.data || {};
+  const targetUrl = resolveFcmNavigationPath(pushData, cachedActiveRole);
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      let portalFromClient = "";
-      for (const client of clientList) {
-        try {
-          const path = new URL(client.url).pathname;
-          if (path === "/seller" || path.startsWith("/seller/")) {
-            portalFromClient = "seller";
-            break;
-          }
-          if (path === "/buyer" || path.startsWith("/buyer/")) {
-            portalFromClient = "buyer";
-            break;
-          }
-        } catch (_) {}
-      }
-
-      const targetUrl = resolvePushTargetUrl(pushData, portalFromClient);
-
       for (const client of clientList) {
         if ("focus" in client) {
           if ("navigate" in client) client.navigate(targetUrl);
