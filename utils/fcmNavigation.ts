@@ -34,48 +34,19 @@ export function recipientPortalForType(
   }
 }
 
-/** Only trust click_url when it already targets a portal path. */
-export function parseRoleScopedClickUrl(raw?: string | null): string | null {
-  const trimmed = raw?.trim();
-  if (!trimmed || trimmed === "/") return null;
-
-  try {
-    const path = trimmed.startsWith("http")
-      ? new URL(trimmed).pathname + new URL(trimmed).search
-      : trimmed.startsWith("/")
-        ? trimmed
-        : null;
-    if (!path) return null;
-    if (
-      path === "/buyer" ||
-      path.startsWith("/buyer/") ||
-      path === "/seller" ||
-      path.startsWith("/seller/")
-    ) {
-      return path;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-/**
- * Resolve in-app path from FCM data (guide §10), role-aware for web portals.
- * Prefer type + ids over generic backend click_url (/chats/41, /inquiries/12).
- */
-export function resolveFcmNavigationPath(
+function resolveByTypeAndAction(
   data: FcmPushData,
-  activeRole: ActiveRole = "buyer"
+  type: string,
+  action: string,
+  activeRole: ActiveRole
 ): string {
-  const fromClick = parseRoleScopedClickUrl(data.click_url || data.url);
-  if (fromClick) return fromClick;
-
-  const type = (data.type || "").toUpperCase();
-  const action = (data.click_action || "").toUpperCase();
-  const portal = recipientPortalForType(type || actionToTypeHint(action), activeRole);
+  const portal = recipientPortalForType(
+    type || actionToTypeHint(action),
+    activeRole
+  );
   const ref = data.reference_id?.trim() || "";
 
+  // Chat only when type/action explicitly say so — never as a fallback.
   if (type === "CHAT_MESSAGE" || action === "OPEN_CHAT") {
     const cid = data.conversation_id?.trim() || ref;
     const base = portal === "seller" ? "/seller/chats" : "/buyer/chats";
@@ -153,6 +124,19 @@ export function resolveFcmNavigationPath(
   return portal === "seller" ? "/seller/dashboard" : "/buyer/notifications";
 }
 
+/**
+ * Resolve in-app path from FCM `type` / `click_action` + ids only.
+ * Ignores `click_url` and `url` entirely.
+ */
+export function resolveFcmNavigationPath(
+  data: FcmPushData,
+  activeRole: ActiveRole = "buyer"
+): string {
+  const type = (data.type || "").toUpperCase();
+  const action = (data.click_action || "").toUpperCase();
+  return resolveByTypeAndAction(data, type, action, activeRole);
+}
+
 function actionToTypeHint(action: string): string {
   switch (action) {
     case "OPEN_CHAT":
@@ -198,28 +182,7 @@ function recipientPortalForType(type, activeRole) {
   }
 }
 
-function parseRoleScopedClickUrl(raw) {
-  var trimmed = typeof raw === "string" ? raw.trim() : "";
-  if (!trimmed || trimmed === "/") return null;
-  try {
-    var path = trimmed.indexOf("http") === 0
-      ? (new URL(trimmed).pathname + new URL(trimmed).search)
-      : (trimmed.charAt(0) === "/" ? trimmed : null);
-    if (!path) return null;
-    if (path === "/buyer" || path.indexOf("/buyer/") === 0 || path === "/seller" || path.indexOf("/seller/") === 0) {
-      return path;
-    }
-  } catch (e) {}
-  return null;
-}
-
-function resolveFcmNavigationPath(data, activeRole) {
-  data = data || {};
-  var fromClick = parseRoleScopedClickUrl(data.click_url || data.url);
-  if (fromClick) return fromClick;
-
-  var type = (data.type || "").toUpperCase();
-  var action = (data.click_action || "").toUpperCase();
+function resolveByTypeAndAction(data, type, action, activeRole) {
   var portal = recipientPortalForType(type, activeRole);
   var ref = (data.reference_id || "").trim();
 
@@ -228,19 +191,19 @@ function resolveFcmNavigationPath(data, activeRole) {
     var base = portal === "seller" ? "/seller/chats" : "/buyer/chats";
     return cid ? base + "?conversation=" + encodeURIComponent(cid) : base;
   }
-  if (type === "INQUIRY_RECEIVED") {
+  if (type === "INQUIRY_RECEIVED" || (action === "OPEN_INQUIRY" && portal === "seller")) {
     var iid = (data.inquiry_id || ref).trim();
     return iid ? "/seller/inquiries/" + iid : "/seller/inquiries";
   }
-  if (type === "INQUIRY_REJECTED") {
+  if (type === "INQUIRY_REJECTED" || (action === "OPEN_INQUIRY" && portal === "buyer")) {
     var iid2 = (data.inquiry_id || ref).trim();
     return iid2 ? "/buyer/product-inquiries/" + iid2 : "/buyer/product-inquiries";
   }
-  if (type === "QUOTATION_RECEIVED" || type === "QUOTATION_UPDATED") {
+  if (type === "QUOTATION_RECEIVED" || type === "QUOTATION_UPDATED" || (action === "OPEN_QUOTATION" && portal === "buyer")) {
     var iid3 = (data.inquiry_id || "").trim();
     return iid3 ? "/buyer/product-inquiries/" + iid3 : "/buyer/product-inquiries";
   }
-  if (type === "QUOTATION_ACCEPTED" || type === "QUOTATION_REJECTED") {
+  if (type === "QUOTATION_ACCEPTED" || type === "QUOTATION_REJECTED" || (action === "OPEN_QUOTATION" && portal === "seller")) {
     var iid4 = (data.inquiry_id || "").trim();
     return iid4 ? "/seller/inquiries/" + iid4 : "/seller/inquiries";
   }
@@ -252,20 +215,28 @@ function resolveFcmNavigationPath(data, activeRole) {
     var pid2 = (data.product_id || ref).trim();
     return pid2 ? "/seller/edit-product/" + pid2 : "/seller/catalog";
   }
-  if (type === "RFQ_NEW_QUOTATION" || type === "RFQ_QUOTATION_UPDATED") {
+  if (type === "RFQ_NEW_QUOTATION" || type === "RFQ_QUOTATION_UPDATED" || (action === "OPEN_RFQ" && portal === "buyer")) {
     var rid = (data.rfq_id || ref).trim();
     return rid ? "/buyer/rfq/" + rid : "/buyer/inquiries";
   }
-  if (type === "RFQ_QUOTATION_ACCEPTED" || type === "RFQ_QUOTATION_REJECTED") {
+  if (type === "RFQ_QUOTATION_ACCEPTED" || type === "RFQ_QUOTATION_REJECTED" || (action === "OPEN_RFQ" && portal === "seller")) {
     var rid2 = (data.rfq_id || ref).trim();
     return rid2 ? "/seller/lead/" + rid2 : "/seller/leads";
   }
-  if (type === "RFQ_STATUS_UPDATED" || action === "OPEN_RFQ") {
+  if (type === "RFQ_STATUS_UPDATED") {
     var rid3 = (data.rfq_id || ref).trim();
     if (portal === "seller") return rid3 ? "/seller/lead/" + rid3 : "/seller/leads";
     return rid3 ? "/buyer/rfq/" + rid3 : "/buyer/inquiries";
   }
   return portal === "seller" ? "/seller/dashboard" : "/buyer/notifications";
+}
+
+function resolveFcmNavigationPath(data, activeRole) {
+  data = data || {};
+  var type = (data.type || "").toUpperCase();
+  var action = (data.click_action || "").toUpperCase();
+  // click_url / url are ignored — route only by type + click_action + ids.
+  return resolveByTypeAndAction(data, type, action, activeRole);
 }
 `;
 }
