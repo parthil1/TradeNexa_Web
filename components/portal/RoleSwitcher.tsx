@@ -1,10 +1,9 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeftRight } from "lucide-react";
 import { useActiveRole } from "@/context/ActiveRoleContext";
-import { writeStoredActiveRole } from "@/utils/roleNavigation";
+import { ArrowLeftRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React from "react";
 
 export default function RoleSwitcher() {
   const router = useRouter();
@@ -20,7 +19,6 @@ export default function RoleSwitcher() {
       type="button"
       onClick={() => {
         setActiveRole(switchTo);
-        writeStoredActiveRole(switchTo);
         router.push(targetPath);
       }}
       className="flex w-full items-center justify-between rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/30 hover:shadow-[var(--shadow-card)] sm:p-5"

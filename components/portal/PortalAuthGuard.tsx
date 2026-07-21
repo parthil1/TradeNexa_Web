@@ -18,7 +18,7 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, user, loading } = useAuth();
-  const { syncActiveRoleForUser } = useActiveRole();
+  const { syncActiveRoleForUser, setActiveRole, activeRole } = useActiveRole();
 
   useEffect(() => {
     if (loading) return;
@@ -31,6 +31,13 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
     syncActiveRoleForUser(user.role);
 
     const portal = getPortalForPath(pathname);
+
+    // buyer_seller ("both"): keep tradenexa_active_role aligned with the portal
+    // currently open so FCM defaults to that side's /chats.
+    if (user.role === "both" && portal && portal !== activeRole) {
+      setActiveRole(portal);
+    }
+
     if (portal === "buyer" && !canAccessBuyerPortal(user.role)) {
       router.replace(getHomePathForRole(user.role));
       return;
@@ -38,7 +45,16 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
     if (portal === "seller" && !canAccessSellerPortal(user.role)) {
       router.replace(getHomePathForRole(user.role));
     }
-  }, [loading, isAuthenticated, user, pathname, router, syncActiveRoleForUser]);
+  }, [
+    loading,
+    isAuthenticated,
+    user,
+    pathname,
+    router,
+    syncActiveRoleForUser,
+    setActiveRole,
+    activeRole,
+  ]);
 
   if (loading || !isAuthenticated || !user) {
     return (

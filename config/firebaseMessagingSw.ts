@@ -54,9 +54,34 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = resolveNotificationUrl(event.notification?.data?.url);
+  const dataUrl = event.notification?.data?.url;
+
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Prefer an open tab's portal for buyer_seller users (more accurate than SW memory).
+      let portalFromClient = "";
+      for (const client of clientList) {
+        try {
+          const path = new URL(client.url).pathname;
+          if (path === "/seller" || path.startsWith("/seller/")) {
+            portalFromClient = "seller";
+            break;
+          }
+          if (path === "/buyer" || path.startsWith("/buyer/")) {
+            portalFromClient = "buyer";
+            break;
+          }
+        } catch (_) {}
+      }
+
+      const trimmed = typeof dataUrl === "string" ? dataUrl.trim() : "";
+      let targetUrl = trimmed && trimmed !== "/" ? trimmed : "";
+      if (!targetUrl) {
+        if (portalFromClient === "seller") targetUrl = "/seller/chats";
+        else if (portalFromClient === "buyer") targetUrl = "/buyer/chats";
+        else targetUrl = defaultChatsUrl();
+      }
+
       for (const client of clientList) {
         if ("focus" in client) {
           if ("navigate" in client) client.navigate(targetUrl);
