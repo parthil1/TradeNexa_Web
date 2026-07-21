@@ -26,10 +26,15 @@ export const metadata: Metadata = {
   title: "TradeNexa - India's Smart B2B Marketplace",
   description:
     "Connect buyers with verified sellers across India. Grow your business through a powerful digital marketplace.",
+  manifest: "/site.webmanifest",
   icons: {
-    icon: "/tradenexa-logo.png",
-    shortcut: "/tradenexa-logo.png",
-    apple: "/tradenexa-logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
