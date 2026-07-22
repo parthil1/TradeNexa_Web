@@ -31,4 +31,13 @@ export const API_ENDPOINTS = {
   INQUIRIES_SELLER_QUOTATIONS: "/inquiries/seller/quotations",
   INQUIRIES_QUOTATIONS: "/inquiries/quotations",
   DASHBOARD_SELLER: "/dashboard/seller",
+  NOTIFICATIONS: "/notifications",
+  NOTIFICATIONS_UNREAD_COUNT: "/notifications/unread-count",
+  NOTIFICATIONS_READ: "/notifications/read",
+  NOTIFICATIONS_READ_ALL: "/notifications/read-all",
 } as const;
+
+/** PATCH /notifications/:id/read */
+export function notificationReadEndpoint(id: number | string): string {
+  return `/notifications/${id}/read`;
+}

@@ -7,6 +7,7 @@ import { ArrowLeftRight, Bell, Globe, Heart, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useActiveRole } from "@/context/ActiveRoleContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { Logo } from "@/components/common/Logo";
 import PortalTooltip from "@/components/portal/PortalTooltip";
 
@@ -26,11 +27,14 @@ export default function PortalTopBar({
   const router = useRouter();
   const { logoutUser } = useAuth();
   const { wishlistTotal } = useWishlist();
+  const { unreadCount } = useNotifications();
   const { canSwitchRole, activeRole, setActiveRole } = useActiveRole();
   const isSeller = accent === "seller" || activeRole === "seller";
   const hoverAccent = isSeller
     ? "hover:border-portal-seller hover:text-portal-seller"
     : "hover:border-portal-buyer hover:text-portal-buyer";
+  const notificationsHref =
+    activeRole === "seller" ? "/seller/notifications" : "/buyer/notifications";
 
   function switchRole() {
     const next = activeRole === "buyer" ? "seller" : "buyer";
@@ -97,13 +101,22 @@ export default function PortalTopBar({
             </PortalTooltip>
           ) : null}
 
-          <PortalTooltip label="Notifications">
+          <PortalTooltip
+            label={
+              unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"
+            }
+          >
             <Link
-              href={activeRole === "seller" ? "/seller/leads" : "/buyer/notifications"}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-fg transition-colors duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-              aria-label="Notifications"
+              href={notificationsHref}
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-fg transition-colors duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             >
               <Bell className="h-5 w-5" aria-hidden />
+              {unreadCount > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              ) : null}
             </Link>
           </PortalTooltip>
 

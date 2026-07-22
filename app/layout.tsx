@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ActiveRoleProvider } from "@/context/ActiveRoleContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ChatProvider } from "@/context/ChatContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { GeoLocationProvider } from "@/context/GeoLocationContext";
 import AppChrome from "@/components/layout/AppChrome";
 import { FcmListener } from "@/components/fcm/FcmListener";
@@ -79,12 +80,14 @@ export default function RootLayout({
           <ActiveRoleProvider>
             <WishlistProvider>
               <ChatProvider>
-                <GeoLocationProvider>
-                  <AppProvider>
-                    <AppChrome>{children}</AppChrome>
-                    <FcmListener />
-                  </AppProvider>
-                </GeoLocationProvider>
+                <NotificationProvider>
+                  <GeoLocationProvider>
+                    <AppProvider>
+                      <AppChrome>{children}</AppChrome>
+                      <FcmListener />
+                    </AppProvider>
+                  </GeoLocationProvider>
+                </NotificationProvider>
               </ChatProvider>
             </WishlistProvider>
           </ActiveRoleProvider>

@@ -392,6 +392,28 @@ export function emitGetUnreadSummary() {
   emitWhenConnected(s, "get_unread_summary", undefined);
 }
 
+/** Guide §7.2 — request `notification:unread_count` for RFQ/inquiry inbox badge. */
+export function emitNotificationGetUnreadCount() {
+  const s = connectChatSocket();
+  emitWhenConnected(s, "notification:get_unread_count", undefined);
+}
+
+/** Guide §7.2 — mark one inbox notification read via socket. */
+export function emitNotificationMarkRead(notificationId: number) {
+  if (!Number.isFinite(notificationId) || notificationId <= 0) return;
+  const s = connectChatSocket();
+  emitWhenConnected(s, "notification:mark_read", {
+    notification_id: notificationId,
+    id: notificationId,
+  });
+}
+
+/** Guide §7.2 — mark all inbox notifications read via socket. */
+export function emitNotificationMarkAllRead() {
+  const s = connectChatSocket();
+  emitWhenConnected(s, "notification:mark_all_read", undefined);
+}
+
 /**
  * Socket.IO may emit a single object, or split args like
  * `(conversation_id, message)` / `(message, ackFn)`. Normalize to one payload.
