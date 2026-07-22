@@ -146,7 +146,19 @@ export function resolveFcmNavigationPath(
 ): string {
   const type = (data.type || "").toUpperCase();
   const action = (data.click_action || "").toUpperCase();
-  return resolveByTypeAndAction(data, type, action, activeRole);
+  const path = resolveByTypeAndAction(data, type, action, activeRole);
+  console.log("[fcm] notification path:", path, {
+    type: type || "(none)",
+    click_action: action || "(none)",
+    activeRole: activeRole ?? "buyer",
+    inquiry_id: data.inquiry_id,
+    rfq_id: data.rfq_id,
+    product_id: data.product_id,
+    conversation_id: data.conversation_id,
+    reference_id: data.reference_id,
+    status: data.status,
+  });
+  return path;
 }
 
 function actionToTypeHint(action: string): string {
@@ -270,7 +282,19 @@ function resolveFcmNavigationPath(data, activeRole) {
   data = data || {};
   var type = (data.type || "").toUpperCase();
   var action = (data.click_action || "").toUpperCase();
-  return resolveByTypeAndAction(data, type, action, activeRole);
+  var path = resolveByTypeAndAction(data, type, action, activeRole);
+  console.log("[fcm-sw] notification path:", path, {
+    type: type || "(none)",
+    click_action: action || "(none)",
+    activeRole: activeRole || "buyer",
+    inquiry_id: data.inquiry_id,
+    rfq_id: data.rfq_id,
+    product_id: data.product_id,
+    conversation_id: data.conversation_id,
+    reference_id: data.reference_id,
+    status: data.status,
+  });
+  return path;
 }
 `;
 }

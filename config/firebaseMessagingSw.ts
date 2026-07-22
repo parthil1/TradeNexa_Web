@@ -40,8 +40,13 @@ self.addEventListener("message", (event) => {
 });
 
 messaging.onBackgroundMessage((payload) => {
+  console.log("[fcm-sw] background message received:", payload);
+
   // Notification payloads are shown by the browser; handle data-only here.
-  if (payload.notification) return;
+  if (payload.notification) {
+    console.log("[fcm-sw] notification payload — browser will display it");
+    return;
+  }
 
   const data = payload.data || {};
   const title = data.title || "TradeNexa";
@@ -53,6 +58,7 @@ messaging.onBackgroundMessage((payload) => {
       url: resolveFcmNavigationPath(data, cachedActiveRole),
     },
   };
+  console.log("[fcm-sw] showing data-only notification:", title, options);
   return self.registration.showNotification(title, options);
 });
 
@@ -61,6 +67,7 @@ self.addEventListener("notificationclick", (event) => {
   const pushData = event.notification?.data || {};
   const targetUrl = resolveFcmNavigationPath(pushData, cachedActiveRole);
   const role = portalFromUrl(targetUrl);
+  console.log("[fcm-sw] notification click → url:", targetUrl, "role:", role, "data:", pushData);
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {

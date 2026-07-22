@@ -76,8 +76,8 @@ function dispatchChatEvent(event: string, args: unknown[]) {
   handlers.forEach((handler) => {
     try {
       handler(...args);
-    } catch (err) {
-      console.error(`[chat-socket] handler error for ${event}`, err);
+    } catch {
+      // Ignore handler errors so one subscriber cannot break others.
     }
   });
 }
@@ -86,9 +86,6 @@ function dispatchChatEvent(event: string, args: unknown[]) {
 function bindSocketEventBridges(s: Socket) {
   for (const event of CHAT_SOCKET_LISTEN_EVENTS) {
     s.on(event, (...args: unknown[]) => {
-      if (process.env.NODE_ENV === "development") {
-        console.info(`[chat-socket] recv ${event}`, ...args);
-      }
       dispatchChatEvent(event, args);
     });
   }
@@ -97,9 +94,6 @@ function bindSocketEventBridges(s: Socket) {
   // if the backend ever emits both receive_message and message:new).
   for (const [alias, canonical] of Object.entries(CHAT_SOCKET_ALIAS_EVENTS)) {
     s.on(alias, (...args: unknown[]) => {
-      if (process.env.NODE_ENV === "development") {
-        console.info(`[chat-socket] recv ${alias} → ${canonical}`, ...args);
-      }
       dispatchChatEvent(canonical, args);
     });
   }
@@ -256,19 +250,13 @@ export function getChatSocket(): Socket {
     setStatus("connected");
     // `connect` also fires after Manager `reconnect` — rejoin once here only.
     rejoinRooms(socket!);
-    if (process.env.NODE_ENV === "development") {
-      console.info("[chat-socket] connected", socket!.id);
-    }
   });
 
-  socket.on("disconnect", (reason) => {
+  socket.on("disconnect", () => {
     setStatus("disconnected");
     // Drop queued connect emits — rejoinRooms + callers will re-issue after reconnect.
     pendingConnectEmits.clear();
     pendingConnectFlushBound = false;
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[chat-socket] disconnected:", reason);
-    }
   });
 
   socket.io.on("reconnect_attempt", () => {
@@ -280,9 +268,6 @@ export function getChatSocket(): Socket {
 
   socket.on("connect_error", (err) => {
     const message = err?.message ?? "";
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[chat-socket] connect_error:", message);
-    }
     setStatus("reconnecting");
 
     if (!/invalid|expired|unauthorized|token|jwt|auth/i.test(message)) return;
@@ -396,9 +381,6 @@ export function emitMessageRead(conversationId: number, lastReadMessageId?: numb
     payload.last_read_message_id = lastReadMessageId;
   }
   emitWhenConnected(s, "message:read", payload);
-  if (process.env.NODE_ENV === "development") {
-    console.info("[chat-socket] emit message:read", payload);
-  }
 }
 
 /**
@@ -408,9 +390,6 @@ export function emitMessageRead(conversationId: number, lastReadMessageId?: numb
 export function emitGetUnreadSummary() {
   const s = connectChatSocket();
   emitWhenConnected(s, "get_unread_summary", undefined);
-  if (process.env.NODE_ENV === "development") {
-    console.info("[chat-socket] emit get_unread_summary");
-  }
 }
 
 /**

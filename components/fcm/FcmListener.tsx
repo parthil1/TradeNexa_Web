@@ -23,8 +23,10 @@ export function FcmListener() {
     const unsubSwNav = subscribeFcmServiceWorkerNavigation();
 
     void (async () => {
+      console.log("[fcm] FcmListener mounting…");
       const unsub = await subscribeForegroundMessages((payload) => {
         const { title, body, url, data } = getFcmNotificationContent(payload);
+        console.log("[fcm] showing foreground toast/notification:", { title, body, url });
         const message = body ? `${title}: ${body}` : title;
 
         toast(message, {
