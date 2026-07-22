@@ -369,9 +369,7 @@ export default function ChatMessageBubble({
     } else if (contextLabel) {
       body = (
         <>
-          {label}
-          {" "}
-          <span className="text-muted-fg">·</span>{" "}
+          <span className="block">{label}</span>
           <SystemContextLink href={contextHref}>{contextLabel}</SystemContextLink>
         </>
       );
@@ -379,19 +377,18 @@ export default function ChatMessageBubble({
 
     return (
       <div className={`flex justify-center px-2 ${className}`}>
-        <div className="inline-flex max-w-[95%] items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-[12px] font-semibold text-muted-fg">
-          <SystemEventIcon content={label} />
-          <span className="min-w-0 whitespace-normal break-words text-center leading-snug">
-            {body}
+        <div className="flex max-w-[min(100%,22rem)] items-start gap-2 rounded-2xl bg-muted px-3 py-2 text-[12px] font-semibold text-muted-fg">
+          <span className="mt-0.5 shrink-0">
+            <SystemEventIcon content={label} />
           </span>
-          {timeLabel ? (
-            <>
-              <span className="text-muted-fg" aria-hidden>
-                ·
+          <div className="min-w-0 flex-1 text-center leading-snug [overflow-wrap:anywhere]">
+            {body}
+            {timeLabel ? (
+              <span className="mt-0.5 block text-[11px] font-medium tabular-nums text-muted-fg/80">
+                {timeLabel}
               </span>
-              <span className="shrink-0 tabular-nums text-muted-fg">{timeLabel}</span>
-            </>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
     );

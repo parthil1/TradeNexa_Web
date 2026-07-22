@@ -273,9 +273,9 @@ export function isSystemChatMessage(message: {
 }
 
 /**
- * Personalize "by buyer" / "by seller" in system status copy:
- * - actor is me → "by you"
- * - otherwise → "by {sender_name}" when available
+ * Personalize system status copy with the acting user:
+ * - already has "by …" → rewrite to "by you" / "by {sender_name}"
+ * - no "by" → append " by you" / " by {sender_name}"
  */
 export function personalizeSystemMessageContent(
   content: string | null | undefined,
@@ -289,22 +289,20 @@ export function personalizeSystemMessageContent(
   const text = (content ?? "").trim();
   if (!text) return "Status update";
 
-  if (!/\bby\s+(the\s+)?(buyer|seller)\b/i.test(text)) return text;
-
   const isActor =
     message.is_mine === true ||
     (currentUserId != null &&
       message.sender_id != null &&
       message.sender_id === currentUserId);
 
-  if (isActor) {
-    return text.replace(/\bby\s+(the\s+)?(buyer|seller)\b/gi, "by you");
+  const actorLabel = isActor ? "you" : message.sender_name?.trim() || null;
+  if (!actorLabel) return text;
+
+  if (/\bby\b/i.test(text)) {
+    return text.replace(/\bby\s+.+$/i, `by ${actorLabel}`);
   }
 
-  const name = message.sender_name?.trim();
-  if (!name) return text;
-
-  return text.replace(/\bby\s+(the\s+)?(buyer|seller)\b/gi, `by ${name}`);
+  return `${text} by ${actorLabel}`;
 }
 
 /** Person-to-person messages that should drive unread badges / dividers. */
