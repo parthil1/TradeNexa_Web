@@ -268,9 +268,6 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
                     ) : null}
                     <p className="mt-2 text-xs text-muted-fg">
                       {formatNotificationTime(n.created_at)}
-                      {isUnread ? (
-                        <span className="ml-2 font-medium text-primary">Unread</span>
-                      ) : null}
                     </p>
                   </div>
                   {busy ? (
