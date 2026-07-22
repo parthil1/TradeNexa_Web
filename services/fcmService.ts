@@ -26,7 +26,7 @@ const FCM_SESSION_PENDING_KEY = "tradenexa_fcm_pending_path";
  */
 const FCM_SW_PATH = "/firebase-messaging-sw.js";
 /** Bump when SW click/nav logic changes so browsers fetch a fresh worker. */
-const FCM_SW_VERSION = "20260722d";
+const FCM_SW_VERSION = "20260723a";
 
 /** Static device type for web login / verify-otp. */
 export const WEB_DEVICE_TYPE = "web" as const;

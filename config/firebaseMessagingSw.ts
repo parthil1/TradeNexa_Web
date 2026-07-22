@@ -151,6 +151,15 @@ messaging.onBackgroundMessage((payload) => {
       at: Date.now(),
     });
 
+    var hasTitle =
+      Boolean(payload.notification && String(payload.notification.title || "").trim()) ||
+      Boolean(String(data.title || "").trim());
+    var hasBody =
+      Boolean(payload.notification && String(payload.notification.body || "").trim()) ||
+      Boolean(String(data.body || "").trim());
+    // Skip empty pushes (no title/body) — avoid blank "TradeNexa" OS notifications.
+    if (!hasTitle && !hasBody) return;
+
     // Always show OUR notification with __path so click is under SW control.
     // Chrome may also paint notification payloads — we close those next.
     await self.registration.showNotification(title, {

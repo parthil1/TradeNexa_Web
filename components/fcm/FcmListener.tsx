@@ -65,6 +65,13 @@ export function FcmListener() {
         if (document.visibilityState !== "visible") return;
 
         const { title, body, url, data } = getFcmNotificationContent(payload);
+        // Skip empty pushes (no real title/body — only the TradeNexa fallback).
+        const hasTitle =
+          Boolean(payload.notification?.title?.trim()) || Boolean(data.title?.trim());
+        const hasBody =
+          Boolean(payload.notification?.body?.trim()) || Boolean(data.body?.trim());
+        if (!hasTitle && !hasBody) return;
+
         const message = body ? `${title}: ${body}` : title;
 
         toast(
