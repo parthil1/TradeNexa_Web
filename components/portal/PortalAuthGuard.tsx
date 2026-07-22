@@ -23,7 +23,11 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
   useEffect(() => {
     if (loading) return;
 
+    // Never bounce FCM deep-links to marketing "/" while session is still hydrating.
     if (!isAuthenticated || !user) {
+      const hasToken =
+        typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+      if (hasToken) return;
       router.replace("/");
       return;
     }
@@ -58,6 +62,11 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
   ]);
 
   if (loading || !isAuthenticated || !user) {
+    const hasToken =
+      typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+    if (!loading && !hasToken) {
+      return null;
+    }
     return (
       <div className="flex min-h-dvh items-center justify-center bg-muted">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

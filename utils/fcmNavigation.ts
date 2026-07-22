@@ -145,19 +145,13 @@ export function resolveFcmNavigationPath(
   activeRole?: Portal | null
 ): string {
   const type = (data.type || "").toUpperCase();
-  const action = (data.click_action || "").toUpperCase();
+  // Some backends put a site URL in click_action — ignore those.
+  const rawAction = (data.click_action || "").trim();
+  const action =
+    /^https?:\/\//i.test(rawAction) || rawAction === "/"
+      ? ""
+      : rawAction.toUpperCase();
   const path = resolveByTypeAndAction(data, type, action, activeRole);
-  console.log("[fcm] notification path:", path, {
-    type: type || "(none)",
-    click_action: action || "(none)",
-    activeRole: activeRole ?? "buyer",
-    inquiry_id: data.inquiry_id,
-    rfq_id: data.rfq_id,
-    product_id: data.product_id,
-    conversation_id: data.conversation_id,
-    reference_id: data.reference_id,
-    status: data.status,
-  });
   return path;
 }
 
@@ -281,19 +275,14 @@ function resolveByTypeAndAction(data, type, action, activeRole) {
 function resolveFcmNavigationPath(data, activeRole) {
   data = data || {};
   var type = (data.type || "").toUpperCase();
-  var action = (data.click_action || "").toUpperCase();
+  var rawAction = (data.click_action || "").trim();
+  var action =
+    rawAction.indexOf("http://") === 0 ||
+    rawAction.indexOf("https://") === 0 ||
+    rawAction === "/"
+      ? ""
+      : rawAction.toUpperCase();
   var path = resolveByTypeAndAction(data, type, action, activeRole);
-  console.log("[fcm-sw] notification path:", path, {
-    type: type || "(none)",
-    click_action: action || "(none)",
-    activeRole: activeRole || "buyer",
-    inquiry_id: data.inquiry_id,
-    rfq_id: data.rfq_id,
-    product_id: data.product_id,
-    conversation_id: data.conversation_id,
-    reference_id: data.reference_id,
-    status: data.status,
-  });
   return path;
 }
 `;

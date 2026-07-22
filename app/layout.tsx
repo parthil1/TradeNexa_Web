@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/app/context/AppContext";
@@ -38,6 +39,26 @@ export const metadata: Metadata = {
   },
 };
 
+/** Runs before React — if Chrome opened only "/", jump to last FCM deep link. */
+const FCM_ROOT_RECOVER_SCRIPT = `
+(function () {
+  try {
+    var p = location.pathname;
+    if (p !== "/" && p !== "") return;
+    var raw =
+      localStorage.getItem("tradenexa_fcm_last_nav") ||
+      sessionStorage.getItem("tradenexa_fcm_pending_path");
+    if (!raw) return;
+    var parsed = JSON.parse(raw);
+    var path = (parsed && parsed.path) || "";
+    var at = (parsed && parsed.at) || 0;
+    if (!path || path === "/") return;
+    if (Date.now() - at > 60000) return;
+    location.replace(path);
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,6 +70,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body className="flex min-h-dvh min-w-0 flex-col bg-background text-foreground">
+        <Script
+          id="fcm-root-recover"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: FCM_ROOT_RECOVER_SCRIPT }}
+        />
         <AuthProvider>
           <ActiveRoleProvider>
             <WishlistProvider>

@@ -15,11 +15,18 @@ import {
 } from "@/utils/fcmNavigation";
 
 const FCM_TOKEN_STORAGE_KEY = "fcm_token";
+const FCM_PENDING_CACHE = "tradenexa-fcm";
+const FCM_PENDING_URL = "/__fcm_pending_nav";
+const FCM_LAST_NAV_KEY = "tradenexa_fcm_last_nav";
+const FCM_SESSION_PENDING_KEY = "tradenexa_fcm_pending_path";
+
 /**
  * Registered at this URL; next.config rewrites it to /api/firebase-messaging-sw
  * so firebase.initializeApp uses NEXT_PUBLIC_FIREBASE_* from env at runtime.
  */
 const FCM_SW_PATH = "/firebase-messaging-sw.js";
+/** Bump when SW click/nav logic changes so browsers fetch a fresh worker. */
+const FCM_SW_VERSION = "20260722d";
 
 /** Static device type for web login / verify-otp. */
 export const WEB_DEVICE_TYPE = "web" as const;
@@ -38,18 +45,147 @@ export function syncActiveRoleToServiceWorker(role?: ActiveRole | null): void {
   navigator.serviceWorker.controller?.postMessage(message);
 }
 
+function stampPendingPath(path: string): void {
+  if (!path || path === "/") return;
+  const stamp = { path, at: Date.now() };
+  try {
+    sessionStorage.setItem(FCM_SESSION_PENDING_KEY, JSON.stringify(stamp));
+    localStorage.setItem(FCM_LAST_NAV_KEY, JSON.stringify(stamp));
+  } catch {
+    // ignore
+  }
+  if (typeof caches !== "undefined") {
+    void caches.open(FCM_PENDING_CACHE).then((cache) =>
+      cache.put(
+        FCM_PENDING_URL,
+        new Response(JSON.stringify(stamp), {
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+    );
+  }
+}
+
+/** Read the newest pending deep link from session / localStorage / Cache API. */
+export async function readFcmPendingPath(): Promise<{ path: string; at: number } | null> {
+  if (typeof window === "undefined") return null;
+
+  const candidates: { path: string; at: number }[] = [];
+
+  const pushRaw = (raw: string | null) => {
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as { path?: string; at?: number };
+      const path = (parsed.path || "").trim();
+      if (path && path !== "/") {
+        candidates.push({ path, at: parsed.at || 0 });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  try {
+    pushRaw(sessionStorage.getItem(FCM_SESSION_PENDING_KEY));
+  } catch {
+    // ignore
+  }
+  try {
+    pushRaw(localStorage.getItem(FCM_LAST_NAV_KEY));
+  } catch {
+    // ignore
+  }
+
+  try {
+    if (typeof caches !== "undefined") {
+      const cache = await caches.open(FCM_PENDING_CACHE);
+      const res = await cache.match(FCM_PENDING_URL);
+      if (res) pushRaw(await res.text());
+    }
+  } catch {
+    // ignore
+  }
+
+  if (!candidates.length) return null;
+  return candidates.sort((a, b) => b.at - a.at)[0];
+}
+
+export async function clearFcmPendingPath(): Promise<void> {
+  try {
+    sessionStorage.removeItem(FCM_SESSION_PENDING_KEY);
+  } catch {
+    // ignore
+  }
+  try {
+    if (typeof caches !== "undefined") {
+      const cache = await caches.open(FCM_PENDING_CACHE);
+      await cache.delete(FCM_PENDING_URL);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Switch active role to match the deep-link portal, then navigate.
- * Fixes buyer_seller users landing on the wrong portal home.
+ * Debounced so duplicate FCM_NAVIGATE messages from one click cannot bounce to "/".
  */
-export function navigateFromFcmNotification(url: string): void {
-  if (typeof window === "undefined" || !url) return;
-  console.log("[fcm] notification click → url:", url);
-  const role = applyActiveRoleForUrl(url);
+let lastFcmNavPath = "";
+let lastFcmNavAt = 0;
+
+export function navigateFromFcmNotification(
+  urlOrInput: string | { url?: string; data?: FcmPushData | null }
+): void {
+  if (typeof window === "undefined") return;
+
+  const input = typeof urlOrInput === "string" ? { url: urlOrInput } : urlOrInput;
+  const pushData = (input.data ?? null) as FcmPushData | null;
+
+  let url =
+    pushData && (pushData.type || pushData.click_action)
+      ? resolveFcmNavigationPath(pushData, readStoredActiveRole() ?? "buyer")
+      : (input.url || "").trim();
+
+  // Ignore backend click_url pointing at site root — resolve from type/ids instead.
+  try {
+    const parsed = url.startsWith("http") ? new URL(url) : null;
+    const pathOnly = parsed ? parsed.pathname : url.split("?")[0] || "";
+    if (!pathOnly || pathOnly === "/") {
+      if (pushData && (pushData.type || pushData.click_action)) {
+        url = resolveFcmNavigationPath(pushData, readStoredActiveRole() ?? "buyer");
+      } else {
+        return;
+      }
+    }
+  } catch {
+    // keep url
+  }
+
+  if (!url) return;
+
+  let path = url;
+  try {
+    if (url.startsWith("http")) {
+      const u = new URL(url);
+      path = `${u.pathname}${u.search}`;
+      if (!path || path === "/") return;
+    }
+  } catch {
+    path = url;
+  }
+
+  const now = Date.now();
+  if (path === lastFcmNavPath && now - lastFcmNavAt < 2000) return;
+  lastFcmNavPath = path;
+  lastFcmNavAt = now;
+
+  const role = applyActiveRoleForUrl(path);
   if (role) syncActiveRoleToServiceWorker(role);
+
   const current = `${window.location.pathname}${window.location.search}`;
-  if (url !== current) {
-    window.location.assign(url);
+  if (path !== current) {
+    stampPendingPath(path);
+    window.location.replace(path);
   }
 }
 
@@ -61,8 +197,40 @@ export function subscribeFcmServiceWorkerNavigation(): () => void {
 
   const onMessage = (event: MessageEvent) => {
     const data = event.data;
-    if (!data || data.type !== "FCM_NAVIGATE" || typeof data.url !== "string") return;
-    navigateFromFcmNotification(data.url);
+    if (!data || typeof data !== "object") return;
+
+    // SW cannot write localStorage — mirror pending deep link here.
+    if (data.type === "FCM_STAMP" && typeof data.path === "string") {
+      const path = data.path.trim();
+      if (path && path !== "/") stampPendingPath(path);
+      return;
+    }
+
+    if (data.type !== "FCM_NAVIGATE") return;
+
+    // SW already opened a new tab via clients.openWindow — only sync role here.
+    if (data.skipNavigate) {
+      const path =
+        typeof data.url === "string"
+          ? data.url
+          : data.data && typeof data.data === "object"
+            ? resolveFcmNavigationPath(
+                data.data as FcmPushData,
+                readStoredActiveRole() ?? "buyer"
+              )
+            : "";
+      if (path && path !== "/") {
+        stampPendingPath(path);
+        const role = applyActiveRoleForUrl(path);
+        if (role) syncActiveRoleToServiceWorker(role);
+      }
+      return;
+    }
+
+    navigateFromFcmNotification({
+      url: typeof data.url === "string" ? data.url : undefined,
+      data: data.data && typeof data.data === "object" ? (data.data as FcmPushData) : null,
+    });
   };
 
   navigator.serviceWorker.addEventListener("message", onMessage);
@@ -70,9 +238,7 @@ export function subscribeFcmServiceWorkerNavigation(): () => void {
 }
 
 function resolveFcmRedirectUrl(data: FcmPushData): string {
-  const url = resolveFcmNavigationPath(data, readStoredActiveRole() ?? "buyer");
-  console.log("[fcm] resolved navigation url from type/ids:", url, data);
-  return url;
+  return resolveFcmNavigationPath(data, readStoredActiveRole() ?? "buyer");
 }
 
 async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | null> {
@@ -80,9 +246,29 @@ async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistrati
     return null;
   }
   try {
-    const registration = await navigator.serviceWorker.register(FCM_SW_PATH, {
-      scope: "/",
+    const registration = await navigator.serviceWorker.register(
+      `${FCM_SW_PATH}?v=${FCM_SW_VERSION}`,
+      {
+        scope: "/",
+        updateViaCache: "none",
+      }
+    );
+    void registration.update();
+
+    // If a waiting worker exists, activate it now.
+    if (registration.waiting) {
+      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+    }
+    registration.addEventListener("updatefound", () => {
+      const sw = registration.installing;
+      if (!sw) return;
+      sw.addEventListener("statechange", () => {
+        if (sw.state === "installed" && navigator.serviceWorker.controller) {
+          sw.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
     });
+
     await navigator.serviceWorker.ready;
     syncActiveRoleToServiceWorker();
     return registration;
@@ -116,35 +302,21 @@ export async function getFcmToken(): Promise<string> {
 
   const cached = localStorage.getItem(FCM_TOKEN_STORAGE_KEY)?.trim() || "";
 
-  if (!("Notification" in window)) {
-    console.warn("[fcm] Notifications API not available");
-    return cached;
-  }
+  if (!("Notification" in window)) return cached;
 
   let permission = Notification.permission;
   if (permission === "default") {
     permission = await Notification.requestPermission();
   }
-  console.log("[fcm] notification permission:", permission);
-  if (permission !== "granted") {
-    console.warn("[fcm] permission not granted — pushes will not arrive");
-    return "";
-  }
+  if (permission !== "granted") return "";
 
-  if (!isFirebaseConfigured() || !FIREBASE_VAPID_KEY) {
-    console.warn("[fcm] Firebase config or VAPID key missing — cannot get token");
-    return cached;
-  }
+  if (!isFirebaseConfigured() || !FIREBASE_VAPID_KEY) return cached;
 
   try {
     const messaging = await getFirebaseMessaging();
-    if (!messaging) {
-      console.warn("[fcm] Firebase messaging unavailable");
-      return cached;
-    }
+    if (!messaging) return cached;
 
     const registration = await registerMessagingServiceWorker();
-    console.log("[fcm] service worker registered:", Boolean(registration));
 
     const token = await getToken(messaging, {
       vapidKey: FIREBASE_VAPID_KEY,
@@ -153,19 +325,12 @@ export async function getFcmToken(): Promise<string> {
 
     const trimmed = token?.trim() || "";
     if (trimmed) {
-      if (trimmed !== cached) {
-        console.log("[fcm] Firebase token updated:", trimmed);
-      } else {
-        console.log("[fcm] Firebase token ok:", trimmed.slice(0, 24) + "…");
-      }
       localStorage.setItem(FCM_TOKEN_STORAGE_KEY, trimmed);
       return trimmed;
     }
 
-    console.warn("[fcm] getToken returned empty — using cache if any");
     return cached;
-  } catch (err) {
-    console.warn("[fcm] failed to get Firebase token:", err);
+  } catch {
     return cached;
   }
 }
@@ -206,23 +371,14 @@ export async function subscribeForegroundMessages(
   handler: FcmForegroundHandler
 ): Promise<() => void> {
   if (typeof window === "undefined") return () => {};
-  if (!isFirebaseConfigured()) {
-    console.warn("[fcm] Firebase not configured — foreground listener skipped");
-    return () => {};
-  }
+  if (!isFirebaseConfigured()) return () => {};
 
-  // Ensure push subscription exists even for already-logged-in sessions.
-  const token = await getFcmToken();
-  console.log("[fcm] foreground listener ready, hasToken:", Boolean(token));
+  await getFcmToken();
 
   const messaging = await getFirebaseMessaging();
-  if (!messaging) {
-    console.warn("[fcm] messaging unavailable — foreground listener skipped");
-    return () => {};
-  }
+  if (!messaging) return () => {};
 
   return onMessage(messaging, (payload) => {
-    console.log("[fcm] foreground message received:", payload);
     handler(payload);
   });
 }
