@@ -79,6 +79,7 @@ export interface ApiChatMessage {
   sender_id?: number | null;
   sender_role?: string | null;
   sender_name?: string | null;
+  sender_company_name?: string | null;
   is_mine?: boolean;
   /** Automated RFQ/quotation status event (not a person-typed message) */
   is_system?: boolean;

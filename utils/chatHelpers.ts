@@ -274,14 +274,15 @@ export function isSystemChatMessage(message: {
 
 /**
  * Personalize system status copy with the acting user:
- * - already has "by …" → rewrite to "by you" / "by {sender_name}"
- * - no "by" → append " by you" / " by {sender_name}"
+ * - already has "by …" → rewrite to "by you" / "by {sender_company_name}"
+ * - no "by" → append " by you" / " by {sender_company_name}"
  */
 export function personalizeSystemMessageContent(
   content: string | null | undefined,
   message: {
     sender_id?: number | null;
     sender_name?: string | null;
+    sender_company_name?: string | null;
     is_mine?: boolean;
   },
   currentUserId?: number | null
@@ -295,7 +296,11 @@ export function personalizeSystemMessageContent(
       message.sender_id != null &&
       message.sender_id === currentUserId);
 
-  const actorLabel = isActor ? "you" : message.sender_name?.trim() || null;
+  const actorLabel = isActor
+    ? "you"
+    : message.sender_company_name?.trim() ||
+      message.sender_name?.trim() ||
+      null;
   if (!actorLabel) return text;
 
   if (/\bby\b/i.test(text)) {
@@ -758,6 +763,11 @@ export function normalizeChatMessage(
       pickString(senderRecord?.name) ??
       pickString(senderRecord?.full_name) ??
       pickString(senderRecord?.company_name),
+    sender_company_name:
+      pickString(item.sender_company_name) ??
+      pickString(item.senderCompanyName) ??
+      pickString(senderRecord?.company_name) ??
+      pickString(senderRecord?.company),
     is_mine: typeof item.is_mine === "boolean" ? item.is_mine : undefined,
     is_system: isSystemFlag || undefined,
     created_at: pickString(item.created_at) ?? pickString(item.sent_at),
