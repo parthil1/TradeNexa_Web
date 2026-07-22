@@ -26,8 +26,14 @@ import {
   XCircle,
 } from "lucide-react";
 import type { ApiChatMessage, ChatRole } from "@/types/chat";
-import { getChatFileDisplayName, isSystemChatMessage } from "@/utils/chatHelpers";
+import {
+  getChatFileDisplayName,
+  isSystemChatMessage,
+  personalizeSystemMessageContent,
+  resolveAuthNumericUserId,
+} from "@/utils/chatHelpers";
 import { formatPrice, getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
+import { useAuth } from "@/hooks/useAuth";
 
 function formatTime(value?: string | null) {
   if (!value) return "";
@@ -187,6 +193,8 @@ export default function ChatMessageBubble({
   const [mounted, setMounted] = useState(false);
   const [imageMenuStyle, setImageMenuStyle] = useState<React.CSSProperties>({});
   const imageMenuRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const currentUserId = resolveAuthNumericUserId(user);
   const isSystem = isSystemChatMessage(message);
   const mine = message.is_mine === true;
   const isText = message.message_type === "TEXT";
@@ -334,7 +342,11 @@ export default function ChatMessageBubble({
   }
 
   if (isSystem) {
-    const label = message.content?.trim() || "Status update";
+    const label = personalizeSystemMessageContent(
+      message.content,
+      message,
+      currentUserId
+    );
     const contextLabel = getSystemContextLabel(message);
     const contextHref = getSystemContextHref(message, role);
     const labelHasContext =

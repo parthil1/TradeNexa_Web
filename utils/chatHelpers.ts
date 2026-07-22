@@ -272,6 +272,28 @@ export function isSystemChatMessage(message: {
   return false;
 }
 
+/**
+ * When the logged-in user performed the action, say "by you" instead of
+ * "by buyer" / "by seller" (e.g. "Inquiry cancelled by you").
+ */
+export function personalizeSystemMessageContent(
+  content: string | null | undefined,
+  message: { sender_id?: number | null; is_mine?: boolean },
+  currentUserId?: number | null
+): string {
+  const text = (content ?? "").trim();
+  if (!text) return "Status update";
+
+  const isActor =
+    message.is_mine === true ||
+    (currentUserId != null &&
+      message.sender_id != null &&
+      message.sender_id === currentUserId);
+  if (!isActor) return text;
+
+  return text.replace(/\bby\s+(the\s+)?(buyer|seller)\b/gi, "by you");
+}
+
 /** Person-to-person messages that should drive unread badges / dividers. */
 export function countsAsUnreadChatMessage(message: {
   id?: number;
