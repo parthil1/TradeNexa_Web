@@ -30,4 +30,5 @@ export const API_ENDPOINTS = {
   INQUIRIES_SELLER: "/inquiries/seller",
   INQUIRIES_SELLER_QUOTATIONS: "/inquiries/seller/quotations",
   INQUIRIES_QUOTATIONS: "/inquiries/quotations",
+  DASHBOARD_SELLER: "/dashboard/seller",
 } as const;
