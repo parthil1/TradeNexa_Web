@@ -16,7 +16,23 @@ import {
   formatNotificationTime,
   resolveNotificationPath,
 } from "@/utils/notificationHelpers";
+import { recipientPortalForType } from "@/utils/fcmNavigation";
 import type { AppNotification } from "@/types/notifications";
+
+function notificationMatchesRole(
+  notification: AppNotification,
+  role: "buyer" | "seller"
+): boolean {
+  const fromData = notification.data?.role;
+  if (fromData === "buyer" || fromData === "seller") {
+    return fromData === role;
+  }
+  const status =
+    typeof notification.data?.status === "string"
+      ? notification.data.status
+      : undefined;
+  return recipientPortalForType(notification.type, status) === role;
+}
 
 type ReadFilter = "all" | "unread" | "read";
 
@@ -90,6 +106,7 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
 
       const notification = event.notification;
       if (!notification) return;
+      if (!notificationMatchesRole(notification, notificationRole)) return;
 
       if (event.kind === "new") {
         if (filter === "read" && !notification.is_read) return;
@@ -116,7 +133,7 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
         return prev.map((n) => (n.id === notification.id ? { ...n, ...notification } : n));
       });
     });
-  }, [filter, setItems, subscribeInbox]);
+  }, [filter, notificationRole, setItems, subscribeInbox]);
 
   async function handleMarkAll() {
     if (markingAll || unreadCount <= 0) return;
