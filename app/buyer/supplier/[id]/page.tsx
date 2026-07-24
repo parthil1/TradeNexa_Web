@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -11,12 +11,20 @@ import {
   Clock3,
   Loader2,
   MapPin,
+  Package,
   Star,
   TrendingUp,
 } from "lucide-react";
 import PortalBackLink from "@/components/portal/PortalBackLink";
+import PortalEmptyState from "@/components/portal/PortalEmptyState";
+import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
+import PortalProductCard from "@/components/portal/PortalProductCard";
+import PortalSearchBar from "@/components/portal/PortalSearchBar";
 import { Button } from "@/components/common/Button";
+import { fetchSellerProducts } from "@/services/catalogService";
 import { fetchSupplierById } from "@/services/supplierService";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useLoadMoreList } from "@/hooks/useLoadMoreList";
 import { getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { showErrorToast } from "@/utils/toast";
 import type { ApiSupplier } from "@/types/supplier";
@@ -58,14 +66,17 @@ export default function BuyerSupplierPage() {
   const params = useParams();
   const router = useRouter();
   const supplierId = Number(params.id);
+  const validSupplierId = Number.isFinite(supplierId) && supplierId > 0;
 
   const [supplier, setSupplier] = useState<ApiSupplier | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [supplierLoading, setSupplierLoading] = useState(true);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [query, setQuery] = useState("");
+  const debounced = useDebouncedValue(query, 400);
 
   useEffect(() => {
-    if (!supplierId || Number.isNaN(supplierId)) {
-      setLoading(false);
+    if (!validSupplierId) {
+      setSupplierLoading(false);
       setSupplier(null);
       return;
     }
@@ -73,7 +84,7 @@ export default function BuyerSupplierPage() {
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
+      setSupplierLoading(true);
       setSupplier(null);
       try {
         const data = await fetchSupplierById(supplierId);
@@ -87,7 +98,7 @@ export default function BuyerSupplierPage() {
             : "";
         showErrorToast(message.trim() || "Could not load seller profile");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setSupplierLoading(false);
       }
     }
 
@@ -95,13 +106,55 @@ export default function BuyerSupplierPage() {
     return () => {
       cancelled = true;
     };
-  }, [supplierId]);
+  }, [supplierId, validSupplierId]);
 
   useEffect(() => {
     setLogoFailed(false);
   }, [supplier?.logo]);
 
-  if (loading) {
+  const fetchPage = useCallback(
+    (page: number) => {
+      if (!validSupplierId) {
+        return Promise.resolve({
+          results: [],
+          pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
+        });
+      }
+      return fetchSellerProducts(supplierId, {
+        page,
+        limit: 10,
+        search: debounced || undefined,
+        sort_by: "id",
+        sort_order: "asc",
+      });
+    },
+    [debounced, supplierId, validSupplierId]
+  );
+
+  const {
+    items: products,
+    pagination,
+    loading: productsLoading,
+    loadingMore,
+    error: productsError,
+    hasMore,
+    loadMore,
+  } = useLoadMoreList({
+    fetchPage,
+    resetDeps: [debounced, supplierId],
+    enabled: validSupplierId,
+  });
+
+  if (!validSupplierId) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <PortalBackLink href="/buyer/suppliers" label="Back to suppliers" />
+        <p className="mt-6 text-sm text-muted-fg">Invalid seller.</p>
+      </div>
+    );
+  }
+
+  if (supplierLoading) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -112,7 +165,7 @@ export default function BuyerSupplierPage() {
   if (!supplier) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
-        <PortalBackLink href="/buyer/home" />
+        <PortalBackLink href="/buyer/suppliers" label="Back to suppliers" />
         <p className="mt-6 text-sm text-muted-fg">Seller profile not found.</p>
         <Button
           type="button"
@@ -134,6 +187,7 @@ export default function BuyerSupplierPage() {
   const responseRate = supplier.response_rate ?? 0;
   const years = supplier.years_in_business ?? 0;
   const isInactive = supplier.is_active === false;
+  const industry = supplier.industry?.trim();
 
   const rows = [
     {
@@ -178,15 +232,19 @@ export default function BuyerSupplierPage() {
     },
   ];
 
+  const productsLabel = productsLoading
+    ? "Loading products..."
+    : `${pagination.total.toLocaleString()} product${pagination.total === 1 ? "" : "s"}`;
+
   return (
-    <div className="relative mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
+    <div className="relative mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 -top-2 h-44 bg-[radial-gradient(ellipse_at_top,_var(--primary-soft)_0%,_transparent_70%)] opacity-90"
       />
 
       <div className="relative">
-        <PortalBackLink href="/buyer/home" label="Back" />
+        <PortalBackLink href="/buyer/suppliers" label="Back to suppliers" />
 
         <motion.div
           initial={{ opacity: 0, y: 14 }}
@@ -195,7 +253,6 @@ export default function BuyerSupplierPage() {
           className="mt-4"
         >
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
-            {/* Hero band */}
             <div className="relative border-b border-border/70 bg-gradient-to-br from-primary-soft/80 via-card to-card px-5 pb-5 pt-6 sm:px-7 sm:pb-6 sm:pt-7">
               <div className="flex items-start gap-4 sm:gap-5">
                 <span className="relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/10 bg-card text-2xl font-bold text-primary shadow-[var(--shadow-soft)] sm:h-24 sm:w-24 sm:text-3xl">
@@ -221,6 +278,9 @@ export default function BuyerSupplierPage() {
                   <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                     {supplier.company_name}
                   </h1>
+                  {industry ? (
+                    <p className="mt-1 text-sm text-muted-fg">{industry}</p>
+                  ) : null}
                   <div className="mt-2.5 flex flex-wrap items-center gap-2">
                     {supplier.verified ? (
                       <span className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white">
@@ -245,7 +305,6 @@ export default function BuyerSupplierPage() {
               ) : null}
             </div>
 
-            {/* Details table */}
             <div className="px-2 py-2 sm:px-3 sm:py-3">
               <table className="w-full overflow-hidden rounded-xl">
                 <tbody>
@@ -263,6 +322,58 @@ export default function BuyerSupplierPage() {
             </div>
           </div>
         </motion.div>
+
+        <section className="mt-8">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Products</h2>
+            <p className="mt-0.5 text-sm text-muted-fg">{productsLabel}</p>
+          </div>
+
+          <div className="mb-5">
+            <PortalSearchBar
+              value={query}
+              onChange={setQuery}
+              placeholder="Search this seller's products..."
+            />
+          </div>
+
+          {productsError ? (
+            <p className="mb-4 rounded-xl border border-error/20 bg-error-soft p-3 text-sm text-error">
+              {productsError}
+            </p>
+          ) : null}
+
+          {productsLoading ? (
+            <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-fg">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              Loading products...
+            </div>
+          ) : products.length === 0 ? (
+            <PortalEmptyState
+              icon={Package}
+              title={query.trim() ? "No matching products" : "No products yet"}
+              description={
+                query.trim()
+                  ? "Try a different search term."
+                  : "This seller has not listed any products."
+              }
+            />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {products.map((product) => (
+                  <PortalProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              <PortalInfiniteScroll
+                hasMore={hasMore}
+                loading={productsLoading}
+                loadingMore={loadingMore}
+                onLoadMore={loadMore}
+              />
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

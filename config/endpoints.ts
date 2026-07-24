@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   RFQS_SELLER_FEED: "/rfqs/seller/feed",
   RFQS_SELLER_QUOTATIONS: "/rfqs/seller/quotations",
   SUPPLIERS: "/suppliers",
+  SELLERS: "/sellers",
   LOCATIONS_STATES: "/locations/states",
   LOCATIONS_CITIES: "/locations/cities",
   CHATS_CONVERSATIONS: "/chats/conversations",
@@ -36,6 +37,11 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_READ: "/notifications/read",
   NOTIFICATIONS_READ_ALL: "/notifications/read-all",
 } as const;
+
+/** GET /sellers/:id/products */
+export function sellerProductsEndpoint(id: number | string): string {
+  return `/sellers/${id}/products`;
+}
 
 /** PATCH /notifications/:id/read */
 export function notificationReadEndpoint(id: number | string): string {

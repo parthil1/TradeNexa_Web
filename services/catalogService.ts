@@ -1,5 +1,5 @@
 import apiClient from "@/services/apiClient";
-import { API_ENDPOINTS } from "@/config/endpoints";
+import { API_ENDPOINTS, sellerProductsEndpoint } from "@/config/endpoints";
 import { unwrapApiPayload } from "@/utils/authHelpers";
 import { unwrapPaginatedResult, normalizeProductListItem } from "@/utils/catalogHelpers";
 import { extractApprovalStatus, parseApprovalStatus } from "@/utils/productApprovalHelpers";
@@ -222,6 +222,30 @@ export async function fetchProducts(
       ...params,
       ...(sellerId ? { seller_id: sellerId } : {}),
     }),
+  });
+  const data = unwrapApiPayload<unknown>(response.data);
+  const paginated = unwrapPaginatedResult<ApiProductListItem>(data);
+  return {
+    ...paginated,
+    results: paginated.results.map((item) => normalizeProductListItem(item)),
+  };
+}
+
+/** GET /api/v1/sellers/:id/products — public seller catalog for buyer supplier pages. */
+export async function fetchSellerProducts(
+  sellerId: number,
+  params?: CatalogListParams
+): Promise<PaginatedResult<ApiProductListItem>> {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 10;
+  const response = await apiClient.get(sellerProductsEndpoint(sellerId), {
+    params: {
+      page,
+      limit,
+      sort_by: params?.sort_by ?? "id",
+      sort_order: params?.sort_order ?? "asc",
+      ...(params?.search?.trim() ? { search: params.search.trim() } : {}),
+    },
   });
   const data = unwrapApiPayload<unknown>(response.data);
   const paginated = unwrapPaginatedResult<ApiProductListItem>(data);

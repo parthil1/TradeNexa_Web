@@ -5,12 +5,14 @@ export interface ApiSupplier {
   id: number;
   user_id?: number | null;
   company_name: string;
+  industry?: string | null;
   logo?: string | null;
   verified?: boolean;
   rating?: number | null;
   response_rate?: number | null;
   years_in_business?: number | null;
   profile_views_count?: number | null;
+  product_count?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   city?: string | null;

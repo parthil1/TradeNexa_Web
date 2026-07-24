@@ -5,25 +5,26 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  BadgeCheck,
   ChevronRight,
   ClipboardList,
   FileText,
   Flame,
   LayoutGrid,
+  Loader2,
   MessageSquare,
   Search,
-  Star,
 } from "lucide-react";
 import PortalSection from "@/components/portal/PortalSection";
 import PortalProductCard from "@/components/portal/PortalProductCard";
 import BuyerHomeBanner from "@/components/portal/BuyerHomeBanner";
+import SupplierCard from "@/components/portal/SupplierCard";
 import { useAuth } from "@/hooks/useAuth";
-import { demoSuppliers } from "@/data/portalDemo";
 import { fetchActiveBanners } from "@/services/bannerService";
 import { fetchCategories, fetchProducts, fetchTrendingProductItems } from "@/services/catalogService";
+import { fetchSuppliers } from "@/services/supplierService";
 import type { ApiBanner } from "@/types/banner";
 import type { ApiCategory, ApiProductListItem } from "@/types/catalog";
+import type { ApiSupplier } from "@/types/supplier";
 import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
 
 const quickLinks = [
@@ -78,6 +79,8 @@ function SectionLink({ href, children }: { href: string; children: React.ReactNo
 export default function BuyerHomePage() {
   const { user } = useAuth();
   const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [suppliers, setSuppliers] = useState<ApiSupplier[]>([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(true);
   const [trending, setTrending] = useState<ApiProductListItem[]>([]);
   const [recent, setRecent] = useState<ApiProductListItem[]>([]);
   const [banners, setBanners] = useState<ApiBanner[]>([]);
@@ -96,6 +99,15 @@ export default function BuyerHomePage() {
       .then(setBanners)
       .catch(() => setBanners([]))
       .finally(() => setBannersLoading(false));
+    fetchSuppliers({
+      page: 1,
+      limit: 6,
+      sort_by: "rating",
+      sort_order: "desc",
+    })
+      .then((r) => setSuppliers(r.results))
+      .catch(() => setSuppliers([]))
+      .finally(() => setSuppliersLoading(false));
   }, []);
 
   return (
@@ -201,33 +213,26 @@ export default function BuyerHomePage() {
       <PortalSection
         title="Featured Suppliers"
         subtitle="Verified & trusted businesses"
-        action={<SectionLink href="/buyer/search">View all</SectionLink>}
+        action={<SectionLink href="/buyer/suppliers">View all</SectionLink>}
       >
-        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3">
-          {demoSuppliers.map((s) => (
-            <Link
-              key={s.id}
-              href={`/buyer/supplier/${s.id}`}
-              className="surface-card-hover w-[78vw] max-w-[300px] shrink-0 snap-start p-4 sm:w-[300px] md:w-auto md:max-w-none"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-sm font-semibold text-primary">
-                  {s.name[0]}
-                </div>
-                {s.verified ? <BadgeCheck className="h-5 w-5 text-primary" aria-hidden /> : null}
-              </div>
-              <p className="mt-3 line-clamp-2 text-sm font-semibold text-foreground">{s.name}</p>
-              <p className="mt-1 text-xs text-muted-fg">{s.category}</p>
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1 font-semibold text-warning">
-                  <Star className="h-3.5 w-3.5 fill-warning text-warning" aria-hidden />
-                  {s.rating}
-                </span>
-                <span className="text-muted-fg">{s.productCount} products</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {suppliersLoading ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-fg">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            Loading suppliers...
+          </div>
+        ) : suppliers.length === 0 ? (
+          <p className="py-6 text-sm text-muted-fg">No suppliers available yet.</p>
+        ) : (
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3">
+            {suppliers.map((supplier) => (
+              <SupplierCard
+                key={supplier.id}
+                supplier={supplier}
+                className="w-[78vw] max-w-[300px] shrink-0 snap-start sm:w-[300px] md:w-auto md:max-w-none"
+              />
+            ))}
+          </div>
+        )}
       </PortalSection>
 
       <PortalSection
