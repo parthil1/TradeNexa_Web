@@ -16,7 +16,6 @@ import {
   TrendingUp,
   XCircle,
 } from "lucide-react";
-import PortalPageHeader from "@/components/portal/PortalPageHeader";
 import PortalStatCard from "@/components/portal/PortalStatCard";
 import PortalSection from "@/components/portal/PortalSection";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +42,9 @@ export default function SellerDashboardPage() {
   const [dashboard, setDashboard] = useState<SellerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const displayName = user?.name || user?.company || "Seller";
+  const initial = displayName.charAt(0).toUpperCase();
 
   const loadDashboard = () => {
     setLoading(true);
@@ -78,10 +80,22 @@ export default function SellerDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-      <PortalPageHeader
-        title={user?.company || user?.name || "Seller"}
-        subtitle="Welcome back"
-      />
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="mb-5 flex items-center gap-3 sm:mb-6"
+      >
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-semibold text-white shadow-[var(--shadow-button)] sm:h-14 sm:w-14 sm:text-xl">
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-fg sm:text-sm">Welcome back,</p>
+          <h2 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            {displayName}
+          </h2>
+        </div>
+      </motion.div>
 
       {loading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
