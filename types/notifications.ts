@@ -45,6 +45,8 @@ export interface NotificationListParams {
   limit?: number;
   is_read?: boolean;
   type?: string;
+  /** Active portal role — filters inbox to buyer or seller notifications. */
+  role?: "buyer" | "seller";
 }
 
 export type NotificationListResult = PaginatedResult<AppNotification>;

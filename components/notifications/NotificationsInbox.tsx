@@ -44,19 +44,23 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
   const isReadParam =
     filter === "unread" ? false : filter === "read" ? true : undefined;
 
+  const notificationRole =
+    activeRole === "seller" || accent === "seller" ? "seller" : "buyer";
+
   const fetchPage = useCallback(
     (page: number) =>
       fetchNotifications({
         page,
         limit: PAGE_SIZE,
         is_read: isReadParam,
+        role: notificationRole,
       }),
-    [isReadParam]
+    [isReadParam, notificationRole]
   );
 
   const { items, setItems, pagination, loading, error, goToPage, reload } = usePaginatedList({
     fetchPage,
-    resetDeps: [filter],
+    resetDeps: [filter, notificationRole],
   });
 
   useEffect(() => {

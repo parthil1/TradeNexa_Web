@@ -112,6 +112,7 @@ export async function fetchNotifications(
   };
   if (typeof params?.is_read === "boolean") query.is_read = params.is_read;
   if (params?.type?.trim()) query.type = params.type.trim();
+  if (params?.role === "buyer" || params?.role === "seller") query.role = params.role;
 
   const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS, { params: query });
   return unwrapPaginated(unwrapApiPayload(response.data));
