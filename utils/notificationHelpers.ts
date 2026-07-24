@@ -1,4 +1,4 @@
-import type { AppNotification } from "@/types/notifications";
+import type { AppNotification, NotificationUnreadCount } from "@/types/notifications";
 import { normalizeAppNotification } from "@/services/notificationService";
 import {
   resolveFcmNavigationPath,
@@ -46,24 +46,78 @@ export function formatNotificationTime(value?: string | null): string {
   return formatDateListLabel(value) || "";
 }
 
-export function parseUnreadCountPayload(payload: unknown): number | null {
-  if (payload == null) return null;
-  if (typeof payload === "number" && Number.isFinite(payload)) {
-    return Math.max(0, payload);
+function toNonNegativeInt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.trunc(value));
   }
+  if (typeof value === "string" && value.trim()) {
+    const n = Number(value);
+    if (Number.isFinite(n)) return Math.max(0, Math.trunc(n));
+  }
+  return null;
+}
+
+/** Normalize REST / socket unread-count payloads with buyer/seller breakdown. */
+export function normalizeUnreadCountPayload(
+  payload: unknown
+): NotificationUnreadCount | null {
+  if (payload == null) return null;
+
+  if (typeof payload === "number" && Number.isFinite(payload)) {
+    const n = Math.max(0, Math.trunc(payload));
+    return { total: n, buyer: n, seller: 0, unread_count: n, role: null };
+  }
+
   if (typeof payload !== "object") return null;
   const record = payload as Record<string, unknown>;
   const nested =
-    record.data && typeof record.data === "object"
+    record.data && typeof record.data === "object" && !Array.isArray(record.data)
       ? (record.data as Record<string, unknown>)
       : record;
-  const raw = nested.unread_count ?? record.unread_count;
-  if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, raw);
-  if (typeof raw === "string" && raw.trim()) {
-    const n = Number(raw);
-    if (Number.isFinite(n)) return Math.max(0, n);
+
+  const buyer = toNonNegativeInt(nested.buyer ?? record.buyer);
+  const seller = toNonNegativeInt(nested.seller ?? record.seller);
+  const unreadCount = toNonNegativeInt(nested.unread_count ?? record.unread_count);
+  const total = toNonNegativeInt(nested.total ?? record.total);
+
+  if (buyer == null && seller == null && unreadCount == null && total == null) {
+    return null;
   }
-  return null;
+
+  const resolvedBuyer = buyer ?? 0;
+  const resolvedSeller = seller ?? 0;
+  const resolvedUnread =
+    unreadCount ?? resolvedBuyer + resolvedSeller;
+  const resolvedTotal = total ?? resolvedUnread;
+  const roleRaw = nested.role ?? record.role;
+  const role =
+    roleRaw === "buyer" || roleRaw === "seller" ? roleRaw : null;
+
+  return {
+    total: resolvedTotal,
+    buyer: resolvedBuyer,
+    seller: resolvedSeller,
+    unread_count: resolvedUnread,
+    role,
+  };
+}
+
+/** Pick badge count for the active portal role. */
+export function unreadCountForRole(
+  counts: NotificationUnreadCount,
+  role: "buyer" | "seller"
+): number {
+  if (counts.role === "buyer" || counts.role === "seller") {
+    return Math.max(0, counts.unread_count);
+  }
+  return Math.max(0, role === "seller" ? counts.seller : counts.buyer);
+}
+
+/** @deprecated Prefer normalizeUnreadCountPayload + unreadCountForRole. */
+export function parseUnreadCountPayload(payload: unknown): number | null {
+  const counts = normalizeUnreadCountPayload(payload);
+  if (!counts) return null;
+  return Math.max(0, counts.unread_count);
 }
 
 export function extractNotificationFromSocketPayload(

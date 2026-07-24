@@ -52,7 +52,12 @@ export interface NotificationListParams {
 export type NotificationListResult = PaginatedResult<AppNotification>;
 
 export interface NotificationUnreadCount {
+  total: number;
+  buyer: number;
+  seller: number;
+  /** Legacy / role-scoped single count from API. */
   unread_count: number;
+  role: "buyer" | "seller" | null;
 }
 
 export interface NotificationMarkReadResult {

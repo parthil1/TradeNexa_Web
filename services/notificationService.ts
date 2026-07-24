@@ -122,8 +122,19 @@ export async function fetchNotifications(
 export async function fetchNotificationUnreadCount(): Promise<NotificationUnreadCount> {
   const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS_UNREAD_COUNT);
   const data = asRecord(unwrapApiPayload(response.data)) ?? {};
+  const buyer = Math.max(0, toFiniteNumber(data.buyer) ?? 0);
+  const seller = Math.max(0, toFiniteNumber(data.seller) ?? 0);
+  const unreadCount = Math.max(0, toFiniteNumber(data.unread_count) ?? buyer + seller);
+  const total = Math.max(0, toFiniteNumber(data.total) ?? unreadCount);
+  const role =
+    data.role === "buyer" || data.role === "seller" ? data.role : null;
+
   return {
-    unread_count: Math.max(0, toFiniteNumber(data.unread_count) ?? 0),
+    total,
+    buyer,
+    seller,
+    unread_count: unreadCount,
+    role,
   };
 }
 
