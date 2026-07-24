@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  ChevronRight,
   ClipboardList,
   FileText,
   Flame,
@@ -168,7 +167,7 @@ export default function BuyerHomePage() {
       ) : (
         <Link
           href="/buyer/post-requirement"
-          className="mb-5 block overflow-hidden rounded-xl bg-accent p-4 text-white transition-opacity duration-200 hover:opacity-95 sm:mb-6 sm:p-5"
+          className="mb-5 block overflow-hidden rounded-xl bg-primary p-4 text-white transition-colors duration-200 hover:bg-primary-hover sm:mb-6 sm:p-5"
         >
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/75">
             TradeNexa B2B
@@ -177,7 +176,7 @@ export default function BuyerHomePage() {
           <p className="mt-1 max-w-md text-xs text-white/85 sm:text-sm">
             Get quotes from multiple sellers in 24 hours
           </p>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-xs font-semibold text-accent sm:text-sm">
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-xs font-semibold text-primary sm:text-sm">
             Post RFQ
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </span>
@@ -256,19 +255,6 @@ export default function BuyerHomePage() {
           ))}
         </div>
       </PortalSection>
-
-      <Link
-        href="/buyer/post-requirement"
-        className="mb-2 flex items-center justify-between gap-4 overflow-hidden rounded-xl bg-accent p-4 text-white transition-opacity duration-200 hover:opacity-95 sm:mb-4 sm:p-5"
-      >
-        <div className="min-w-0">
-          <p className="text-sm font-semibold sm:text-base">Post a Requirement</p>
-          <p className="mt-0.5 text-xs text-white/85 sm:text-sm">Get quotes from multiple sellers</p>
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
-          <ChevronRight className="h-5 w-5" aria-hidden />
-        </div>
-      </Link>
     </div>
   );
 }

@@ -12,7 +12,6 @@ import {
   Package,
   Plus,
   Reply,
-  Store,
   TrendingUp,
   XCircle,
 } from "lucide-react";
@@ -96,6 +95,30 @@ export default function SellerDashboardPage() {
           </h2>
         </div>
       </motion.div>
+
+      <PortalSection title="Quick Actions">
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="flex w-24 shrink-0 flex-col items-center gap-2"
+              >
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl border border-border transition-colors duration-200 hover:border-primary/30 ${action.bg}`}
+                >
+                  <Icon className={`h-6 w-6 ${action.color}`} aria-hidden />
+                </div>
+                <span className="text-center text-[11px] font-semibold text-muted-fg">
+                  {action.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </PortalSection>
 
       {loading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
@@ -291,43 +314,6 @@ export default function SellerDashboardPage() {
           </PortalSection>
         </>
       ) : null}
-
-      <PortalSection title="Quick Actions">
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="flex w-24 shrink-0 flex-col items-center gap-2"
-              >
-                <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-xl border border-border transition-colors duration-200 hover:border-primary/30 ${action.bg}`}
-                >
-                  <Icon className={`h-6 w-6 ${action.color}`} aria-hidden />
-                </div>
-                <span className="text-center text-[11px] font-semibold text-muted-fg">
-                  {action.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </PortalSection>
-
-      <Link
-        href="/seller/plans"
-        className="surface-card-hover flex items-center gap-4 p-4 transition-colors duration-200 hover:border-accent/40"
-      >
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-          <Store className="h-6 w-6 text-white" aria-hidden />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-foreground">Upgrade Your Plan</p>
-          <p className="text-xs text-muted-fg">Unlock premium leads & analytics</p>
-        </div>
-      </Link>
     </div>
   );
 }
