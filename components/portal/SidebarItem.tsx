@@ -22,50 +22,41 @@ export default function SidebarItem({
 }: SidebarItemProps) {
   const Icon = item.icon;
   const isSeller = accent === "seller";
-  const accentBar = isSeller ? "bg-portal-seller" : "bg-primary";
   const accentIcon = isSeller ? "text-orange-300" : "text-sky-300";
+  const badgeClass =
+    "bg-sky-400 text-white shadow-none ring-2 ring-[#0d1b2a]";
 
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
-      className={`group relative flex h-10 items-center rounded-lg text-[13px] transition-all duration-200 ${
+      className={`group relative flex h-11 items-center rounded-lg text-[13.5px] tracking-[-0.01em] transition-colors duration-200 ${
         collapsed ? "justify-center px-0" : "gap-3 px-3"
       } ${
         active
-          ? "bg-white/10 font-medium text-white"
-          : "text-white/55 hover:bg-white/[0.06] hover:text-white/90"
+          ? "bg-white/[0.08] font-medium text-white"
+          : "font-normal text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
       }`}
     >
-      {active ? (
-        <span
-          className={`absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r ${accentBar}`}
-          aria-hidden
-        />
-      ) : null}
-
       <span
         className={`flex h-8 w-8 shrink-0 items-center justify-center transition-colors duration-200 ${
-          active ? accentIcon : "text-white/40 group-hover:text-white/70"
+          active ? accentIcon : "text-slate-500 group-hover:text-slate-300"
         }`}
       >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden />
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
       </span>
 
       {!collapsed ? (
         <>
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
           {item.badge ? (
-            <ConversationBadge
-              count={item.badge}
-              className="bg-sky-400 text-slate-950 shadow-none ring-2 ring-slate-950/40"
-            />
+            <ConversationBadge count={item.badge} className={badgeClass} />
           ) : null}
         </>
       ) : item.badge ? (
         <span
-          className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sky-400 px-1 text-[10px] font-bold tabular-nums text-slate-950 ring-2 ring-slate-950/40"
+          className={`absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums ${badgeClass}`}
           aria-label={`${item.badge} unread message${item.badge === 1 ? "" : "s"}`}
         >
           {formatChatBadgeCount(item.badge)}
