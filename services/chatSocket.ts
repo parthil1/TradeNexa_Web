@@ -408,10 +408,14 @@ export function emitNotificationMarkRead(notificationId: number) {
   });
 }
 
-/** Guide §7.2 — mark all inbox notifications read via socket. */
-export function emitNotificationMarkAllRead() {
+/** Guide §7.2 — mark all inbox notifications read via socket (role-scoped). */
+export function emitNotificationMarkAllRead(role?: "buyer" | "seller") {
   const s = connectChatSocket();
-  emitWhenConnected(s, "notification:mark_all_read", undefined);
+  emitWhenConnected(
+    s,
+    "notification:mark_all_read",
+    role === "buyer" || role === "seller" ? { role } : undefined
+  );
 }
 
 /**

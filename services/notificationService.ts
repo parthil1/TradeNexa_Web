@@ -175,9 +175,18 @@ export async function markNotificationsRead(
   return { updated: Math.max(0, toFiniteNumber(data.updated) ?? 0) };
 }
 
-/** POST /api/v1/notifications/read-all */
-export async function markAllNotificationsRead(): Promise<NotificationBulkReadResult> {
-  const response = await apiClient.post(API_ENDPOINTS.NOTIFICATIONS_READ_ALL);
+/** POST /api/v1/notifications/read-all?role=buyer|seller */
+export async function markAllNotificationsRead(
+  role?: "buyer" | "seller"
+): Promise<NotificationBulkReadResult> {
+  const response = await apiClient.post(
+    API_ENDPOINTS.NOTIFICATIONS_READ_ALL,
+    undefined,
+    {
+      params:
+        role === "buyer" || role === "seller" ? { role } : undefined,
+    }
+  );
   const data = asRecord(unwrapApiPayload(response.data)) ?? {};
   return { updated: Math.max(0, toFiniteNumber(data.updated) ?? 0) };
 }

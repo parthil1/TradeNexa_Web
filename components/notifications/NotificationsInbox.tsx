@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, CheckCheck, Loader2 } from "lucide-react";
 import PortalPageHeader from "@/components/portal/PortalPageHeader";
@@ -11,12 +11,13 @@ import { portalFilterChipClass } from "@/components/portal/portalLayout";
 import { useActiveRole } from "@/context/ActiveRoleContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
-import { fetchNotifications, markNotificationsRead } from "@/services/notificationService";
+import { fetchNotifications, markNotificationRead, markNotificationsRead } from "@/services/notificationService";
 import {
   formatNotificationTime,
   resolveNotificationPath,
 } from "@/utils/notificationHelpers";
 import { recipientPortalForType } from "@/utils/fcmNavigation";
+import { getPortalForPath } from "@/utils/roleNavigation";
 import type { AppNotification } from "@/types/notifications";
 
 function notificationMatchesRole(
@@ -119,7 +120,7 @@ interface NotificationsInboxProps {
 
 export default function NotificationsInbox({ accent = "buyer" }: NotificationsInboxProps) {
   const router = useRouter();
-  const { activeRole } = useActiveRole();
+  const { activeRole, setActiveRole } = useActiveRole();
   const {
     unreadCount,
     markRead,
@@ -330,22 +331,46 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
     }
   }
 
-  async function handleOpen(notification: AppNotification) {
+  function handleOpen(notification: AppNotification) {
     if (openingId != null || markingSelected) return;
     setOpeningId(notification.id);
-    try {
-      if (!notification.is_read) {
-        const updated = await markRead(notification.id);
-        if (updated) applyLocalRead([notification.id]);
-      }
-      const path = resolveNotificationPath(
-        notification,
-        activeRole === "seller" || accent === "seller" ? "seller" : "buyer"
-      );
-      router.push(path);
-    } finally {
-      setOpeningId(null);
+
+    const portalRole =
+      activeRole === "seller" || accent === "seller" ? "seller" : "buyer";
+    const path = resolveNotificationPath(notification, portalRole);
+    const pathPortal = getPortalForPath(path);
+
+    if (!notification.is_read) {
+      // Optimistic UI — do not block navigation on the PATCH.
+      applyLocalRead([notification.id]);
+      void (async () => {
+        try {
+          if (typeof markRead === "function") {
+            await markRead(notification.id);
+          } else {
+            await markNotificationRead(notification.id);
+            void refreshUnreadCount();
+          }
+        } catch {
+          void refreshUnreadCount();
+        }
+      })();
     }
+
+    if (pathPortal && pathPortal !== activeRole) {
+      setActiveRole(pathPortal);
+    }
+
+    // Navigate after the click turn so App Router is initialized.
+    startTransition(() => {
+      try {
+        router.push(path);
+      } catch {
+        window.location.assign(path);
+      } finally {
+        setOpeningId(null);
+      }
+    });
   }
 
   const emptyTitle =

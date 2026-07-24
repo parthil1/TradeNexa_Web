@@ -191,17 +191,30 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const markAllRead = useCallback(async (): Promise<number> => {
-    setUnreadByRole(EMPTY_COUNTS);
-    emitNotificationMarkAllRead();
+    setUnreadByRole((prev) => {
+      const nextBuyer = activeRole === "buyer" ? 0 : prev.buyer;
+      const nextSeller = activeRole === "seller" ? 0 : prev.seller;
+      return {
+        ...prev,
+        buyer: nextBuyer,
+        seller: nextSeller,
+        total: Math.max(0, nextBuyer + nextSeller),
+        unread_count: Math.max(0, nextBuyer + nextSeller),
+        role: null,
+      };
+    });
+    emitNotificationMarkAllRead(activeRole);
     try {
-      const { updated } = await markAllNotificationsRead();
+      // POST /api/v1/notifications/read-all?role=buyer|seller
+      const { updated } = await markAllNotificationsRead(activeRole);
       notifyInboxListeners({ kind: "mark_all" });
+      void refreshUnreadCount();
       return updated;
     } catch {
       void refreshUnreadCount();
       return 0;
     }
-  }, [refreshUnreadCount]);
+  }, [activeRole, refreshUnreadCount]);
 
   const subscribeInbox = useCallback((listener: InboxListener) => {
     inboxListeners.add(listener);
