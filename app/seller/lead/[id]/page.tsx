@@ -200,7 +200,7 @@ export default function SellerLeadDetailPage() {
     );
   }
 
-  const canSubmit = canSellerSubmitQuotation(existingQuotation);
+  const canSubmit = canSellerSubmitQuotation(existingQuotation, rfq.status);
   const hasSentQuote = existingQuotation != null;
   const revisionPending =
     existingQuotation != null ? isQuotationRevisionPending(existingQuotation, rfq.status) : false;
@@ -273,18 +273,9 @@ export default function SellerLeadDetailPage() {
           {locationLine ? <MetaPill icon={MapPin} label="Location" value={locationLine} /> : null}
         </div>
 
-        {canSubmit ? (
-          <Button
-            type="button"
-            onClick={() => setShowQuoteForm(true)}
-            className="mt-6"
-            fullWidth
-          >
-            Send Quote
-          </Button>
-        ) : null}
-
-        {!canSubmit && existingQuotation ? (
+        {/* Always show my_quotation when present — including WITHDRAWN — so the
+            seller still sees the withdrawn quote instead of only "Send Quote". */}
+        {existingQuotation ? (
           <div className="mt-6 border-t border-border pt-6">
             <QuotationCard
               quotation={existingQuotation}
@@ -327,6 +318,18 @@ export default function SellerLeadDetailPage() {
               }
             />
           </div>
+        ) : null}
+
+        {/* Send Quote only when my_quotation is blank and RFQ is PUBLISHED. */}
+        {canSubmit ? (
+          <Button
+            type="button"
+            onClick={() => setShowQuoteForm(true)}
+            className="mt-6"
+            fullWidth
+          >
+            Send Quote
+          </Button>
         ) : null}
       </article>
 

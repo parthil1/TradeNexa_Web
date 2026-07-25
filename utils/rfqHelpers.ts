@@ -894,10 +894,21 @@ export function formatRfqStatusTabLabel(tab: string): string {
   return formatRfqStatus(tab);
 }
 
-/** Seller can submit a new quote only when they have none, or withdrew the previous one. */
-export function canSellerSubmitQuotation(quotation?: ApiQuotation | null): boolean {
-  if (!quotation) return true;
-  return (quotation.status ?? "").toUpperCase().includes("WITHDRAW");
+/** RFQ is still open for fresh seller quotes (only while PUBLISHED). */
+export function isRfqPublished(status?: string | null): boolean {
+  return (status ?? "").trim().toUpperCase() === "PUBLISHED";
+}
+
+/**
+ * Seller can submit a quote only while the RFQ is PUBLISHED and they have
+ * no `my_quotation` yet (withdrawn / existing quotes hide Send Quote).
+ */
+export function canSellerSubmitQuotation(
+  quotation?: ApiQuotation | null,
+  rfqStatus?: string | null
+): boolean {
+  if (rfqStatus !== undefined && !isRfqPublished(rfqStatus)) return false;
+  return quotation == null;
 }
 
 /** Seller can update or withdraw while a quote is still awaiting buyer decision. */
