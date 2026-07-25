@@ -11,6 +11,11 @@ export function todayInputDate(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+/** Local start-of-day for `<input type="datetime-local" min>`. */
+export function todayDatetimeLocalMin(date = new Date()): string {
+  return `${todayInputDate(date)}T00:00`;
+}
+
 export function formatDateDdMmYyyy(value?: string | Date | null): string {
   if (value == null || value === "") return "—";
   const date = value instanceof Date ? value : new Date(value);

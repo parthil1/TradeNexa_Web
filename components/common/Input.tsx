@@ -1,6 +1,7 @@
 import React from "react";
 import { dateInputClassName, inputClassName } from "./FormField";
 import { openDatePicker } from "./DateInput";
+import { todayDatetimeLocalMin, todayInputDate } from "@/utils/dateFormat";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   id: string;
@@ -8,6 +9,8 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: boolean;
   className?: string;
   icon?: React.ElementType;
+  /** When true, past dates are allowed (default: past dates blocked for date / datetime-local). */
+  allowPastDates?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -18,10 +21,20 @@ export const Input: React.FC<InputProps> = ({
   className = "",
   type,
   onClick,
+  min,
+  allowPastDates = false,
   ...rest
 }) => {
   const isPickerInput = type === "date" || type === "datetime-local" || type === "month" || type === "time";
   const inputStyles = `${isPickerInput ? dateInputClassName(error) : inputClassName(error)} ${Icon ? "pl-10" : ""} ${className}`;
+
+  const resolvedMin =
+    min ??
+    (!allowPastDates && type === "date"
+      ? todayInputDate()
+      : !allowPastDates && type === "datetime-local"
+        ? todayDatetimeLocalMin()
+        : min);
 
   const pickerHandlers = isPickerInput
     ? {
@@ -37,6 +50,7 @@ export const Input: React.FC<InputProps> = ({
       id={id}
       type={type}
       lang={isPickerInput ? "en-GB" : undefined}
+      min={resolvedMin}
       className={inputStyles}
       aria-invalid={!!error}
       {...pickerHandlers}

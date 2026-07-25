@@ -30,7 +30,7 @@ import {
 } from "@/utils/catalogHelpers";
 import { isActiveInquiryStatus } from "@/utils/inquiryHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
-import { toApiDateTime } from "@/utils/dateFormat";
+import { toApiDateTime, todayInputDate } from "@/utils/dateFormat";
 import type { ApiProductDetail } from "@/types/catalog";
 import type { ApiInquiry } from "@/types/inquiry";
 
@@ -517,6 +517,7 @@ export default function SendInquiryPage() {
                           onChange={(e) => setRequiredBefore(e.target.value)}
                           type="date"
                           lang="en-GB"
+                          min={todayInputDate()}
                           className="input-base !pl-10"
                           disabled={formDisabled}
                         />

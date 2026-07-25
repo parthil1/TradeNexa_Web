@@ -1019,7 +1019,6 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
             <RequiredLabel>Quotation deadline</RequiredLabel>
             <DateInput
               value={form.quotationDeadline}
-              min={todayInputDate()}
               onChange={(e) => updateField("quotationDeadline", e.target.value)}
               error={!!fieldError("quotationDeadline")}
             />
@@ -1029,7 +1028,6 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
             <label className={labelClass}>Required before</label>
             <DateInput
               value={form.requiredBefore}
-              min={todayInputDate()}
               onChange={(e) => updateField("requiredBefore", e.target.value)}
               error={!!fieldError("requiredBefore")}
             />
