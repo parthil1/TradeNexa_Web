@@ -148,14 +148,18 @@ export default function SellerInquiryDetailPage() {
   const buyerLogo = inquiryCounterpartyLogo(inquiry, "seller");
   const buyerLogoUrl = resolveImageUrl(buyerLogo);
   const quote = inquiry.quotation;
+  const inquiryStatus = String(inquiry.status ?? "").toLowerCase();
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
-  const canQuote = inquiry.status === "pending" && !quote;
-  const canReject = inquiry.status === "pending";
+  const quoteRejected = quoteStatus === "REJECTED";
+  // Fresh quote, or a new quote after the buyer rejected the previous one.
+  const canQuote =
+    inquiryStatus === "pending" && (!quote || quoteRejected);
+  const canReject = inquiryStatus === "pending";
   const canUpdateQuote =
     Boolean(quote?.id) &&
     (quoteStatus === "SUBMITTED" || quoteStatus === "UPDATED");
   const canWithdraw =
-    inquiry.status === "quoted" &&
+    inquiryStatus === "quoted" &&
     quote &&
     (quoteStatus === "SUBMITTED" || quoteStatus === "UPDATED");
 
@@ -328,7 +332,7 @@ export default function SellerInquiryDetailPage() {
             ) : null}
             {canQuote ? (
               <Button type="button" variant="primary" onClick={() => setQuoteOpen(true)}>
-                Send quotation
+                {quoteRejected ? "Send new quotation" : "Send quotation"}
               </Button>
             ) : null}
           </div>
