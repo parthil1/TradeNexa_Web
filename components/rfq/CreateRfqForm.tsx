@@ -25,7 +25,7 @@ import type { ApiSupplier } from "@/types/supplier";
 import { formatApiValidationSummary, getApiFieldErrors } from "@/utils/apiErrors";
 import { isGeoCacheFresh, readGeoLastLocation } from "@/utils/geoLocationStorage";
 import { isRfqDraft, isoToDateInput } from "@/utils/rfqHelpers";
-import { toApiDateTime } from "@/utils/dateFormat";
+import { toApiDateTime, todayInputDate } from "@/utils/dateFormat";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
 import { getUnitOptions } from "@/utils/unitOptions";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
@@ -145,7 +145,7 @@ const WIZARD_STEPS: { key: WizardStepKey; label: string; shortLabel: string }[] 
 
 const ERROR_KEYS_BY_STEP: Record<WizardStepKey, (keyof FormErrors)[]> = {
   details: ["title", "categoryId", "subcategoryId", "description"],
-  quantity: ["quantity", "unit", "quotationDeadline"],
+  quantity: ["quantity", "unit", "quotationDeadline", "requiredBefore"],
   delivery: ["addressLine1", "city", "state", "country", "pincode"],
   settings: ["visibility", "sellerIds"],
 };
@@ -201,6 +201,12 @@ function validateForm(form: FormState, sellerIds: number[]): FormErrors {
 
   if (!form.quotationDeadline) {
     errors.quotationDeadline = "Quotation deadline is required";
+  } else if (form.quotationDeadline < todayInputDate()) {
+    errors.quotationDeadline = "Quotation deadline cannot be in the past";
+  }
+
+  if (form.requiredBefore && form.requiredBefore < todayInputDate()) {
+    errors.requiredBefore = "Required before date cannot be in the past";
   }
 
   if (!form.addressLine1.trim()) errors.addressLine1 = "Address line 1 is required";
@@ -1013,17 +1019,21 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
             <RequiredLabel>Quotation deadline</RequiredLabel>
             <DateInput
               value={form.quotationDeadline}
+              min={todayInputDate()}
               onChange={(e) => updateField("quotationDeadline", e.target.value)}
               error={!!fieldError("quotationDeadline")}
             />
             <FieldHint name="quotationDeadline" />
           </div>
-          <div>
+          <div data-form-field="requiredBefore">
             <label className={labelClass}>Required before</label>
             <DateInput
               value={form.requiredBefore}
+              min={todayInputDate()}
               onChange={(e) => updateField("requiredBefore", e.target.value)}
+              error={!!fieldError("requiredBefore")}
             />
+            <FieldHint name="requiredBefore" />
           </div>
         </div>
       </Section>
