@@ -161,6 +161,12 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
     setSelectedIds(new Set());
   }, [filter, notificationRole, pagination.page]);
 
+  // Reconcile the nav badge when the inbox opens. Auth-time refresh alone can
+  // leave a stale count after a long session if a socket event was missed.
+  useEffect(() => {
+    void refreshUnreadCount();
+  }, [refreshUnreadCount]);
+
   useEffect(() => {
     return subscribeInbox((event) => {
       if (event.kind === "mark_all") {
