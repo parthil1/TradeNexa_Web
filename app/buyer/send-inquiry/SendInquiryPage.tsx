@@ -8,7 +8,6 @@ import { motion } from "framer-motion";
 import {
   Calendar,
   IndianRupee,
-  MessageSquare,
   Package,
   Send,
 } from "lucide-react";
@@ -18,7 +17,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { fetchProductById } from "@/services/catalogService";
 import {
   createInquiry,
-  findMyInquiryForProduct,
   getInquiryErrorMessage,
 } from "@/services/inquiryService";
 import { formatApiValidationSummary, getApiFieldErrors } from "@/utils/apiErrors";
@@ -28,11 +26,9 @@ import {
   productGradient,
   resolveImageUrl,
 } from "@/utils/catalogHelpers";
-import { isActiveInquiryStatus } from "@/utils/inquiryHelpers";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { toApiDateTime, todayInputDate } from "@/utils/dateFormat";
 import type { ApiProductDetail } from "@/types/catalog";
-import type { ApiInquiry } from "@/types/inquiry";
 
 type FormErrors = Partial<Record<"quantity" | "message" | "expected_price", string>>;
 
@@ -94,10 +90,6 @@ export default function SendInquiryPage() {
   const [requiredBefore, setRequiredBefore] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [openingExisting, setOpeningExisting] = useState(false);
-  /** Active inquiry blocks a new send; rejected/cancelled/closed allows resubmit. */
-  const [activeInquiry, setActiveInquiry] = useState<ApiInquiry | null>(null);
-  const [checkingInquiry, setCheckingInquiry] = useState(false);
 
   useEffect(() => {
     if (!productId || Number.isNaN(productId)) {
@@ -123,7 +115,6 @@ export default function SendInquiryPage() {
     };
   }, [productId]);
 
-  // Lock unit from the loaded product (quantity stays empty for the buyer to fill).
   useEffect(() => {
     if (!product) return;
     const productUnit = product.pricing?.unit?.trim();
@@ -131,42 +122,6 @@ export default function SendInquiryPage() {
       setUnit(productUnit);
     }
   }, [product]);
-
-  useEffect(() => {
-    if (!productId || Number.isNaN(productId) || !product) {
-      setActiveInquiry(null);
-      setCheckingInquiry(false);
-      return;
-    }
-    if (product.user_actions?.is_inquiry_sent !== true) {
-      setActiveInquiry(null);
-      setCheckingInquiry(false);
-      return;
-    }
-    let cancelled = false;
-    setCheckingInquiry(true);
-    void (async () => {
-      try {
-        const existing = await findMyInquiryForProduct(productId);
-        if (cancelled) return;
-        if (existing && isActiveInquiryStatus(existing.status)) {
-          setActiveInquiry(existing);
-        } else {
-          setActiveInquiry(null);
-        }
-      } catch {
-        if (!cancelled) setActiveInquiry(null);
-      } finally {
-        if (!cancelled) setCheckingInquiry(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [productId, product]);
-
-  const alreadySent = activeInquiry != null;
-  const formDisabled = alreadySent || checkingInquiry;
 
   const backHref = useMemo(() => {
     if (productId) return `/buyer/product/${productId}`;
@@ -179,25 +134,6 @@ export default function SendInquiryPage() {
   const gradient = productGradient(productId || 0);
   const messageLen = message.trim().length;
 
-  async function openExistingChat() {
-    if (!productId) return;
-    setOpeningExisting(true);
-    try {
-      const existing =
-        activeInquiry ??
-        (await findMyInquiryForProduct(productId, { activeOnly: true }));
-      if (!existing) {
-        // Prior inquiry was rejected/cancelled — allow a new send instead of chat.
-        return;
-      }
-      router.replace(`/buyer/product-inquiries/${existing.id}?chat=1`);
-    } catch (err) {
-      showErrorToast(getInquiryErrorMessage(err, "Could not open inquiry chat"));
-    } finally {
-      setOpeningExisting(false);
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -208,10 +144,6 @@ export default function SendInquiryPage() {
     }
     if (!productId || Number.isNaN(productId)) {
       showErrorToast("Select a product before sending an inquiry.");
-      return;
-    }
-    if (alreadySent) {
-      void openExistingChat();
       return;
     }
 
@@ -385,42 +317,7 @@ export default function SendInquiryPage() {
               </div>
             </div>
 
-            {checkingInquiry ? (
-              <div className="flex justify-center rounded-2xl border border-border bg-card py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : alreadySent ? (
-              <div className="rounded-2xl border border-primary/20 bg-primary-soft/60 p-5 sm:p-6">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
-                    <MessageSquare className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">Inquiry already sent</p>
-                    <p className="mt-1 text-sm text-muted-fg">
-                      You already started a conversation about this product. Continue in chat
-                      or view it under Inquiries.
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="primary"
-                        loading={openingExisting}
-                        onClick={() => void openExistingChat()}
-                      >
-                        Continue chat
-                      </Button>
-                      <Link href="/buyer/product-inquiries">
-                        <Button type="button" variant="secondary">
-                          View inquiries
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <form
+            <form
                 onSubmit={handleSubmit}
                 className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] sm:p-6"
               >
@@ -451,7 +348,6 @@ export default function SendInquiryPage() {
                         min={1}
                         placeholder="e.g. 500"
                         className="input-base"
-                        disabled={formDisabled}
                       />
                       {errors.quantity ? (
                         <p className="mt-1 text-xs text-error">{errors.quantity}</p>
@@ -493,7 +389,6 @@ export default function SendInquiryPage() {
                           step="0.01"
                           placeholder="Optional target"
                           className="input-base !pl-10"
-                          disabled={formDisabled}
                         />
                       </div>
                       {errors.expected_price ? (
@@ -512,7 +407,6 @@ export default function SendInquiryPage() {
                           lang="en-GB"
                           min={todayInputDate()}
                           className="input-base !pl-10"
-                          disabled={formDisabled}
                         />
                       </div>
                     </div>
@@ -531,8 +425,7 @@ export default function SendInquiryPage() {
                       }}
                       rows={5}
                       placeholder="Specs, delivery city, payment preference, or any questions…"
-                      className="w-full resize-y rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm leading-relaxed text-foreground outline-none transition-colors duration-200 hover:border-border-hover focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
-                      disabled={formDisabled}
+                      className="w-full resize-y rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm leading-relaxed text-foreground outline-none transition-colors duration-200 hover:border-border-hover focus:border-primary focus:ring-2 focus:ring-primary/25"
                     />
                     {errors.message ? (
                       <p className="mt-1 text-xs text-error">{errors.message}</p>
@@ -559,7 +452,6 @@ export default function SendInquiryPage() {
                     size="lg"
                     className="sm:flex-1"
                     loading={submitting}
-                    disabled={formDisabled}
                   >
                     {submitting ? (
                       "Sending…"
@@ -578,7 +470,6 @@ export default function SendInquiryPage() {
                   </Link>
                 </div>
               </form>
-            )}
           </motion.div>
         )}
       </div>
