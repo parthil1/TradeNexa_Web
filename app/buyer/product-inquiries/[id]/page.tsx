@@ -170,7 +170,8 @@ export default function BuyerProductInquiryDetailPage() {
   const status = String(inquiry.status ?? "").toLowerCase();
   const quoteStatus = String(quote?.status ?? "").toUpperCase();
   const canCancelInquiry = status === "pending" && quoteStatus !== "ACCEPTED";
-  const canSendNewInquiry = canResubmitInquiry(status);
+  const canSendNewInquiry =
+    canResubmitInquiry(status) && quoteStatus !== "WITHDRAWN";
   const rejectReason = inquiry.reject_reason?.trim();
 
   return (
