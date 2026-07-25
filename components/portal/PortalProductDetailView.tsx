@@ -492,12 +492,10 @@ export default function PortalProductDetailView({
   const contactPhone = getSellerContactPhone(product);
   const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
   const isSellerView = Boolean(links.editProduct);
-  const acceptInquiry =
-    marketplace.accept_inquiry !== false && product.accept_inquiry !== false;
-  const canContactSeller = user_actions?.can_contact_seller !== false;
   const inquiryAlreadySent = hasActiveInquiry;
-  const showInquiryCta =
-    !isSellerView && acceptInquiry && canContactSeller && links.product;
+  // Always show inquiry CTA on buyer product pages, regardless of marketplace
+  // accept_inquiry / can_contact_seller flags or stock status.
+  const showInquiryCta = !isSellerView && Boolean(links.product);
   const approvalStatus = product.approval_status ?? null;
   const displayCanEdit = canSellerEditProduct(approvalStatus);
   const displayApprovalHint = approvalStatusHint(approvalStatus);

@@ -165,11 +165,8 @@ export default function SendInquiryPage() {
     };
   }, [productId, product]);
 
-  const acceptInquiry =
-    product?.marketplace?.accept_inquiry !== false && product?.accept_inquiry !== false;
-  const canContact = product?.user_actions?.can_contact_seller !== false;
   const alreadySent = activeInquiry != null;
-  const formDisabled = alreadySent || !acceptInquiry || !canContact || checkingInquiry;
+  const formDisabled = alreadySent || checkingInquiry;
 
   const backHref = useMemo(() => {
     if (productId) return `/buyer/product/${productId}`;
@@ -215,10 +212,6 @@ export default function SendInquiryPage() {
     }
     if (alreadySent) {
       void openExistingChat();
-      return;
-    }
-    if (!acceptInquiry || !canContact) {
-      showErrorToast("This product is not accepting inquiries right now.");
       return;
     }
 
@@ -558,12 +551,6 @@ export default function SendInquiryPage() {
                     )}
                   </div>
                 </div>
-
-                {!acceptInquiry || !canContact ? (
-                  <p className="mt-4 rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">
-                    This product is not accepting new inquiries right now.
-                  </p>
-                ) : null}
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
                   <Button
