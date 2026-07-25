@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.railway.app" },
     ],
   },
+  experimental: {
+    optimizePackageImports: ["framer-motion"],
+  },
   // Serve SW from API so firebase.initializeApp(...) uses process.env at request time.
   async rewrites() {
     return [

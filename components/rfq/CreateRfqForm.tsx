@@ -18,7 +18,7 @@ import { useOptionalGeoLocation } from "@/context/GeoLocationContext";
 import { fetchCategories, fetchSubcategories } from "@/services/catalogService";
 import { fetchCities, fetchStates } from "@/services/locationService";
 import { createRfq, fetchPublicRfqById, publishRfq, updateRfq } from "@/services/rfqService";
-import { fetchSuppliers } from "@/services/supplierService";
+import { fetchSupplierById, fetchSuppliers } from "@/services/supplierService";
 import type { ApiCategory, ApiSubcategory } from "@/types/catalog";
 import type { ApiRfqDetail, CreateRfqPayload } from "@/types/rfq";
 import type { ApiSupplier } from "@/types/supplier";
@@ -337,6 +337,101 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
         setStateId("");
         setCityId("");
 
+        // Preselect invited sellers before location resolution so a cancelled
+        // geo lookup cannot skip this step.
+        const invitedIds = detail.seller_ids ?? [];
+        const invitedProfiles = detail.invited_sellers ?? [];
+        setSellerIds(invitedIds);
+        if (invitedIds.length > 0) {
+          const fromDetail: ApiSupplier[] = invitedProfiles.map((s) => ({
+            id: s.id,
+            user_id: s.user_id ?? null,
+            company_name: s.company_name,
+            city: s.city ?? null,
+            state: s.state ?? null,
+            verified: s.verified === true,
+          }));
+
+          try {
+            const { results } = await fetchSuppliers({
+              page: 1,
+              limit: 100,
+              sort_by: "company_name",
+              sort_order: "asc",
+            });
+            if (cancelled) return;
+
+            const byId = new Map(results.map((s) => [s.id, s]));
+            const byUserId = new Map(
+              results
+                .filter((s) => s.user_id != null)
+                .map((s) => [s.user_id as number, s])
+            );
+
+            const resolved: ApiSupplier[] = [];
+            const resolvedIds: number[] = [];
+
+            for (const id of invitedIds) {
+              const match =
+                byId.get(id) ??
+                byUserId.get(id) ??
+                fromDetail.find((s) => s.id === id) ??
+                null;
+              if (match) {
+                const supplierId = byId.has(match.id)
+                  ? match.id
+                  : (byUserId.get(id)?.id ?? match.id);
+                const profile = byId.get(supplierId) ?? match;
+                if (!resolvedIds.includes(supplierId)) {
+                  resolvedIds.push(supplierId);
+                  resolved.push({ ...profile, id: supplierId });
+                }
+                continue;
+              }
+              resolvedIds.push(id);
+              resolved.push({
+                id,
+                company_name: `Seller #${id}`,
+              });
+            }
+
+            const stillPlaceholder = resolved.filter((s) =>
+              s.company_name.startsWith("Seller #")
+            );
+            if (stillPlaceholder.length > 0) {
+              const fetched = await Promise.all(
+                stillPlaceholder.map(async (s) => {
+                  try {
+                    return await fetchSupplierById(s.id);
+                  } catch {
+                    return s;
+                  }
+                })
+              );
+              if (cancelled) return;
+              const fetchedById = new Map(fetched.map((s) => [s.id, s]));
+              setSelectedSellers(
+                resolved.map((s) => fetchedById.get(s.id) ?? s)
+              );
+            } else {
+              setSelectedSellers(resolved);
+            }
+            setSellerIds(resolvedIds);
+          } catch {
+            if (cancelled) return;
+            setSelectedSellers(
+              fromDetail.length > 0
+                ? fromDetail
+                : invitedIds.map((id) => ({
+                    id,
+                    company_name: `Seller #${id}`,
+                  }))
+            );
+          }
+        } else {
+          setSelectedSellers([]);
+        }
+
         const stateName = detail.state?.trim();
         const cityName = detail.city?.trim();
         if (stateName) {
@@ -386,36 +481,6 @@ export default function CreateRfqForm({ rfqId }: { rfqId?: number } = {}) {
           }
         }
 
-        const invitedIds = detail.seller_ids ?? [];
-        setSellerIds(invitedIds);
-        if (invitedIds.length > 0) {
-          try {
-            const { results } = await fetchSuppliers({
-              page: 1,
-              limit: 50,
-              sort_by: "company_name",
-              sort_order: "asc",
-            });
-            const matched = results.filter((s) => invitedIds.includes(s.id));
-            const missingIds = invitedIds.filter((id) => !matched.some((s) => s.id === id));
-            setSelectedSellers([
-              ...matched,
-              ...missingIds.map((id) => ({
-                id,
-                company_name: `Seller #${id}`,
-              })),
-            ]);
-          } catch {
-            setSelectedSellers(
-              invitedIds.map((id) => ({
-                id,
-                company_name: `Seller #${id}`,
-              }))
-            );
-          }
-        } else {
-          setSelectedSellers([]);
-        }
         setMaxReachedStepIndex(lastStepIndex);
       } catch {
         if (!cancelled) setEditBlocked("Could not load this RFQ for editing.");

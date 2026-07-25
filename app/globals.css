@@ -118,6 +118,7 @@
   --color-portal-seller: var(--portal-seller);
   --color-portal-seller-light: var(--portal-seller-light);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);

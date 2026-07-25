@@ -47,6 +47,10 @@ export default function BuyerWishlistPage() {
     setPage((prev) => prev + 1);
   }, [hasMore, loading, loadingMore]);
 
+  const handleWishlistToggle = useCallback((product: ApiProductListItem) => {
+    setConfirmRemove(product);
+  }, []);
+
   async function handleRemove(product: ApiProductListItem) {
     await removeFromWishlist(product.id);
     setProducts((prev) => prev.filter((p) => p.id !== product.id));
@@ -91,9 +95,9 @@ export default function BuyerWishlistPage() {
         {products.map((product) => (
           <PortalProductCard
             key={product.id}
-            product={{ ...product, is_wishlist: true }}
+            product={product}
             showWishlist
-            onWishlistToggle={() => setConfirmRemove(product)}
+            onWishlistToggle={handleWishlistToggle}
           />
         ))}
       </div>

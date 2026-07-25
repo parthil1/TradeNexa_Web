@@ -330,23 +330,29 @@ export default function BuyerRfqDetailPage() {
             </div>
 
             {(isDraft || canCancel) && (
-              <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-5">
+              <div className="mt-5 grid grid-cols-1 gap-2 border-t border-border pt-5 sm:grid-cols-3">
                 {isDraft ? (
                   <>
-                    <Link href={`/buyer/rfq/${rfq.id}/edit`}>
-                      <Button variant="outline" size="sm">
+                    <Link href={`/buyer/rfq/${rfq.id}/edit`} className="block min-w-0">
+                      <Button variant="outline" size="sm" className="w-full">
                         Edit draft
                       </Button>
                     </Link>
                     <Button
                       type="button"
                       size="sm"
+                      className="w-full"
                       disabled={actionId !== null}
                       onClick={() => void handlePublish()}
                     >
                       Publish RFQ
                     </Button>
-                    <DeleteRfqButton rfqId={rfq.id} rfqTitle={rfq.title} />
+                    <DeleteRfqButton
+                      rfqId={rfq.id}
+                      rfqTitle={rfq.title}
+                      size="sm"
+                      fullWidth
+                    />
                   </>
                 ) : null}
                 {canCancel ? (
@@ -354,6 +360,7 @@ export default function BuyerRfqDetailPage() {
                     type="button"
                     size="sm"
                     variant="danger"
+                    className="w-full"
                     disabled={actionId !== null}
                     onClick={() => void handleCancel()}
                   >

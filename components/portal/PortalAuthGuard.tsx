@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,8 +12,11 @@ import {
   getHomePathForRole,
   getPortalForPath,
 } from "@/utils/roleNavigation";
-import AuthModal from "@/components/AuthModal";
-import CompleteProfileModal from "@/components/CompleteProfileModal";
+
+const AuthModal = dynamic(() => import("@/components/AuthModal"), { ssr: false });
+const CompleteProfileModal = dynamic(() => import("@/components/CompleteProfileModal"), {
+  ssr: false,
+});
 
 export default function PortalAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

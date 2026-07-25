@@ -81,6 +81,15 @@ export interface ApiRfqDetail extends ApiRfqListItem {
   buyer_remark?: string | null;
   /** Invited sellers when visibility is PRIVATE */
   seller_ids?: number[] | null;
+  /** Seller profiles when the detail payload embeds invitees (for edit preselect). */
+  invited_sellers?: Array<{
+    id: number;
+    user_id?: number | null;
+    company_name: string;
+    city?: string | null;
+    state?: string | null;
+    verified?: boolean;
+  }> | null;
 }
 
 export interface ApiQuotation {

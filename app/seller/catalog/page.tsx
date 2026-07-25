@@ -54,9 +54,12 @@ export default function SellerCatalogPage() {
     resetDeps: [debouncedSearch, activeTab],
   });
 
-  function handleProductDeleted(productId: number) {
-    setItems((prev) => prev.filter((item) => item.id !== productId));
-  }
+  const handleProductDeleted = useCallback(
+    (productId: number) => {
+      setItems((prev) => prev.filter((item) => item.id !== productId));
+    },
+    [setItems]
+  );
 
   const hasSearch = debouncedSearch.trim().length > 0;
   const tabLabel = formatApprovalStatusTabLabel(activeTab).toLowerCase();
@@ -162,7 +165,7 @@ export default function SellerCatalogPage() {
                 showDelete
                 showWishlist={false}
                 showApprovalStatus
-                onDeleted={() => handleProductDeleted(p.id)}
+                onDeleted={handleProductDeleted}
               />
             ))}
           </div>

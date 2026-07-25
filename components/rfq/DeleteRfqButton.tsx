@@ -14,6 +14,8 @@ interface DeleteRfqButtonProps {
   onDeleted?: () => void;
   className?: string;
   label?: string;
+  size?: "sm" | "md" | "lg";
+  fullWidth?: boolean;
 }
 
 export default function DeleteRfqButton({
@@ -23,6 +25,8 @@ export default function DeleteRfqButton({
   onDeleted,
   className = "",
   label = "Delete draft",
+  size = "sm",
+  fullWidth = false,
 }: DeleteRfqButtonProps) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -52,17 +56,17 @@ export default function DeleteRfqButton({
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size={size}
+        fullWidth={fullWidth}
         onClick={() => setConfirmOpen(true)}
-        className={
-          className ||
-          "inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-error/30 px-3 text-sm font-semibold text-error transition hover:border-error/50 hover:bg-error/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-        }
+        className={`border-error/30 text-error hover:border-error/50 hover:bg-error/10 hover:text-error ${className}`}
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
         {label}
-      </button>
+      </Button>
 
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 p-4 backdrop-blur-sm">

@@ -10,7 +10,6 @@ import { Select } from "@/components/common/Select";
 import { Button } from "@/components/common/Button";
 import MediaUploadSection from "@/components/seller/media/MediaUploadSection";
 import ProductWizardStepper from "@/components/seller/ProductWizardStepper";
-import DeleteProductButton from "@/components/seller/DeleteProductButton";
 import { fetchCategories, fetchSubcategories, fetchProductById } from "@/services/catalogService";
 import { fetchBrandsPage } from "@/services/brandsService";
 import { createProduct, deleteProductMedia, updateProduct } from "@/services/productService";
@@ -1414,22 +1413,6 @@ export default function AddProductForm({ productId }: { productId?: number } = {
 
         </motion.div>
       </AnimatePresence>
-
-      {isEditMode && productId ? (
-        <div className="rounded-xl border border-error/20 bg-error-soft p-4">
-          <p className="text-sm font-semibold text-error">Danger zone</p>
-          <p className="mt-1 text-xs text-muted-fg">
-            Permanently remove this listing from your catalog.
-          </p>
-          <div className="mt-3">
-            <DeleteProductButton
-              productId={productId}
-              productName={form.name || "this product"}
-              label="Delete Product"
-            />
-          </div>
-        </div>
-      ) : null}
 
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 gap-3">

@@ -21,7 +21,7 @@ interface PortalProductCardProps {
   href?: string;
   editHref?: string;
   showDelete?: boolean;
-  onDeleted?: () => void;
+  onDeleted?: (productId: number) => void;
   subcategoryLabel?: string;
   showWishlist?: boolean;
   onWishlistToggle?: (product: ApiProductListItem) => void;
@@ -86,7 +86,7 @@ export default React.memo(function PortalProductCard({
   }, [menuOpen]);
 
   return (
-    <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="h-full">
+    <div className="h-full transition-transform duration-200 hover:-translate-y-0.5">
       <div className="group surface-card-hover relative flex h-full flex-col overflow-hidden">
         <Link href={link} className="flex flex-1 flex-col hover:cursor-pointer">
           <div className="relative aspect-[4/3] overflow-hidden">
@@ -235,13 +235,13 @@ export default React.memo(function PortalProductCard({
           <DeleteProductButton
             productId={product.id}
             productName={product.name}
-            onDeleted={onDeleted}
+            onDeleted={onDeleted ? () => onDeleted(product.id) : undefined}
             hideTrigger
             confirmOpen={deleteConfirmOpen}
             onConfirmOpenChange={setDeleteConfirmOpen}
           />
         ) : null}
       </div>
-    </motion.div>
+    </div>
   );
 });

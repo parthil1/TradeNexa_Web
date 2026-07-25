@@ -21,6 +21,147 @@ function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
+type InvitedSellerProfile = NonNullable<ApiRfqDetail["invited_sellers"]>[number];
+
+/**
+ * Pull invited seller ids + optional profiles from RFQ detail payloads.
+ * Backends vary: bare id arrays, join rows, or nested seller/supplier objects.
+ */
+function extractInvitedSellers(item: Record<string, unknown>): {
+  ids: number[];
+  sellers: InvitedSellerProfile[];
+} {
+  const candidates: unknown[] = [
+    item.seller_ids,
+    item.sellerIds,
+    item.invited_seller_ids,
+    item.invitedSellerIds,
+    item.sellers,
+    item.invited_sellers,
+    item.invitedSellers,
+    item.rfq_sellers,
+    item.rfqSellers,
+    item.seller_invites,
+    item.sellerInvites,
+    item.private_sellers,
+    item.privateSellers,
+    item.assigned_sellers,
+    item.assignedSellers,
+  ];
+
+  const sellers: InvitedSellerProfile[] = [];
+  const seen = new Set<number>();
+
+  function pushEntry(id: number, profile?: Partial<InvitedSellerProfile>) {
+    if (seen.has(id)) {
+      if (profile?.company_name) {
+        const existing = sellers.find((s) => s.id === id);
+        if (existing && existing.company_name.startsWith("Seller #")) {
+          existing.company_name = profile.company_name;
+          if (profile.city != null) existing.city = profile.city;
+          if (profile.state != null) existing.state = profile.state;
+          if (profile.verified != null) existing.verified = profile.verified;
+          if (profile.user_id != null) existing.user_id = profile.user_id;
+        }
+      }
+      return;
+    }
+    seen.add(id);
+    sellers.push({
+      id,
+      user_id: profile?.user_id ?? null,
+      company_name: profile?.company_name?.trim() || `Seller #${id}`,
+      city: profile?.city ?? null,
+      state: profile?.state ?? null,
+      verified: profile?.verified === true,
+    });
+  }
+
+  for (const raw of candidates) {
+    if (typeof raw === "string" && raw.trim()) {
+      for (const part of raw.split(/[,\s]+/)) {
+        const id = pickNumber(part);
+        if (id != null) pushEntry(id);
+      }
+      continue;
+    }
+    if (!Array.isArray(raw)) continue;
+
+    for (const entry of raw) {
+      if (typeof entry === "number" || typeof entry === "string") {
+        const id = pickNumber(entry);
+        if (id != null) pushEntry(id);
+        continue;
+      }
+
+      const record = readRecord(entry);
+      if (!record) continue;
+
+      const nested =
+        readRecord(record.seller) ??
+        readRecord(record.supplier) ??
+        readRecord(record.user);
+      const company =
+        readRecord(record.company) ??
+        readRecord(nested?.company);
+
+      const companyName =
+        pickString(record.company_name) ??
+        pickString(record.companyName) ??
+        pickString(nested?.company_name) ??
+        pickString(nested?.companyName) ??
+        pickString(company?.company_name) ??
+        pickString(company?.companyName) ??
+        pickString(company?.name) ??
+        pickString(record.business_name) ??
+        pickString(nested?.business_name) ??
+        pickString(record.name) ??
+        pickString(nested?.name) ??
+        pickString(record.full_name);
+
+      // Prefer explicit seller/supplier refs over join-table primary keys.
+      const id =
+        pickNumber(record.seller_id) ??
+        pickNumber(record.sellerId) ??
+        pickNumber(record.supplier_id) ??
+        pickNumber(record.supplierId) ??
+        pickNumber(typeof record.seller === "object" ? null : record.seller) ??
+        pickNumber(typeof record.supplier === "object" ? null : record.supplier) ??
+        pickNumber(nested?.id) ??
+        pickNumber(record.user_id) ??
+        pickNumber(record.userId) ??
+        pickNumber(nested?.user_id) ??
+        pickNumber(nested?.userId) ??
+        (companyName ? pickNumber(record.id) : null) ??
+        pickNumber(record.id);
+
+      if (id == null) continue;
+
+      pushEntry(id, {
+        id,
+        user_id:
+          pickNumber(record.user_id) ??
+          pickNumber(record.userId) ??
+          pickNumber(nested?.user_id) ??
+          pickNumber(nested?.userId),
+        company_name: companyName ?? undefined,
+        city: pickString(record.city) ?? pickString(nested?.city),
+        state: pickString(record.state) ?? pickString(nested?.state),
+        verified:
+          record.verified === true ||
+          record.is_verified === true ||
+          nested?.verified === true ||
+          nested?.is_verified === true,
+      });
+    }
+  }
+
+  return {
+    ids: sellers.map((s) => s.id),
+    sellers,
+  };
+}
+
 export function normalizeRfqListItem(raw: unknown): ApiRfqListItem | null {
   if (!raw || typeof raw !== "object") return null;
   const item = raw as Record<string, unknown>;
@@ -108,6 +249,8 @@ export function normalizeRfqDetail(raw: unknown): ApiRfqDetail | null {
       : myQuotationRaw
   );
 
+  const invited = extractInvitedSellers(item);
+
   return {
     ...base,
     buyer_remark: topLevelBuyerRemark,
@@ -154,20 +297,8 @@ export function normalizeRfqDetail(raw: unknown): ApiRfqDetail | null {
           }
         : null,
     my_quotation: myQuotation,
-    seller_ids: (() => {
-      const rawIds = item.seller_ids ?? item.sellers;
-      if (!Array.isArray(rawIds)) return null;
-      const ids = rawIds
-        .map((entry) => {
-          if (typeof entry === "number" || typeof entry === "string") {
-            return pickNumber(entry);
-          }
-          const record = readRecord(entry);
-          return pickNumber(record?.id) ?? pickNumber(record?.seller_id) ?? pickNumber(record?.user_id);
-        })
-        .filter((id): id is number => id != null);
-      return ids.length > 0 ? ids : [];
-    })(),
+    seller_ids: invited.ids.length > 0 ? invited.ids : [],
+    invited_sellers: invited.sellers.length > 0 ? invited.sellers : [],
   };
 }
 

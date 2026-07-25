@@ -36,6 +36,12 @@ export default function SellerMultiSelect({
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
+  function isSelected(seller: ApiSupplier): boolean {
+    if (selectedSet.has(seller.id)) return true;
+    if (seller.user_id != null && selectedSet.has(seller.user_id)) return true;
+    return false;
+  }
+
   const loadPage = useCallback(
     async (pageNum: number, append: boolean) => {
       if (append) setLoadingMore(true);
@@ -68,10 +74,14 @@ export default function SellerMultiSelect({
 
   function toggleSeller(seller: ApiSupplier) {
     if (disabled) return;
-    if (selectedSet.has(seller.id)) {
+    if (isSelected(seller)) {
       onChange(
-        selectedIds.filter((id) => id !== seller.id),
-        selectedSellers.filter((s) => s.id !== seller.id)
+        selectedIds.filter(
+          (id) => id !== seller.id && id !== seller.user_id
+        ),
+        selectedSellers.filter(
+          (s) => s.id !== seller.id && s.id !== seller.user_id
+        )
       );
       return;
     }
@@ -146,7 +156,7 @@ export default function SellerMultiSelect({
             </li>
           ) : (
             results.map((seller) => {
-              const checked = selectedSet.has(seller.id);
+              const checked = isSelected(seller);
               return (
                 <li key={seller.id}>
                   <button

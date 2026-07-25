@@ -12,14 +12,18 @@ import {
   CheckCircle2,
   LayoutDashboard,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { getDashboardPathForRole } from "@/utils/roleNavigation";
-import AuthModal from "@/components/AuthModal";
-import CompleteProfileModal from "@/components/CompleteProfileModal";
 import { Logo } from "@/components/common/Logo";
 import { Button } from "@/components/common/Button";
 import type { UserRole } from "@/types/auth";
+
+const AuthModal = dynamic(() => import("@/components/AuthModal"), { ssr: false });
+const CompleteProfileModal = dynamic(() => import("@/components/CompleteProfileModal"), {
+  ssr: false,
+});
 
 function formatVerifiedRoleLabel(role: UserRole | string): string {
   const value = String(role).toLowerCase();
