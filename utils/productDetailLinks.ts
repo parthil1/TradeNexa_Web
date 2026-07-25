@@ -25,6 +25,8 @@ export function sellerCatalogProductLinks(): ProductDetailLinks {
     ...PORTAL_PRODUCT_LINKS,
     product: (id) => `/seller/product/${id}`,
     editProduct: (id) => `/seller/edit-product/${id}`,
+    // Sellers should not open buyer supplier/profile or self-contact CTAs.
+    supplier: null,
     back: { href: "/seller/catalog", label: "Back to Catalog" },
   };
 }

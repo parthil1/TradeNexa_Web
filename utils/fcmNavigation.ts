@@ -95,18 +95,14 @@ function resolveByTypeAndAction(
     return iid ? `/seller/inquiries/${iid}` : "/seller/inquiries";
   }
 
-  if (type === "PRODUCT_APPROVED") {
-    const pid = data.product_id?.trim() || ref;
-    return pid ? `/seller/product/${pid}` : "/seller/catalog";
-  }
-
   if (
+    type === "PRODUCT_APPROVED" ||
     type === "PRODUCT_REVISION_REQUIRED" ||
     type === "PRODUCT_REJECTED" ||
     action === "OPEN_PRODUCT"
   ) {
     const pid = data.product_id?.trim() || ref;
-    return pid ? `/seller/edit-product/${pid}` : "/seller/catalog";
+    return pid ? `/seller/product/${pid}` : "/seller/catalog";
   }
 
   if (type === "RFQ_NEW_QUOTATION" || type === "RFQ_QUOTATION_UPDATED") {
@@ -243,13 +239,14 @@ function resolveByTypeAndAction(data, type, action, activeRole) {
     var iid4 = (data.inquiry_id || "").trim();
     return iid4 ? "/seller/inquiries/" + iid4 : "/seller/inquiries";
   }
-  if (type === "PRODUCT_APPROVED") {
+  if (
+    type === "PRODUCT_APPROVED" ||
+    type === "PRODUCT_REVISION_REQUIRED" ||
+    type === "PRODUCT_REJECTED" ||
+    action === "OPEN_PRODUCT"
+  ) {
     var pid = (data.product_id || ref).trim();
     return pid ? "/seller/product/" + pid : "/seller/catalog";
-  }
-  if (type === "PRODUCT_REVISION_REQUIRED" || type === "PRODUCT_REJECTED" || action === "OPEN_PRODUCT") {
-    var pid2 = (data.product_id || ref).trim();
-    return pid2 ? "/seller/edit-product/" + pid2 : "/seller/catalog";
   }
   if (type === "RFQ_NEW_QUOTATION" || type === "RFQ_QUOTATION_UPDATED") {
     var rid = (data.rfq_id || ref).trim();

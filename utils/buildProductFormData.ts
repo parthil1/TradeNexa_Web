@@ -78,8 +78,6 @@ export function buildProductFormData(
   appendIfPresent(formData, "hsn_code", data.hsnCode);
   appendIfPresent(formData, "gst_percentage", data.gstPercentage);
   appendIfPresent(formData, "search_tags", data.searchTags);
-  if (data.isTrending) appendBoolean(formData, "is_trending", true);
-  appendIfPresent(formData, "rating", data.rating);
 
   const specifications = buildSpecificationsObject(data.specifications);
   if (Object.keys(specifications).length > 0) {

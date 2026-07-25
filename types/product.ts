@@ -73,8 +73,6 @@ export interface CreateProductFormData {
   gstPercentage: string;
   searchTags: string;
   specifications: ProductSpecificationRow[];
-  isTrending: boolean;
-  rating: string;
 }
 
 export interface ApiCreatedProduct {

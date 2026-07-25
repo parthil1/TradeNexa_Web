@@ -133,11 +133,6 @@ function readSearchTags(product: ApiProductDetail): string {
   return toFormString(product.search_tags);
 }
 
-function readRating(product: ApiProductDetail): string {
-  if (product.rating != null) return toFormString(product.rating);
-  return toFormString(product.ratings.average);
-}
-
 export function mapProductDetailToFormData(
   product: ApiProductDetail,
   sellerId: number
@@ -170,8 +165,6 @@ export function mapProductDetailToFormData(
     gstPercentage: toFormString(product.pricing.gst_percentage),
     searchTags: readSearchTags(product),
     specifications: parseSpecifications(product.specifications),
-    isTrending: product.marketplace.is_trending ?? false,
-    rating: readRating(product),
   };
 }
 

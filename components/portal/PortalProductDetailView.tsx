@@ -652,7 +652,7 @@ export default function PortalProductDetailView({
           <IconAction onClick={() => void handleShare()} label="Share">
             <Share2 className="h-4 w-4" />
           </IconAction>
-          {hasWishlistAction ? (
+          {!isSellerView && hasWishlistAction ? (
             <IconAction
               onClick={() => void toggleWishlist(product.id, wishlisted)}
               label="Wishlist"
@@ -794,7 +794,7 @@ export default function PortalProductDetailView({
                 </a>
               ) : null}
             </div>
-          ) : contactPhone ? (
+          ) : !isSellerView && contactPhone ? (
             <div className="hidden lg:flex">
               <a
                 href={whatsAppHref(contactPhone, inquiryMessage)}
@@ -831,7 +831,7 @@ export default function PortalProductDetailView({
       </div>
 
       <div className={`grid grid-cols-1 lg:grid-cols-12 ${compact ? "mt-5 gap-5" : "mt-8 gap-8"}`}>
-        <div className={`lg:col-span-8 ${compact ? "space-y-5" : "space-y-8"}`}>
+        <div className={`${isSellerView ? "lg:col-span-12" : "lg:col-span-8"} ${compact ? "space-y-5" : "space-y-8"}`}>
           {keySpecs.length > 0 ? (
             <PortalSection title="Key Specifications" subtitle="From product details" compact={compact}>
               <div className="flex gap-3 overflow-x-auto pb-1 lg:hidden">
@@ -937,18 +937,20 @@ export default function PortalProductDetailView({
           ) : null}
         </div>
 
-        <div className="lg:col-span-4">
-          <div className="lg:sticky lg:top-4">
-            <PortalSection title="Supplier" subtitle={product.seller.company?.name} compact={compact}>
-              <SupplierCard
-                product={product}
-                inquiryMessage={inquiryMessage}
-                supplierHref={links.supplier}
-                compact={compact}
-              />
-            </PortalSection>
+        {!isSellerView ? (
+          <div className="lg:col-span-4">
+            <div className="lg:sticky lg:top-4">
+              <PortalSection title="Supplier" subtitle={product.seller.company?.name} compact={compact}>
+                <SupplierCard
+                  product={product}
+                  inquiryMessage={inquiryMessage}
+                  supplierHref={links.supplier}
+                  compact={compact}
+                />
+              </PortalSection>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       <div
@@ -958,7 +960,7 @@ export default function PortalProductDetailView({
           <IconAction onClick={() => void handleShare()} label="Share">
             <Share2 className="h-4 w-4" />
           </IconAction>
-          {hasWishlistAction ? (
+          {!isSellerView && hasWishlistAction ? (
             <IconAction
               onClick={() => void toggleWishlist(product.id, wishlisted)}
               label="Wishlist"
@@ -989,7 +991,7 @@ export default function PortalProductDetailView({
                 Send Inquiry
               </button>
             )
-          ) : contactPhone ? (
+          ) : !isSellerView && contactPhone ? (
             <a
               href={whatsAppHref(contactPhone, inquiryMessage)}
               target="_blank"

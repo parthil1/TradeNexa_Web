@@ -154,8 +154,6 @@ function emptyForm(sellerId?: number): CreateProductFormData {
     gstPercentage: "",
     searchTags: "",
     specifications: [{ ...INITIAL_SPEC }],
-    isTrending: false,
-    rating: "",
   };
 }
 
@@ -1344,36 +1342,14 @@ export default function AddProductForm({ productId }: { productId?: number } = {
           </FormField>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Search Tags" htmlFor="searchTags" hint="Comma-separated">
-            <Input
-              id="searchTags"
-              value={form.searchTags}
-              onChange={(e) => updateForm("searchTags", e.target.value)}
-              placeholder="pir, sensor, motion detector"
-            />
-          </FormField>
-
-          <FormField label="Rating" htmlFor="rating">
-            <Input
-              id="rating"
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={form.rating}
-              onChange={(e) => updateForm("rating", e.target.value)}
-              placeholder="4.5"
-            />
-          </FormField>
-        </div>
-
-        <ToggleField
-          id="isTrending"
-          label="Mark as trending"
-          checked={form.isTrending}
-          onChange={(checked) => updateForm("isTrending", checked)}
-        />
+        <FormField label="Search Tags" htmlFor="searchTags" hint="Comma-separated">
+          <Input
+            id="searchTags"
+            value={form.searchTags}
+            onChange={(e) => updateForm("searchTags", e.target.value)}
+            placeholder="pir, sensor, motion detector"
+          />
+        </FormField>
 
         <div className="space-y-3">
           <p className="text-sm font-medium text-foreground">Specifications</p>
