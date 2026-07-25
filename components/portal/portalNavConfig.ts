@@ -6,14 +6,13 @@ import {
   MessagesSquare,
   MessageSquare,
   Package,
-  Search,
   User,
 } from "lucide-react";
 import type { PortalNavItem } from "@/components/portal/PortalBottomNav";
 
 export const buyerNavItems: PortalNavItem[] = [
   { label: "Home", href: "/buyer/home", icon: Home, match: (p) => p.startsWith("/buyer/home") },
-  { label: "Search", href: "/buyer/search", icon: Search, match: (p) => p.startsWith("/buyer/search") },
+  { label: "Products", href: "/buyer/search", icon: Package, match: (p) => p.startsWith("/buyer/search") },
   {
     label: "Categories",
     href: "/buyer/categories",

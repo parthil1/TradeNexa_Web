@@ -208,7 +208,9 @@ function useInquiryQuotationForm({
     }
   }
 
-  return { form, errors, submitting, liveTotal, setField, handleSubmit, isUpdate };
+  const lockedUnit = defaultUnit?.trim() || "";
+
+  return { form, errors, submitting, liveTotal, setField, handleSubmit, isUpdate, lockedUnit };
 }
 
 function InquiryQuotationTotalSummary({ liveTotal }: { liveTotal: LiveTotal }) {
@@ -230,10 +232,12 @@ function InquiryQuotationFields({
   form,
   errors,
   setField,
+  lockedUnit,
 }: {
   form: FormState;
   errors: FormErrors;
   setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  lockedUnit?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -257,23 +261,35 @@ function InquiryQuotationFields({
           <label className="mb-1.5 block text-sm font-medium text-foreground">Quantity</label>
           <input
             value={form.quantity}
-            onChange={(e) => setField("quantity", e.target.value)}
             type="number"
             min={1}
+            readOnly
+            disabled
             className="input-base"
+            aria-readonly="true"
             data-form-error={errors.quantity ? "quantity" : undefined}
           />
           {errors.quantity ? <p className="mt-1 text-xs text-error">{errors.quantity}</p> : null}
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-foreground">Unit</label>
-          <Select
-            id="inquiry-quotation-unit"
-            value={form.unit}
-            onChange={(e) => setField("unit", e.target.value)}
-            options={QUOTATION_UNITS}
-            searchable={false}
-          />
+          {lockedUnit ? (
+            <input
+              readOnly
+              disabled
+              value={form.unit}
+              className="input-base cursor-not-allowed bg-muted text-muted-fg"
+              aria-readonly="true"
+            />
+          ) : (
+            <Select
+              id="inquiry-quotation-unit"
+              value={form.unit}
+              onChange={(e) => setField("unit", e.target.value)}
+              options={QUOTATION_UNITS}
+              searchable={false}
+            />
+          )}
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-foreground">GST %</label>
@@ -377,7 +393,7 @@ export default function SubmitInquiryQuotationForm({
 
   return (
     <form id={FORM_ID} onSubmit={(e) => void vm.handleSubmit(e)} className="space-y-4">
-      <InquiryQuotationFields form={vm.form} errors={vm.errors} setField={vm.setField} />
+      <InquiryQuotationFields form={vm.form} errors={vm.errors} setField={vm.setField} lockedUnit={vm.lockedUnit} />
       <InquiryQuotationTotalSummary liveTotal={vm.liveTotal} />
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         {onCancel ? (
@@ -507,7 +523,7 @@ function InquiryQuoteModalBody({
       }
     >
       <form id={FORM_ID} onSubmit={(e) => void vm.handleSubmit(e)} noValidate>
-        <InquiryQuotationFields form={vm.form} errors={vm.errors} setField={vm.setField} />
+        <InquiryQuotationFields form={vm.form} errors={vm.errors} setField={vm.setField} lockedUnit={vm.lockedUnit} />
       </form>
     </Modal>
   );
