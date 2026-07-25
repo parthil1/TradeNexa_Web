@@ -11,6 +11,11 @@ import {
   subscribeForegroundMessages,
   syncActiveRoleToServiceWorker,
 } from "@/services/fcmService";
+import {
+  applyActiveRoleForUrl,
+  clampPortalPathForAccount,
+  readStoredAccountRole,
+} from "@/utils/roleNavigation";
 
 const RECOVER_MAX_AGE_MS = 60_000;
 
@@ -27,7 +32,10 @@ async function tryRecoverFromRoot(): Promise<boolean> {
   if (age >= RECOVER_MAX_AGE_MS) return false;
 
   await clearFcmPendingPath();
-  window.location.replace(best.path);
+  const accountRole = readStoredAccountRole();
+  const path = clampPortalPathForAccount(best.path, accountRole);
+  applyActiveRoleForUrl(path, accountRole);
+  window.location.replace(path);
   return true;
 }
 

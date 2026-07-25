@@ -58,10 +58,15 @@ export function normalizeAppNotification(raw: unknown): AppNotification | null {
     data = asRecord(dataRaw);
   }
 
+  const roleRaw = row.role;
+  const role =
+    roleRaw === "buyer" || roleRaw === "seller" ? roleRaw : null;
+
   return {
     id,
     user_id: toFiniteNumber(row.user_id) ?? 0,
     type: typeof row.type === "string" ? row.type : "",
+    role,
     title: typeof row.title === "string" ? row.title : "",
     body: typeof row.body === "string" ? row.body : "",
     reference_id: toNullableNumber(row.reference_id),
@@ -151,6 +156,7 @@ export async function markNotificationRead(id: number): Promise<AppNotification>
       id,
       user_id: 0,
       type: "",
+      role: null,
       title: "",
       body: "",
       reference_id: null,

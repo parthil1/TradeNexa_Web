@@ -171,6 +171,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               id,
               user_id: 0,
               type: "",
+              role: null,
               title: "",
               body: "",
               reference_id: null,

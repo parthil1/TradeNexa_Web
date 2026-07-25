@@ -24,15 +24,17 @@ function notificationMatchesRole(
   notification: AppNotification,
   role: "buyer" | "seller"
 ): boolean {
+  if (notification.role === "buyer" || notification.role === "seller") {
+    return notification.role === role;
+  }
   const fromData = notification.data?.role;
   if (fromData === "buyer" || fromData === "seller") {
     return fromData === role;
   }
-  const status =
-    typeof notification.data?.status === "string"
-      ? notification.data.status
-      : undefined;
-  return recipientPortalForType(notification.type, status) === role;
+  const type = String(notification.type ?? "").toUpperCase();
+  // Chat is dual-portal; don't drop socket events based on the buyer default.
+  if (type === "CHAT_MESSAGE") return true;
+  return recipientPortalForType(notification.type) === role;
 }
 
 /** Merge PATCH /notifications/:id/read updates without wiping list fields. */
@@ -360,6 +362,7 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
     }
 
     if (pathPortal && pathPortal !== activeRole) {
+      // Dual-role only — setActiveRole clamps single-role accounts.
       setActiveRole(pathPortal);
     }
 

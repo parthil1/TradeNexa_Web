@@ -48,7 +48,7 @@ function normalizePushData(raw) {
       }
       // Some FCM browser notifications nest fields at the top of FCM_MSG.
       if (parsed && typeof parsed === "object") {
-        var keys = ["type", "click_action", "rfq_id", "inquiry_id", "conversation_id", "reference_id", "title", "body", "message_id"];
+        var keys = ["type", "role", "click_action", "status", "rfq_id", "inquiry_id", "product_id", "quotation_id", "conversation_id", "reference_id", "title", "body", "message_id", "notification_id"];
         for (var i = 0; i < keys.length; i++) {
           var key = keys[i];
           if (parsed[key] != null && out[key] == null) out[key] = String(parsed[key]);

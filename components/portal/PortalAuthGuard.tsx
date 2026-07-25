@@ -22,7 +22,7 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, user, loading } = useAuth();
-  const { syncActiveRoleForUser, setActiveRole, activeRole } = useActiveRole();
+  const { syncActiveRoleForUser } = useActiveRole();
 
   useEffect(() => {
     if (loading) return;
@@ -38,14 +38,8 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
 
     const portal = getPortalForPath(pathname);
 
-    // Always sync so buyer_seller gets canSwitchRole=true (shows Switch Role UI)
-    // even when the URL already matches the stored activeRole.
-    syncActiveRoleForUser(user.role);
-
-    // buyer_seller: URL portal wins so FCM deep links switch role before any redirect.
-    if (user.role === "both" && portal && portal !== activeRole) {
-      setActiveRole(portal);
-    }
+    // Dual-role: URL portal wins (FCM / bookmarks). Single-role: forced to account side.
+    syncActiveRoleForUser(user.role, portal);
 
     if (portal === "buyer" && !canAccessBuyerPortal(user.role)) {
       router.replace(getHomePathForRole(user.role));
@@ -61,8 +55,6 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
     pathname,
     router,
     syncActiveRoleForUser,
-    setActiveRole,
-    activeRole,
   ]);
 
   if (loading || !isAuthenticated || !user) {

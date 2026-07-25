@@ -7,6 +7,8 @@ import {
 import {
   type ActiveRole,
   applyActiveRoleForUrl,
+  clampPortalPathForAccount,
+  readStoredAccountRole,
   readStoredActiveRole,
 } from "@/utils/roleNavigation";
 import {
@@ -26,7 +28,7 @@ const FCM_SESSION_PENDING_KEY = "tradenexa_fcm_pending_path";
  */
 const FCM_SW_PATH = "/firebase-messaging-sw.js";
 /** Bump when SW click/nav logic changes so browsers fetch a fresh worker. */
-const FCM_SW_VERSION = "20260723a";
+const FCM_SW_VERSION = "20260725a";
 
 /** Static device type for web login / verify-otp. */
 export const WEB_DEVICE_TYPE = "web" as const;
@@ -174,12 +176,15 @@ export function navigateFromFcmNotification(
     path = url;
   }
 
+  const accountRole = readStoredAccountRole();
+  path = clampPortalPathForAccount(path, accountRole);
+
   const now = Date.now();
   if (path === lastFcmNavPath && now - lastFcmNavAt < 2000) return;
   lastFcmNavPath = path;
   lastFcmNavAt = now;
 
-  const role = applyActiveRoleForUrl(path);
+  const role = applyActiveRoleForUrl(path, accountRole);
   if (role) syncActiveRoleToServiceWorker(role);
 
   const current = `${window.location.pathname}${window.location.search}`;
@@ -210,7 +215,8 @@ export function subscribeFcmServiceWorkerNavigation(): () => void {
 
     // SW already opened a new tab via clients.openWindow — only sync role here.
     if (data.skipNavigate) {
-      const path =
+      const accountRole = readStoredAccountRole();
+      let path =
         typeof data.url === "string"
           ? data.url
           : data.data && typeof data.data === "object"
@@ -220,8 +226,9 @@ export function subscribeFcmServiceWorkerNavigation(): () => void {
               )
             : "";
       if (path && path !== "/") {
+        path = clampPortalPathForAccount(path, accountRole);
         stampPendingPath(path);
-        const role = applyActiveRoleForUrl(path);
+        const role = applyActiveRoleForUrl(path, accountRole);
         if (role) syncActiveRoleToServiceWorker(role);
       }
       return;

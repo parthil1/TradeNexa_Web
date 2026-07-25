@@ -15,6 +15,9 @@ export function notificationToFcmData(notification: AppNotification): FcmPushDat
     body: notification.body || undefined,
   };
 
+  if (notification.role === "buyer" || notification.role === "seller") {
+    map.role = notification.role;
+  }
   if (notification.reference_id != null) {
     map.reference_id = String(notification.reference_id);
   }
@@ -30,6 +33,11 @@ export function notificationToFcmData(notification: AppNotification): FcmPushDat
         map[key] = String(value);
       }
     }
+  }
+
+  // Top-level inbox `role` wins over any nested data.role.
+  if (notification.role === "buyer" || notification.role === "seller") {
+    map.role = notification.role;
   }
 
   return map;

@@ -1,13 +1,18 @@
 import type { ApiPagination, PaginatedResult } from "@/types/catalog";
 
-/** Inbox types stored in `notifications` (guide §5.1 / §5.2). */
+/** Inbox types from TradeNexa_Backend `NOTIFICATION_TYPE` / in-app set. */
 export type InboxNotificationType =
   | "INQUIRY_RECEIVED"
+  | "INQUIRY_REPLY"
   | "INQUIRY_REJECTED"
   | "QUOTATION_RECEIVED"
   | "QUOTATION_UPDATED"
   | "QUOTATION_ACCEPTED"
   | "QUOTATION_REJECTED"
+  | "PRODUCT_APPROVED"
+  | "PRODUCT_REVISION_REQUIRED"
+  | "PRODUCT_REJECTED"
+  | "RFQ_RECEIVED"
   | "RFQ_NEW_QUOTATION"
   | "RFQ_QUOTATION_UPDATED"
   | "RFQ_QUOTATION_ACCEPTED"
@@ -28,6 +33,8 @@ export interface AppNotification {
   id: number;
   user_id: number;
   type: InboxNotificationType;
+  /** Audience side from backend (`notifications.role`) — buyer | seller. */
+  role: "buyer" | "seller" | null;
   title: string;
   body: string;
   reference_id: number | null;

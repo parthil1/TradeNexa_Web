@@ -4,33 +4,55 @@ export type FcmPushData = Record<string, string | undefined>;
 type Portal = "buyer" | "seller";
 
 /**
- * Fixed recipient portal from Push_Notifications_Frontend_Guide §4.
- * Chat is excluded — use `activeRole` for CHAT_MESSAGE only.
+ * Audience portal from TradeNexa_Backend `NOTIFICATION_TYPE_DEFAULT_ROLE`
+ * + `resolveNotificationRoleCode` (constants/notification.js).
+ *
+ * Prefer explicit `role` from FCM/inbox when present — required for
+ * `RFQ_STATUS_UPDATED` (buyers get admin status changes; sellers get
+ * cancel/close/negotiation).
+ *
+ * Chat is dual-portal — callers should use `activeRole` for paths.
  */
-export function recipientPortalForType(type: string, status?: string | null): Portal {
+export function recipientPortalForType(
+  type: string,
+  explicitRole?: string | null
+): Portal {
+  if (explicitRole === "buyer" || explicitRole === "seller") {
+    return explicitRole;
+  }
+
   switch ((type || "").toUpperCase()) {
+    // Seller (NOTIFICATION_TYPE_DEFAULT_ROLE)
     case "INQUIRY_RECEIVED":
     case "QUOTATION_ACCEPTED":
     case "QUOTATION_REJECTED":
     case "PRODUCT_APPROVED":
     case "PRODUCT_REVISION_REQUIRED":
     case "PRODUCT_REJECTED":
+    case "RFQ_RECEIVED":
     case "RFQ_QUOTATION_ACCEPTED":
     case "RFQ_QUOTATION_REJECTED":
+    case "RFQ_STATUS_UPDATED":
+    // Legacy / non-canonical aliases seen in older payloads
     case "RFQ_INVITED":
     case "RFQ_ASSIGNED":
-    case "RFQ_RECEIVED":
     case "NEW_RFQ":
     case "RFQ_PUBLISHED":
       return "seller";
+
+    // Buyer
+    case "INQUIRY_REPLY":
     case "INQUIRY_REJECTED":
     case "QUOTATION_RECEIVED":
     case "QUOTATION_UPDATED":
     case "RFQ_NEW_QUOTATION":
     case "RFQ_QUOTATION_UPDATED":
       return "buyer";
-    case "RFQ_STATUS_UPDATED":
-      return isSellerRfqUpdateStatus(status) ? "seller" : "buyer";
+
+    case "CHAT_MESSAGE":
+      // Dual-portal; path resolution uses activeRole.
+      return "buyer";
+
     default:
       return "buyer";
   }
@@ -44,14 +66,26 @@ function buyerRfqPath(rfqId: string): string {
   return `/buyer/rfq/${rfqId}`;
 }
 
-/** RFQ/quotation status that means the seller should open lead detail (Updated / revision). */
-function isSellerRfqUpdateStatus(status?: string | null): boolean {
-  const value = (status ?? "").toUpperCase();
-  return (
-    value.includes("UPDATE") ||
-    value.includes("REVISION") ||
-    value.includes("NEGOTIAT")
-  );
+function isSellerSide(
+  portal: Portal,
+  activeRole?: Portal | null
+): boolean {
+  return portal === "seller" || activeRole === "seller";
+}
+
+/**
+ * Ambiguous actions must NOT map to a one-sided type — that forces the wrong
+ * portal when type is empty (e.g. OPEN_RFQ → RFQ_STATUS_UPDATED → seller).
+ */
+function actionToTypeHint(action: string): string {
+  switch (action) {
+    case "OPEN_CHAT":
+      return "CHAT_MESSAGE";
+    case "OPEN_PRODUCT":
+      return "PRODUCT_APPROVED";
+    default:
+      return "";
+  }
 }
 
 function resolveByTypeAndAction(
@@ -60,11 +94,16 @@ function resolveByTypeAndAction(
   action: string,
   activeRole?: Portal | null
 ): string {
-  const status = data.status?.trim() || "";
-  const portal = recipientPortalForType(type || actionToTypeHint(action), status);
+  const explicitRole =
+    data.role === "buyer" || data.role === "seller" ? data.role : null;
+  const portal = recipientPortalForType(
+    type || actionToTypeHint(action),
+    explicitRole
+  );
+  const sellerSide = isSellerSide(portal, activeRole);
   const ref = data.reference_id?.trim() || "";
 
-  // Chat only: use tradenexa_active_role (buyer ↔ seller switch).
+  // Chat: always follow active portal role (buyer ↔ seller switch).
   if (type === "CHAT_MESSAGE" || action === "OPEN_CHAT") {
     const cid = data.conversation_id?.trim() || ref;
     const chatPortal = activeRole === "seller" ? "seller" : "buyer";
@@ -72,12 +111,19 @@ function resolveByTypeAndAction(
     return cid ? `${base}?conversation=${encodeURIComponent(cid)}` : base;
   }
 
-  if (type === "INQUIRY_RECEIVED" || (action === "OPEN_INQUIRY" && portal === "seller")) {
+  if (
+    type === "INQUIRY_RECEIVED" ||
+    (action === "OPEN_INQUIRY" && sellerSide && type !== "INQUIRY_REJECTED" && type !== "INQUIRY_REPLY")
+  ) {
     const iid = data.inquiry_id?.trim() || ref;
     return iid ? `/seller/inquiries/${iid}` : "/seller/inquiries";
   }
 
-  if (type === "INQUIRY_REJECTED" || (action === "OPEN_INQUIRY" && portal === "buyer")) {
+  if (
+    type === "INQUIRY_REJECTED" ||
+    type === "INQUIRY_REPLY" ||
+    (action === "OPEN_INQUIRY" && !sellerSide)
+  ) {
     const iid = data.inquiry_id?.trim() || ref;
     return iid ? `/buyer/product-inquiries/${iid}` : "/buyer/product-inquiries";
   }
@@ -85,18 +131,18 @@ function resolveByTypeAndAction(
   if (
     type === "QUOTATION_RECEIVED" ||
     type === "QUOTATION_UPDATED" ||
-    (action === "OPEN_QUOTATION" && portal === "buyer")
+    (action === "OPEN_QUOTATION" && !sellerSide)
   ) {
-    const iid = data.inquiry_id?.trim();
+    const iid = data.inquiry_id?.trim() || ref;
     return iid ? `/buyer/product-inquiries/${iid}` : "/buyer/product-inquiries";
   }
 
   if (
     type === "QUOTATION_ACCEPTED" ||
     type === "QUOTATION_REJECTED" ||
-    (action === "OPEN_QUOTATION" && portal === "seller")
+    (action === "OPEN_QUOTATION" && sellerSide)
   ) {
-    const iid = data.inquiry_id?.trim();
+    const iid = data.inquiry_id?.trim() || ref;
     return iid ? `/seller/inquiries/${iid}` : "/seller/inquiries";
   }
 
@@ -120,11 +166,11 @@ function resolveByTypeAndAction(
     return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
   }
 
-  // Seller invited to a new / private RFQ — open lead detail.
+  // Seller invited / RFQ received — backend type is RFQ_RECEIVED.
   if (
+    type === "RFQ_RECEIVED" ||
     type === "RFQ_INVITED" ||
     type === "RFQ_ASSIGNED" ||
-    type === "RFQ_RECEIVED" ||
     type === "NEW_RFQ" ||
     type === "RFQ_PUBLISHED"
   ) {
@@ -134,36 +180,38 @@ function resolveByTypeAndAction(
 
   if (action === "OPEN_RFQ") {
     const rid = data.rfq_id?.trim() || ref;
-    const sellerSide = portal === "seller" || activeRole === "seller";
     if (!rid) return sellerSide ? "/seller/leads" : "/buyer/inquiries";
     return sellerSide ? sellerRfqLeadPath(rid) : buyerRfqPath(rid);
   }
 
   if (type === "RFQ_STATUS_UPDATED") {
     const rid = data.rfq_id?.trim() || ref;
-    if (portal === "seller" || activeRole === "seller") {
+    if (sellerSide) {
       return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
     }
     return rid ? buyerRfqPath(rid) : "/buyer/inquiries";
   }
 
-  // Fallback: title/body for “New RFQ” invites when type is missing/unknown.
+  // Fallback: “New RFQ” invite copy when type is missing/unknown.
   const title = (data.title || "").toUpperCase();
   const body = (data.body || "").toUpperCase();
-  if (
-    (title.includes("NEW RFQ") || body.includes("INVITED YOU TO QUOTE")) &&
-    (activeRole === "seller" || portal === "seller")
-  ) {
+  const looksLikeNewRfqInvite =
+    title.includes("NEW RFQ") || body.includes("INVITED YOU TO QUOTE");
+  if (looksLikeNewRfqInvite) {
     const rid = data.rfq_id?.trim() || ref;
-    return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
+    return rid
+      ? sellerRfqLeadPath(rid)
+      : sellerSide
+        ? "/seller/leads"
+        : "/buyer/inquiries";
   }
 
-  return portal === "seller" ? "/seller/dashboard" : "/buyer/notifications";
+  return sellerSide ? "/seller/dashboard" : "/buyer/notifications";
 }
 
 /**
  * Resolve in-app path from FCM `type` / `click_action` + ids.
- * `activeRole` is used only for CHAT_MESSAGE / OPEN_CHAT.
+ * `activeRole` is used for chat and for role-ambiguous OPEN_* actions.
  */
 export function resolveFcmNavigationPath(
   data: FcmPushData,
@@ -176,25 +224,7 @@ export function resolveFcmNavigationPath(
     /^https?:\/\//i.test(rawAction) || rawAction === "/"
       ? ""
       : rawAction.toUpperCase();
-  const path = resolveByTypeAndAction(data, type, action, activeRole);
-  return path;
-}
-
-function actionToTypeHint(action: string): string {
-  switch (action) {
-    case "OPEN_CHAT":
-      return "CHAT_MESSAGE";
-    case "OPEN_INQUIRY":
-      return "INQUIRY_RECEIVED";
-    case "OPEN_QUOTATION":
-      return "QUOTATION_RECEIVED";
-    case "OPEN_PRODUCT":
-      return "PRODUCT_APPROVED";
-    case "OPEN_RFQ":
-      return "RFQ_STATUS_UPDATED";
-    default:
-      return "";
-  }
+  return resolveByTypeAndAction(data, type, action, activeRole);
 }
 
 /**
@@ -203,7 +233,8 @@ function actionToTypeHint(action: string): string {
  */
 export function buildFcmNavigationSwHelpersSource(): string {
   return `
-function recipientPortalForType(type, status) {
+function recipientPortalForType(type, explicitRole) {
+  if (explicitRole === "buyer" || explicitRole === "seller") return explicitRole;
   switch ((type || "").toUpperCase()) {
     case "INQUIRY_RECEIVED":
     case "QUOTATION_ACCEPTED":
@@ -211,22 +242,24 @@ function recipientPortalForType(type, status) {
     case "PRODUCT_APPROVED":
     case "PRODUCT_REVISION_REQUIRED":
     case "PRODUCT_REJECTED":
+    case "RFQ_RECEIVED":
     case "RFQ_QUOTATION_ACCEPTED":
     case "RFQ_QUOTATION_REJECTED":
+    case "RFQ_STATUS_UPDATED":
     case "RFQ_INVITED":
     case "RFQ_ASSIGNED":
-    case "RFQ_RECEIVED":
     case "NEW_RFQ":
     case "RFQ_PUBLISHED":
       return "seller";
+    case "INQUIRY_REPLY":
     case "INQUIRY_REJECTED":
     case "QUOTATION_RECEIVED":
     case "QUOTATION_UPDATED":
     case "RFQ_NEW_QUOTATION":
     case "RFQ_QUOTATION_UPDATED":
       return "buyer";
-    case "RFQ_STATUS_UPDATED":
-      return isSellerRfqUpdateStatus(status) ? "seller" : "buyer";
+    case "CHAT_MESSAGE":
+      return "buyer";
     default:
       return "buyer";
   }
@@ -240,37 +273,50 @@ function buyerRfqPath(rfqId) {
   return "/buyer/rfq/" + rfqId;
 }
 
-function isSellerRfqUpdateStatus(status) {
-  var value = (status || "").toUpperCase();
-  return value.indexOf("UPDATE") >= 0 || value.indexOf("REVISION") >= 0 || value.indexOf("NEGOTIAT") >= 0;
+function isSellerSide(portal, activeRole) {
+  return portal === "seller" || activeRole === "seller";
+}
+
+function actionToTypeHint(action) {
+  switch (action) {
+    case "OPEN_CHAT":
+      return "CHAT_MESSAGE";
+    case "OPEN_PRODUCT":
+      return "PRODUCT_APPROVED";
+    default:
+      return "";
+  }
 }
 
 function resolveByTypeAndAction(data, type, action, activeRole) {
-  var status = (data.status || "").trim();
-  var portal = recipientPortalForType(type, status);
+  var explicitRole = data.role === "buyer" || data.role === "seller" ? data.role : null;
+  var portal = recipientPortalForType(type || actionToTypeHint(action), explicitRole);
+  var sellerSide = isSellerSide(portal, activeRole);
   var ref = (data.reference_id || "").trim();
 
-  // Chat only: use active role (tradenexa_active_role mirrored into SW).
   if (type === "CHAT_MESSAGE" || action === "OPEN_CHAT") {
     var cid = (data.conversation_id || ref).trim();
     var chatPortal = activeRole === "seller" ? "seller" : "buyer";
     var base = chatPortal === "seller" ? "/seller/chats" : "/buyer/chats";
     return cid ? base + "?conversation=" + encodeURIComponent(cid) : base;
   }
-  if (type === "INQUIRY_RECEIVED" || (action === "OPEN_INQUIRY" && portal === "seller")) {
+  if (
+    type === "INQUIRY_RECEIVED" ||
+    (action === "OPEN_INQUIRY" && sellerSide && type !== "INQUIRY_REJECTED" && type !== "INQUIRY_REPLY")
+  ) {
     var iid = (data.inquiry_id || ref).trim();
     return iid ? "/seller/inquiries/" + iid : "/seller/inquiries";
   }
-  if (type === "INQUIRY_REJECTED" || (action === "OPEN_INQUIRY" && portal === "buyer")) {
+  if (type === "INQUIRY_REJECTED" || type === "INQUIRY_REPLY" || (action === "OPEN_INQUIRY" && !sellerSide)) {
     var iid2 = (data.inquiry_id || ref).trim();
     return iid2 ? "/buyer/product-inquiries/" + iid2 : "/buyer/product-inquiries";
   }
-  if (type === "QUOTATION_RECEIVED" || type === "QUOTATION_UPDATED" || (action === "OPEN_QUOTATION" && portal === "buyer")) {
-    var iid3 = (data.inquiry_id || "").trim();
+  if (type === "QUOTATION_RECEIVED" || type === "QUOTATION_UPDATED" || (action === "OPEN_QUOTATION" && !sellerSide)) {
+    var iid3 = (data.inquiry_id || ref).trim();
     return iid3 ? "/buyer/product-inquiries/" + iid3 : "/buyer/product-inquiries";
   }
-  if (type === "QUOTATION_ACCEPTED" || type === "QUOTATION_REJECTED" || (action === "OPEN_QUOTATION" && portal === "seller")) {
-    var iid4 = (data.inquiry_id || "").trim();
+  if (type === "QUOTATION_ACCEPTED" || type === "QUOTATION_REJECTED" || (action === "OPEN_QUOTATION" && sellerSide)) {
+    var iid4 = (data.inquiry_id || ref).trim();
     return iid4 ? "/seller/inquiries/" + iid4 : "/seller/inquiries";
   }
   if (
@@ -291,9 +337,9 @@ function resolveByTypeAndAction(data, type, action, activeRole) {
     return rid2 ? sellerRfqLeadPath(rid2) : "/seller/leads";
   }
   if (
+    type === "RFQ_RECEIVED" ||
     type === "RFQ_INVITED" ||
     type === "RFQ_ASSIGNED" ||
-    type === "RFQ_RECEIVED" ||
     type === "NEW_RFQ" ||
     type === "RFQ_PUBLISHED"
   ) {
@@ -302,25 +348,23 @@ function resolveByTypeAndAction(data, type, action, activeRole) {
   }
   if (action === "OPEN_RFQ") {
     var ridOpen = (data.rfq_id || ref).trim();
-    var sellerSide = portal === "seller" || activeRole === "seller";
     if (!ridOpen) return sellerSide ? "/seller/leads" : "/buyer/inquiries";
     return sellerSide ? sellerRfqLeadPath(ridOpen) : buyerRfqPath(ridOpen);
   }
   if (type === "RFQ_STATUS_UPDATED") {
     var rid3 = (data.rfq_id || ref).trim();
-    if (portal === "seller" || activeRole === "seller") return rid3 ? sellerRfqLeadPath(rid3) : "/seller/leads";
+    if (sellerSide) return rid3 ? sellerRfqLeadPath(rid3) : "/seller/leads";
     return rid3 ? buyerRfqPath(rid3) : "/buyer/inquiries";
   }
   var title = (data.title || "").toUpperCase();
   var body = (data.body || "").toUpperCase();
-  if (
-    (title.indexOf("NEW RFQ") >= 0 || body.indexOf("INVITED YOU TO QUOTE") >= 0) &&
-    (activeRole === "seller" || portal === "seller")
-  ) {
+  var looksLikeNewRfqInvite =
+    title.indexOf("NEW RFQ") >= 0 || body.indexOf("INVITED YOU TO QUOTE") >= 0;
+  if (looksLikeNewRfqInvite) {
     var ridTitle = (data.rfq_id || ref).trim();
-    return ridTitle ? sellerRfqLeadPath(ridTitle) : "/seller/leads";
+    return ridTitle ? sellerRfqLeadPath(ridTitle) : sellerSide ? "/seller/leads" : "/buyer/inquiries";
   }
-  return portal === "seller" ? "/seller/dashboard" : "/buyer/notifications";
+  return sellerSide ? "/seller/dashboard" : "/buyer/notifications";
 }
 
 function resolveFcmNavigationPath(data, activeRole) {
@@ -333,8 +377,7 @@ function resolveFcmNavigationPath(data, activeRole) {
     rawAction === "/"
       ? ""
       : rawAction.toUpperCase();
-  var path = resolveByTypeAndAction(data, type, action, activeRole);
-  return path;
+  return resolveByTypeAndAction(data, type, action, activeRole);
 }
 `;
 }
