@@ -183,14 +183,16 @@ export function GeoLocationProvider({ children }: { children: React.ReactNode })
     void (async () => {
       if (!navigator.permissions?.query) return;
       try {
-        permissionStatusObj = await navigator.permissions.query({ name: "geolocation" });
-        permissionStatusObj.onchange = () => {
+        const status = await navigator.permissions.query({ name: "geolocation" });
+        if (cancelled) return;
+        permissionStatusObj = status;
+        status.onchange = () => {
           if (cancelled) return;
-          if (permissionStatusObj?.state === "granted") {
+          if (status.state === "granted") {
             writeGeoPermissionStatus("granted");
             setPermissionStatus("granted");
             void runLocate();
-          } else if (permissionStatusObj?.state === "denied") {
+          } else if (status.state === "denied") {
             markNativeDenied();
           }
         };

@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/app/context/AppContext";
+import { ReduxProvider } from "@/store/ReduxProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { ActiveRoleProvider } from "@/context/ActiveRoleContext";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -76,23 +77,25 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: FCM_ROOT_RECOVER_SCRIPT }}
         />
-        <AuthProvider>
-          <ActiveRoleProvider>
-            <WishlistProvider>
-              <ChatProvider>
-                <NotificationProvider>
-                  <GeoLocationProvider>
-                    <AppProvider>
-                      <AppChrome>{children}</AppChrome>
-                      <FcmListener />
-                    </AppProvider>
-                  </GeoLocationProvider>
-                </NotificationProvider>
-              </ChatProvider>
-            </WishlistProvider>
-          </ActiveRoleProvider>
-          <Toaster position="top-center" toastOptions={{ duration: TOAST_DURATION_MS }} />
-        </AuthProvider>
+        <ReduxProvider>
+          <AuthProvider>
+            <ActiveRoleProvider>
+              <WishlistProvider>
+                <ChatProvider>
+                  <NotificationProvider>
+                    <GeoLocationProvider>
+                      <AppProvider>
+                        <AppChrome>{children}</AppChrome>
+                        <FcmListener />
+                      </AppProvider>
+                    </GeoLocationProvider>
+                  </NotificationProvider>
+                </ChatProvider>
+              </WishlistProvider>
+            </ActiveRoleProvider>
+            <Toaster position="top-center" toastOptions={{ duration: TOAST_DURATION_MS }} />
+          </AuthProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

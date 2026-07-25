@@ -153,7 +153,7 @@ export default function ChatSidePanel({
           </button>
         </header>
         <ChatPanel
-          key={`${chatProps.rfqId}-${chatProps.sellerId ?? "unknown"}-${displayName}`}
+          key={`${chatProps.conversationId ?? chatProps.inquiryId ?? chatProps.rfqId}-${chatProps.sellerId ?? "unknown"}`}
           {...chatProps}
           otherPartyName={otherPartyName}
           embedded

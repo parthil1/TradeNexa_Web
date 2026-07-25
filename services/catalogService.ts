@@ -84,18 +84,81 @@ export async function fetchCategoryById(id: number): Promise<ApiCategoryDetail |
   return data ?? null;
 }
 
-export async function fetchCategoryBySlug(slug: string): Promise<ApiCategoryDetail | null> {
-  let page = 1;
-  const limit = 50;
+/**
+ * Category/subcategory taxonomy is slow-changing but was previously re-scanned
+ * page by page on every slug lookup. These module-level caches collapse those
+ * repeated scans into one request set per TTL, shared by all callers.
+ */
+const TAXONOMY_TTL_MS = 5 * 60 * 1000;
 
-  while (page <= 10) {
-    const { results, pagination } = await fetchCategories({ page, limit, is_active: true });
-    const match = results.find((c) => c.slug === slug);
-    if (match) return fetchCategoryById(match.id);
-    if (page >= pagination.totalPages) break;
-    page += 1;
-  }
-  return null;
+interface TaxonomyCacheEntry<T> {
+  at: number;
+  promise: Promise<T>;
+}
+
+let allCategoriesCache: TaxonomyCacheEntry<ApiCategory[]> | null = null;
+const subcategoriesCache = new Map<number, TaxonomyCacheEntry<ApiSubcategory[]>>();
+
+function isFresh(entry: TaxonomyCacheEntry<unknown> | null | undefined): boolean {
+  return Boolean(entry) && Date.now() - (entry as TaxonomyCacheEntry<unknown>).at < TAXONOMY_TTL_MS;
+}
+
+/** All active categories, paginated eagerly and cached. */
+function loadAllActiveCategories(): Promise<ApiCategory[]> {
+  if (isFresh(allCategoriesCache)) return allCategoriesCache!.promise;
+
+  const promise = (async () => {
+    const limit = 50;
+    const first = await fetchCategories({ page: 1, limit, is_active: true });
+    const totalPages = Math.min(first.pagination.totalPages || 1, 10);
+    if (totalPages <= 1) return first.results;
+
+    // Remaining pages in parallel — previously these were awaited one by one.
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) =>
+        fetchCategories({ page: i + 2, limit, is_active: true })
+      )
+    );
+    return [first.results, ...rest.map((r) => r.results)].flat();
+  })().catch((err) => {
+    allCategoriesCache = null;
+    throw err;
+  });
+
+  allCategoriesCache = { at: Date.now(), promise };
+  return promise;
+}
+
+/** All active subcategories for one category, paginated eagerly and cached. */
+function loadAllSubcategories(categoryId: number): Promise<ApiSubcategory[]> {
+  const cached = subcategoriesCache.get(categoryId);
+  if (isFresh(cached)) return cached!.promise;
+
+  const promise = (async () => {
+    const limit = 50;
+    const first = await fetchSubcategories(categoryId, { page: 1, limit });
+    const totalPages = Math.min(first.pagination.totalPages || 1, 20);
+    if (totalPages <= 1) return first.results;
+
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) =>
+        fetchSubcategories(categoryId, { page: i + 2, limit })
+      )
+    );
+    return [first.results, ...rest.map((r) => r.results)].flat();
+  })().catch((err) => {
+    subcategoriesCache.delete(categoryId);
+    throw err;
+  });
+
+  subcategoriesCache.set(categoryId, { at: Date.now(), promise });
+  return promise;
+}
+
+export async function fetchCategoryBySlug(slug: string): Promise<ApiCategoryDetail | null> {
+  const categories = await loadAllActiveCategories();
+  const match = categories.find((c) => c.slug === slug);
+  return match ? fetchCategoryById(match.id) : null;
 }
 
 export async function fetchSubcategories(
@@ -113,17 +176,8 @@ export async function findSubcategoryBySlug(
   categoryId: number,
   subSlug: string
 ): Promise<ApiSubcategory | null> {
-  let page = 1;
-  const limit = 50;
-
-  while (page <= 20) {
-    const { results, pagination } = await fetchSubcategories(categoryId, { page, limit });
-    const match = results.find((s) => s.slug === subSlug && s.is_active);
-    if (match) return match;
-    if (page >= pagination.totalPages) break;
-    page += 1;
-  }
-  return null;
+  const subs = await loadAllSubcategories(categoryId);
+  return subs.find((s) => s.slug === subSlug && s.is_active) ?? null;
 }
 
 export interface CatalogPathContext {
@@ -148,20 +202,14 @@ export async function resolveCatalogPaths(
 
   if (!subcategoryId) return base;
 
-  let page = 1;
-  const limit = 50;
-  while (page <= 20) {
-    const { results, pagination } = await fetchSubcategories(categoryId, { page, limit });
-    const sub = results.find((s) => s.id === subcategoryId && s.is_active);
-    if (sub) {
-      return {
-        ...base,
-        subcategoryHref: `/categories/${detail.slug}/${sub.slug}`,
-        subcategoryName: sub.name,
-      };
-    }
-    if (page >= pagination.totalPages) break;
-    page += 1;
+  const subs = await loadAllSubcategories(categoryId);
+  const sub = subs.find((s) => s.id === subcategoryId && s.is_active);
+  if (sub) {
+    return {
+      ...base,
+      subcategoryHref: `/categories/${detail.slug}/${sub.slug}`,
+      subcategoryName: sub.name,
+    };
   }
 
   const embedded = detail.subcategories?.find((s) => s.id === subcategoryId && s.is_active);
@@ -180,37 +228,28 @@ export async function findSubcategoryById(subcategoryId: number): Promise<{
   category: ApiCategoryDetail;
   subcategory: ApiSubcategory;
 } | null> {
-  let catPage = 1;
+  const categories = await loadAllActiveCategories();
 
-  while (catPage <= 20) {
-    const { results: categories, pagination: catPagination } = await fetchCategories({
-      page: catPage,
-      limit: 50,
-      is_active: true,
-    });
-
-    for (const cat of categories) {
-      let subPage = 1;
-      while (subPage <= 20) {
-        const { results: subs, pagination: subPagination } = await fetchSubcategories(cat.id, {
-          page: subPage,
-          limit: 50,
-        });
+  // Fan out across categories instead of walking them (and their subcategory
+  // pages) one at a time — the sequential version could issue hundreds of
+  // serial requests before resolving a single slug redirect.
+  const perCategory = await Promise.all(
+    categories.map(async (cat) => {
+      try {
+        const subs = await loadAllSubcategories(cat.id);
         const match = subs.find((s) => s.id === subcategoryId && s.is_active);
-        if (match) {
-          const detail = await fetchCategoryById(cat.id);
-          if (detail) return { category: detail, subcategory: match };
-        }
-        if (subPage >= subPagination.totalPages) break;
-        subPage += 1;
+        return match ? { categoryId: cat.id, subcategory: match } : null;
+      } catch {
+        return null;
       }
-    }
+    })
+  );
 
-    if (catPage >= catPagination.totalPages) break;
-    catPage += 1;
-  }
+  const hit = perCategory.find((entry) => entry !== null);
+  if (!hit) return null;
 
-  return null;
+  const detail = await fetchCategoryById(hit.categoryId);
+  return detail ? { category: detail, subcategory: hit.subcategory } : null;
 }
 
 export async function fetchProducts(

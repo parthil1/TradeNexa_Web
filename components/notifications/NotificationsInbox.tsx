@@ -162,10 +162,6 @@ export default function NotificationsInbox({ accent = "buyer" }: NotificationsIn
   }, [filter, notificationRole, pagination.page]);
 
   useEffect(() => {
-    void refreshUnreadCount();
-  }, [refreshUnreadCount]);
-
-  useEffect(() => {
     return subscribeInbox((event) => {
       if (event.kind === "mark_all") {
         setSelectedIds(new Set());

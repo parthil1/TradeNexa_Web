@@ -9,50 +9,49 @@ import PortalProductCard from "@/components/portal/PortalProductCard";
 import PortalInfiniteScroll from "@/components/portal/PortalInfiniteScroll";
 import { Button } from "@/components/common/Button";
 import { useWishlist } from "@/hooks/useWishlist";
-import { fetchWishlist } from "@/services/wishlistService";
+import { useGetWishlistQuery } from "@/store/api/wishlistApi";
 import type { ApiProductListItem } from "@/types/catalog";
 
+const PAGE_LIMIT = 20;
+
 export default function BuyerWishlistPage() {
-  const { removeFromWishlist, refreshWishlist, syncFromProducts } = useWishlist();
-  const [products, setProducts] = useState<ApiProductListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const { removeFromWishlist, syncFromProducts } = useWishlist();
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [total, setTotal] = useState(0);
+  const [products, setProducts] = useState<ApiProductListItem[]>([]);
   const [confirmRemove, setConfirmRemove] = useState<ApiProductListItem | null>(null);
 
-  const loadPage = useCallback(async (pageNum: number, append: boolean) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
-
-    try {
-      const { results, pagination } = await fetchWishlist({ page: pageNum, limit: 20 });
-      const wishlisted = results.map((product) => ({ ...product, is_wishlist: true as const }));
-      setProducts((prev) => (append ? [...prev, ...wishlisted] : wishlisted));
-      syncFromProducts(wishlisted, pagination.total);
-      setTotal(pagination.total);
-      setHasMore(pageNum < pagination.totalPages);
-      setPage(pageNum);
-    } catch {
-      if (!append) setProducts([]);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [syncFromProducts]);
+  // Shares the RTK Query cache with WishlistProvider (same endpoint, different
+  // page args). Toggle invalidation refreshes both subscribers once.
+  const { data, isLoading, isFetching } = useGetWishlistQuery({
+    page,
+    limit: PAGE_LIMIT,
+  });
 
   useEffect(() => {
-    void loadPage(1, false);
-  }, [loadPage]);
+    if (!data) return;
+    const wishlisted = data.results.map((product) => ({
+      ...product,
+      is_wishlist: true as const,
+    }));
+    setProducts((prev) => (page === 1 ? wishlisted : [...prev, ...wishlisted]));
+    syncFromProducts(wishlisted, data.total);
+  }, [data, page, syncFromProducts]);
+
+  const total = data?.total ?? products.length;
+  const hasMore = Boolean(data && data.page < data.totalPages);
+  const loading = isLoading && page === 1 && products.length === 0;
+  const loadingMore = isFetching && page > 1;
+
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    setPage((prev) => prev + 1);
+  }, [hasMore, loading, loadingMore]);
 
   async function handleRemove(product: ApiProductListItem) {
     await removeFromWishlist(product.id);
     setProducts((prev) => prev.filter((p) => p.id !== product.id));
-    setTotal((prev) => Math.max(0, prev - 1));
     setConfirmRemove(null);
-    void refreshWishlist();
+    // Mutation invalidates the Wishlist tag — no second refreshWishlist call.
   }
 
   if (loading) {
@@ -87,10 +86,7 @@ export default function BuyerWishlistPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
-      <PortalPageHeader
-        title={`Wishlist (${total})`}
-        subtitle="Products you've saved"
-      />
+      <PortalPageHeader title={`Wishlist (${total})`} subtitle="Products you've saved" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {products.map((product) => (
           <PortalProductCard
@@ -106,7 +102,7 @@ export default function BuyerWishlistPage() {
         hasMore={hasMore}
         loading={loading}
         loadingMore={loadingMore}
-        onLoadMore={() => void loadPage(page + 1, true)}
+        onLoadMore={loadMore}
       />
 
       {confirmRemove ? (

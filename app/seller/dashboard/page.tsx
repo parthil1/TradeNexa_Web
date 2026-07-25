@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -41,35 +41,47 @@ export default function SellerDashboardPage() {
   const [dashboard, setDashboard] = useState<SellerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const dashboardRequestRef = useRef(0);
 
   const displayName = user?.name || user?.company || "Seller";
   const initial = displayName.charAt(0).toUpperCase();
 
   const loadDashboard = () => {
+    const requestId = ++dashboardRequestRef.current;
     setLoading(true);
     setError(null);
     return fetchSellerDashboard()
-      .then(setDashboard)
-      .catch(() => setError("Could not load seller dashboard."))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (dashboardRequestRef.current === requestId) setDashboard(data);
+      })
+      .catch(() => {
+        if (dashboardRequestRef.current === requestId) {
+          setError("Could not load seller dashboard.");
+        }
+      })
+      .finally(() => {
+        if (dashboardRequestRef.current === requestId) setLoading(false);
+      });
   };
 
   useEffect(() => {
-    let cancelled = false;
+    const requestId = ++dashboardRequestRef.current;
     setLoading(true);
     setError(null);
     fetchSellerDashboard()
       .then((data) => {
-        if (!cancelled) setDashboard(data);
+        if (dashboardRequestRef.current === requestId) setDashboard(data);
       })
       .catch(() => {
-        if (!cancelled) setError("Could not load seller dashboard.");
+        if (dashboardRequestRef.current === requestId) {
+          setError("Could not load seller dashboard.");
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (dashboardRequestRef.current === requestId) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      dashboardRequestRef.current += 1;
     };
   }, []);
 

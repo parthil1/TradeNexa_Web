@@ -43,26 +43,6 @@ function buildSafeRequestKey(config: AxiosRequestConfig): string | null {
   return `${method}:${base}${url}?${params}`;
 }
 
-const originalRequest = apiClient.request.bind(apiClient);
-apiClient.request = function requestWithDedupe<T = unknown, R = AxiosResponse<T>, D = unknown>(
-  config: AxiosRequestConfig<D>
-): Promise<R> {
-  const key = buildSafeRequestKey(config);
-  if (!key) {
-    return originalRequest<T, R, D>(config);
-  }
-
-  const existing = inflightSafeRequests.get(key);
-  if (existing) return existing as Promise<R>;
-
-  const promise = originalRequest<T, R, D>(config).finally(() => {
-    inflightSafeRequests.delete(key);
-  }) as Promise<AxiosResponse>;
-
-  inflightSafeRequests.set(key, promise);
-  return promise as Promise<R>;
-};
-
 /** Tracks whether a failed request has already been retried once (prevents infinite refresh loops). */
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -202,6 +182,31 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
+
+    // Axios shorthand methods (`get`, `head`) bypass an instance-level
+    // `request` override, so dedupe belongs in the adapter path that every
+    // method actually uses.
+    const key = buildSafeRequestKey(config);
+    if (key) {
+      const existing = inflightSafeRequests.get(key);
+      if (existing) {
+        config.adapter = () => existing;
+      } else {
+        const adapter = axios.getAdapter(config.adapter ?? apiClient.defaults.adapter);
+        config.adapter = (adapterConfig) => {
+          const promise = adapter(adapterConfig) as Promise<AxiosResponse>;
+          inflightSafeRequests.set(key, promise);
+          const cleanup = () => {
+            if (inflightSafeRequests.get(key) === promise) {
+              inflightSafeRequests.delete(key);
+            }
+          };
+          void promise.then(cleanup, cleanup);
+          return promise;
+        };
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

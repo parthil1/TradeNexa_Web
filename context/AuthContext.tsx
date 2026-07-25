@@ -1,6 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  ReactNode,
+} from "react";
 import {
   User,
   UserRole,
@@ -99,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isCompleteProfileOpen, setIsCompleteProfileOpen] = useState(false);
   const [completeProfileRole, setCompleteProfileRole] = useState<UserRole | null>(null);
   const [completeProfileState, setCompleteProfileState] = useState<AsyncOperationState<User>>(initialOpState());
+  const closeModalTimerRef = useRef<number | null>(null);
+  const skipProfileTimerRef = useRef<number | null>(null);
 
   const redirectToDashboard = useCallback((userData: User) => {
     if (userData.role !== "both") {
@@ -191,7 +202,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener("auth_unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("auth_unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth_unauthorized", handleUnauthorized);
+      if (closeModalTimerRef.current) window.clearTimeout(closeModalTimerRef.current);
+      if (skipProfileTimerRef.current) window.clearTimeout(skipProfileTimerRef.current);
+    };
   }, []);
 
   const loginUser = (token: string, userData: User, refreshToken?: string) => {
@@ -225,32 +240,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthModalOpen(true);
   }, []);
 
-  const closeAuthModal = () => {
+  const closeAuthModal = useCallback(() => {
     setIsAuthModalOpen(false);
-    setTimeout(() => {
+    if (closeModalTimerRef.current) window.clearTimeout(closeModalTimerRef.current);
+    closeModalTimerRef.current = window.setTimeout(() => {
+      closeModalTimerRef.current = null;
       setAuthModalPhone("");
       setAuthModalRole(null);
       setFirebaseVerificationId(null);
       setSessionMobileNumber(null);
-      resetSendOtp();
-      resetVerifyOtp();
-      resetResendOtp();
-      resetRegister();
+      setSendOtpState(initialOpState());
+      setVerifyOtpState(initialOpState());
+      setResendOtpState(initialOpState());
+      setRegisterState(initialOpState());
     }, 300);
-  };
+  }, []);
 
   const resetSendOtp = () => setSendOtpState(initialOpState());
   const resetVerifyOtp = () => setVerifyOtpState(initialOpState());
   const resetResendOtp = () => setResendOtpState(initialOpState());
   const resetRegister = () => setRegisterState(initialOpState());
-  const resetCompleteProfile = () => setCompleteProfileState(initialOpState());
 
   const openCompleteProfileModal = (role: UserRole) => {
     setCompleteProfileRole(role);
     setIsCompleteProfileOpen(true);
   };
 
-  const skipCompleteProfile = () => {
+  const skipCompleteProfile = useCallback(() => {
     const currentUser =
       typeof window !== "undefined"
         ? (() => {
@@ -264,15 +280,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : user;
 
     setIsCompleteProfileOpen(false);
-    setTimeout(() => {
+    if (skipProfileTimerRef.current) window.clearTimeout(skipProfileTimerRef.current);
+    skipProfileTimerRef.current = window.setTimeout(() => {
+      skipProfileTimerRef.current = null;
       setCompleteProfileRole(null);
-      resetCompleteProfile();
+      setCompleteProfileState(initialOpState());
     }, 300);
 
     if (currentUser) {
       redirectToDashboard(currentUser);
     }
-  };
+  }, [user, redirectToDashboard]);
 
   const sendOtpRequest = async (phone: string, countryCode: string) => {
     const mobile_number = formatMobileNumber(countryCode, phone);

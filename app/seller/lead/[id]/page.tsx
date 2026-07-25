@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Calendar, Clock, Inbox, Loader2, MapPin, MessageSquare, Package, Wallet } from "lucide-react";
@@ -36,18 +36,6 @@ function resolveLeadBackSource(fromParam: string | null): LeadBackSource {
   const from = (fromParam ?? "").toLowerCase();
   if (from === "inbox" || from === "chat" || from === "chats") return "inbox";
   if (from === "feed" || from === "leads" || from === "rfq") return "feed";
-
-  if (typeof document !== "undefined") {
-    const referrer = document.referrer || "";
-    try {
-      const refPath = new URL(referrer).pathname;
-      if (refPath.startsWith("/seller/chats")) return "inbox";
-      if (refPath.startsWith("/seller/leads")) return "feed";
-    } catch {
-      // ignore invalid referrer
-    }
-  }
-
   return "feed";
 }
 
@@ -81,11 +69,26 @@ export default function SellerLeadDetailPage() {
   const rfqId = Number(params.id);
   const invalidId = !rfqId || Number.isNaN(rfqId);
   const { hydrateRfqConversations } = useChat();
-  const backSource = useMemo(
-    () => resolveLeadBackSource(searchParams.get("from")),
-    [searchParams]
+  const fromParam = searchParams.get("from");
+  const [backSource, setBackSource] = useState<LeadBackSource>(() =>
+    resolveLeadBackSource(fromParam)
   );
   const fromFeed = backSource === "feed";
+
+  useEffect(() => {
+    const explicit = resolveLeadBackSource(fromParam);
+    if (fromParam) {
+      setBackSource(explicit);
+      return;
+    }
+
+    try {
+      const refPath = new URL(document.referrer || window.location.href).pathname;
+      setBackSource(refPath.startsWith("/seller/chats") ? "inbox" : "feed");
+    } catch {
+      setBackSource("feed");
+    }
+  }, [fromParam]);
 
   const [rfq, setRfq] = useState<ApiRfqDetail | null>(null);
   const [existingQuotation, setExistingQuotation] = useState<ApiQuotation | null>(null);
@@ -95,24 +98,27 @@ export default function SellerLeadDetailPage() {
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const loadRequestRef = useRef(0);
 
   const load = useCallback(async () => {
     if (invalidId) return;
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     try {
       const detail = await fetchSellerRfqById(rfqId);
-      setRfq(detail);
-
       const embedded = detail?.my_quotation ?? null;
       const quotation = embedded ?? (detail ? await findSellerQuotationForRfq(rfqId) : null);
+      if (loadRequestRef.current !== requestId) return;
+      setRfq(detail);
       setExistingQuotation(quotation);
       setShowQuoteForm(false);
       void hydrateRfqConversations(rfqId);
     } catch {
+      if (loadRequestRef.current !== requestId) return;
       setRfq(null);
       setExistingQuotation(null);
     } finally {
-      setLoading(false);
+      if (loadRequestRef.current === requestId) setLoading(false);
     }
   }, [invalidId, rfqId, hydrateRfqConversations]);
 

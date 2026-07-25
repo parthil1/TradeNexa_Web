@@ -1,45 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import MarketplaceCategoryRow from "@/components/catalog/marketplace/MarketplaceCategoryRow";
 import {
   MARKETPLACE_CONTAINER,
   MarketplaceCategoryGridSkeleton,
 } from "@/components/catalog/marketplace/marketplaceLayout";
-import { fetchCategories } from "@/services/catalogService";
-import type { ApiCategory } from "@/types/catalog";
+import { useGetCategoriesQuery } from "@/store/api/referenceApi";
 import { ArrowRight } from "lucide-react";
 
+const FEATURED_COUNT = 9;
+
 export default function FeaturedCategories() {
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const data = await fetchCategories({
-          page: 1,
-          limit: 9,
-          is_active: true,
-          sort_by: "name",
-          sort_order: "asc",
-        });
-        if (!cancelled) setCategories(data.results);
-      } catch {
-        if (!cancelled) setCategories([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Shares one cached category list with the rest of the app.
+  const { data, isLoading } = useGetCategoriesQuery();
+  const categories = React.useMemo(() => (data ?? []).slice(0, FEATURED_COUNT), [data]);
+  const loading = isLoading;
 
   return (
     <section className="bg-background py-12 lg:py-16">
@@ -66,7 +43,7 @@ export default function FeaturedCategories() {
         </div>
 
         {loading ? (
-          <MarketplaceCategoryGridSkeleton count={9} />
+          <MarketplaceCategoryGridSkeleton count={FEATURED_COUNT} />
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {categories.map((cat, i) => (

@@ -99,6 +99,10 @@ export default function StateSelect({
       });
       setPage(pagination.page || nextPage);
       setHasMore(pagination.page < pagination.totalPages);
+    } catch {
+      // Keep the already-loaded page list; stop paging instead of rejecting
+      // into the Select's onLoadMore handler.
+      setHasMore(false);
     } finally {
       setLoadingMore(false);
     }

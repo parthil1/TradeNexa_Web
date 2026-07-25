@@ -23,7 +23,6 @@ import {
   getChatErrorMessage,
 } from "@/services/chatService";
 import { openInquiryChat } from "@/services/inquiryService";
-import { joinConversation } from "@/services/chatSocket";
 import { conversationCounterpartyLogo, countsAsUnreadChatMessage, isSystemChatMessage } from "@/utils/chatHelpers";
 import { getInitials, resolveImageUrl } from "@/utils/catalogHelpers";
 import { showErrorToast } from "@/utils/toast";
@@ -216,14 +215,12 @@ export default function ChatPanel({
 
     void markRead(conversationId, readThroughId, stillUnread);
 
-    setUnreadBannerCount((prev) => {
-      if (prev <= 0 && stillUnread <= 0) return prev;
-      if (stillUnread <= 0) {
-        setUnreadStartMessageId(null);
-        return 0;
-      }
-      return stillUnread;
-    });
+    if (stillUnread <= 0) {
+      setUnreadStartMessageId(null);
+      setUnreadBannerCount(0);
+    } else {
+      setUnreadBannerCount(stillUnread);
+    }
   }, [conversationId, markRead, unreadStartMessageId]);
 
   const scheduleMarkVisibleRead = useCallback(() => {
@@ -368,11 +365,6 @@ export default function ChatPanel({
       setActiveConversationId(null);
     };
   }, [setActiveConversationId]);
-
-  useEffect(() => {
-    if (!conversationId) return;
-    joinConversation(conversationId);
-  }, [conversationId]);
 
   useEffect(() => {
     lastMarkedReadIdRef.current = null;

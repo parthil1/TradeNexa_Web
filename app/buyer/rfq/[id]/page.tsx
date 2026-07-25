@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -79,6 +79,7 @@ export default function BuyerRfqDetailPage() {
   const [revisionFor, setRevisionFor] = useState<number | null>(null);
   const [chatTarget, setChatTarget] = useState<ApiQuotation | null>(null);
   const { hydrateRfqConversations } = useChat();
+  const rfqRequestRef = useRef(0);
 
   const fetchQuotesPage = useCallback(
     (page: number) =>
@@ -106,15 +107,17 @@ export default function BuyerRfqDetailPage() {
 
   const loadRfq = useCallback(async () => {
     if (invalidId) return;
+    const requestId = ++rfqRequestRef.current;
     setRfqLoading(true);
     try {
       const detail = await fetchPublicRfqById(rfqId);
+      if (rfqRequestRef.current !== requestId) return;
       setRfq(detail);
       void hydrateRfqConversations(rfqId);
     } catch {
-      setRfq(null);
+      if (rfqRequestRef.current === requestId) setRfq(null);
     } finally {
-      setRfqLoading(false);
+      if (rfqRequestRef.current === requestId) setRfqLoading(false);
     }
   }, [invalidId, rfqId, hydrateRfqConversations]);
 

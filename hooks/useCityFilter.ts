@@ -1,24 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useOptionalGeoLocation } from "@/context/GeoLocationContext";
 import { isGeoCacheFresh, readGeoLastLocation } from "@/utils/geoLocationStorage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  applyGeoLocation,
+  clearCityFilter as clearCityFilterAction,
+  clearLocationFilters as clearLocationFiltersAction,
+  setCityFilter,
+  setStateFilter,
+} from "@/store/slices/filtersSlice";
 
 interface UseCityFilterOptions {
   /** When true, apply granted geo state/city until the user edits filters. */
   syncFromGeo?: boolean;
 }
 
+/**
+ * Location filter for catalog surfaces. State lives in Redux so the selection
+ * (and the geo resolution behind it) is shared across every page that uses this
+ * hook instead of being re-derived per mount.
+ */
 export function useCityFilter(options: UseCityFilterOptions = {}) {
   // Default on: preselect geo state/city wherever LocationFilterBar is used.
   const { syncFromGeo = true } = options;
   const geo = useOptionalGeoLocation();
+  const dispatch = useAppDispatch();
 
-  const [stateId, setStateId] = useState("");
-  const [stateLabel, setStateLabel] = useState("");
-  const [cityId, setCityId] = useState("");
-  const [cityLabel, setCityLabel] = useState("");
-  const [userTouched, setUserTouched] = useState(false);
+  const stateId = useAppSelector((s) => s.filters.stateId);
+  const stateLabel = useAppSelector((s) => s.filters.stateLabel);
+  const cityId = useAppSelector((s) => s.filters.cityId);
+  const cityLabel = useAppSelector((s) => s.filters.cityLabel);
+  const userTouched = useAppSelector((s) => s.filters.userTouched);
+
   const appliedGeoKey = useRef<string | null>(null);
   const requestedRef = useRef(false);
 
@@ -41,11 +56,15 @@ export function useCityFilter(options: UseCityFilterOptions = {}) {
     if (appliedGeoKey.current === key) return;
     appliedGeoKey.current = key;
 
-    setStateId(String(cached.state_id));
-    setStateLabel(cached.state_name?.trim() || "");
-    setCityId(String(cached.city_id));
-    setCityLabel(cached.city_name?.trim() || "");
-  }, [syncFromGeo, userTouched, geo?.stateId, geo?.cityId]);
+    dispatch(
+      applyGeoLocation({
+        stateId: String(cached.state_id),
+        stateLabel: cached.state_name?.trim() || "",
+        cityId: String(cached.city_id),
+        cityLabel: cached.city_name?.trim() || "",
+      })
+    );
+  }, [dispatch, syncFromGeo, userTouched]);
 
   // Apply live geo context once coordinates resolve to state/city IDs.
   useEffect(() => {
@@ -56,13 +75,19 @@ export function useCityFilter(options: UseCityFilterOptions = {}) {
     if (appliedGeoKey.current === key) return;
     appliedGeoKey.current = key;
 
-    setStateId(String(geo.stateId));
-    setStateLabel(geo.stateName?.trim() || "");
-    setCityId(String(geo.cityId));
-    setCityLabel(geo.cityName?.trim() || "");
+    dispatch(
+      applyGeoLocation({
+        stateId: String(geo.stateId),
+        stateLabel: geo.stateName?.trim() || "",
+        cityId: String(geo.cityId),
+        cityLabel: geo.cityName?.trim() || "",
+      })
+    );
   }, [
+    dispatch,
     syncFromGeo,
     userTouched,
+    geo,
     geo?.stateId,
     geo?.cityId,
     geo?.stateName,
@@ -78,13 +103,28 @@ export function useCityFilter(options: UseCityFilterOptions = {}) {
     if (requestedRef.current) return;
 
     requestedRef.current = true;
-    void geo.requestLocation().finally(() => {
-      // Allow one more retry if IDs still missing after this attempt.
-      window.setTimeout(() => {
-        if (readGeoLastLocation()) return;
+    let retryTimer: number | undefined;
+    let cancelled = false;
+
+    void geo
+      .requestLocation()
+      .catch(() => {
+        // Allow another attempt if the geo request itself rejected.
         requestedRef.current = false;
-      }, 1500);
-    });
+      })
+      .finally(() => {
+        if (cancelled) return;
+        // Allow one more retry if IDs still missing after this attempt.
+        retryTimer = window.setTimeout(() => {
+          if (readGeoLastLocation()) return;
+          requestedRef.current = false;
+        }, 1500);
+      });
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
+    };
   }, [
     syncFromGeo,
     userTouched,
@@ -97,37 +137,31 @@ export function useCityFilter(options: UseCityFilterOptions = {}) {
     geo?.requestLocation,
   ]);
 
-  function handleStateChange(nextStateId: string, label?: string) {
-    setUserTouched(true);
-    setStateId(nextStateId);
-    setStateLabel(nextStateId ? (label?.trim() || "") : "");
-    setCityId("");
-    setCityLabel("");
-  }
+  const handleStateChange = useCallback(
+    (nextStateId: string, label?: string) => {
+      dispatch(setStateFilter({ stateId: nextStateId, label }));
+    },
+    [dispatch]
+  );
 
-  function handleCityChange(nextCityId: string, label?: string) {
-    setUserTouched(true);
-    setCityId(nextCityId);
-    setCityLabel(nextCityId ? (label?.trim() || "") : "");
-  }
+  const handleCityChange = useCallback(
+    (nextCityId: string, label?: string) => {
+      dispatch(setCityFilter({ cityId: nextCityId, label }));
+    },
+    [dispatch]
+  );
 
-  function clearStateFilter() {
-    setUserTouched(true);
-    setStateId("");
-    setStateLabel("");
-    setCityId("");
-    setCityLabel("");
-  }
+  const clearStateFilter = useCallback(() => {
+    dispatch(clearLocationFiltersAction());
+  }, [dispatch]);
 
-  function clearCityFilter() {
-    setUserTouched(true);
-    setCityId("");
-    setCityLabel("");
-  }
+  const clearCityFilter = useCallback(() => {
+    dispatch(clearCityFilterAction());
+  }, [dispatch]);
 
-  function clearLocationFilters() {
-    clearStateFilter();
-  }
+  const clearLocationFilters = useCallback(() => {
+    dispatch(clearLocationFiltersAction());
+  }, [dispatch]);
 
   return {
     stateId,

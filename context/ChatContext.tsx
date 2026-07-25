@@ -257,14 +257,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         sort_by: "last_message_at",
         sort_order: "desc",
       });
-      let systemInflation = 0;
+      const systemInflation = results.reduce(
+        (sum, conversation) =>
+          sum +
+          Math.max(
+            0,
+            (conversation.unread_count ?? 0) - effectiveConversationUnread(conversation)
+          ),
+        0
+      );
       setConversationsMeta((prev) => {
         const next = { ...prev };
         for (const conversation of results) {
           const existing = next[conversation.id];
           const rawUnread = conversation.unread_count ?? 0;
-          const effectiveUnread = effectiveConversationUnread(conversation);
-          systemInflation += Math.max(0, rawUnread - effectiveUnread);
           next[conversation.id] = mergeConversationMeta(existing, {
             ...conversation,
             rfq_id: conversation.rfq_id ?? existing?.rfq_id ?? null,
@@ -401,12 +407,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       // Our own read (this tab, another tab, or socket mark_messages_read) — clear
       // unread for the nav badge. Do not paint blue ticks on our outgoing messages.
       if (me != null && Number.isFinite(readerId) && readerId > 0 && readerId === me) {
-        let cleared = 0;
+        const cleared =
+          conversationsMetaRef.current[conversationId]?.unread_count ?? 0;
         setConversationsMeta((prev) => {
           const existing = prev[conversationId];
           const prevUnread = existing?.unread_count ?? 0;
           if (prevUnread <= 0 && existing) return prev;
-          cleared = prevUnread;
           return {
             ...prev,
             [conversationId]: {
@@ -830,11 +836,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       emitMessageRead(conversationId, lastMessageId);
 
       const nextUnread = Math.max(0, remainingUnread ?? 0);
-      let cleared = 0;
+      const previousUnread =
+        conversationsMetaRef.current[conversationId]?.unread_count ?? 0;
+      const cleared = Math.max(0, previousUnread - nextUnread);
       setConversationsMeta((prev) => {
         const existing = prev[conversationId];
         const prevUnread = existing?.unread_count ?? 0;
-        cleared = Math.max(0, prevUnread - nextUnread);
         if (!existing) {
           return {
             ...prev,

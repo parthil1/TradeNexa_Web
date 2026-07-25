@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -69,18 +69,25 @@ export default function SellerInquiryDetailPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const loadRequestRef = useRef(0);
 
   const load = useCallback(async () => {
-    if (!inquiryId || Number.isNaN(inquiryId)) return;
+    if (!inquiryId || Number.isNaN(inquiryId)) {
+      setInquiry(null);
+      setLoading(false);
+      return;
+    }
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     try {
       const data = await fetchInquiryById(inquiryId);
-      setInquiry(data);
+      if (loadRequestRef.current === requestId) setInquiry(data);
     } catch (err) {
+      if (loadRequestRef.current !== requestId) return;
       showErrorToast(getInquiryErrorMessage(err, "Could not load inquiry"));
       setInquiry(null);
     } finally {
-      setLoading(false);
+      if (loadRequestRef.current === requestId) setLoading(false);
     }
   }, [inquiryId]);
 

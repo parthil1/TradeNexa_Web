@@ -24,6 +24,19 @@ export default function BuyerCategoryPage() {
   const params = useParams();
   const categoryId = Number(params.id);
 
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <PortalBackLink href="/buyer/categories" label="All Categories" />
+        <PortalEmptyState
+          icon={Search}
+          title="Category not found"
+          description="This category link is not valid."
+        />
+      </div>
+    );
+  }
+
   return <BuyerCategoryContent key={categoryId} categoryId={categoryId} />;
 }
 

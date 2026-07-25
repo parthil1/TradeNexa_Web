@@ -25,33 +25,38 @@ export function usePaginatedList<T>({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchRef = useRef(fetchPage);
+  /** Bumped on every new request so a slow response cannot overwrite a newer one. */
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     fetchRef.current = fetchPage;
   }, [fetchPage]);
 
   const load = useCallback(async (targetPage: number) => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
     try {
       const data = await fetchRef.current(targetPage);
+      if (requestId !== requestIdRef.current) return;
       setItems(data.results);
       setPagination(data.pagination);
       setPage(data.pagination.page || targetPage);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(getErrorMessage(err));
       setItems([]);
       setPagination(EMPTY_PAGINATION);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
 
-    let cancelled = false;
+    const requestId = ++requestIdRef.current;
 
     async function run() {
       setLoading(true);
@@ -59,23 +64,23 @@ export function usePaginatedList<T>({
 
       try {
         const data = await fetchRef.current(1);
-        if (cancelled) return;
+        if (requestId !== requestIdRef.current) return;
         setItems(data.results);
         setPagination(data.pagination);
         setPage(data.pagination.page || 1);
       } catch (err) {
-        if (cancelled) return;
+        if (requestId !== requestIdRef.current) return;
         setError(getErrorMessage(err));
         setItems([]);
         setPagination(EMPTY_PAGINATION);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }
 
     void run();
     return () => {
-      cancelled = true;
+      requestIdRef.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, ...resetDeps]);

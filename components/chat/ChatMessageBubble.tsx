@@ -271,6 +271,9 @@ export default function ChatMessageBubble({
         if (src.startsWith("blob:") || src.startsWith("data:")) return;
         setHydratedImageSrc(src);
       })
+      .catch(() => {
+        // Keep the unavailable-image placeholder.
+      })
       .finally(() => {
         if (!cancelled) setImageLoading(false);
       });

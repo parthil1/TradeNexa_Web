@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -80,6 +81,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
   const { activeRole } = useActiveRole();
   const [unreadByRole, setUnreadByRole] = useState<NotificationUnreadCount>(EMPTY_COUNTS);
+  const refreshSeqRef = useRef(0);
 
   const unreadCount = useMemo(
     () => unreadCountForRole(unreadByRole, activeRole),
@@ -93,10 +95,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
     if (getChatSocketStatus() === "connected") {
       emitNotificationGetUnreadCount();
+      return;
     }
+    const seq = ++refreshSeqRef.current;
     try {
       const counts = await fetchNotificationUnreadCount();
-      setUnreadByRole(counts);
+      if (seq === refreshSeqRef.current) setUnreadByRole(counts);
     } catch {
       /* badge is best-effort */
     }
@@ -127,7 +131,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           kind: "updated",
           notification: { ...notification, is_read: true },
         });
-        void refreshUnreadCount();
+        // Optimistic count already applied; socket unread_count is authoritative.
         return { ...notification, is_read: true };
       } catch {
         void refreshUnreadCount();
@@ -180,7 +184,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             },
           });
         });
-        void refreshUnreadCount();
+        // Optimistic count already applied; socket unread_count is authoritative.
         return updated;
       } catch {
         void refreshUnreadCount();
@@ -208,7 +212,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       // POST /api/v1/notifications/read-all?role=buyer|seller
       const { updated } = await markAllNotificationsRead(activeRole);
       notifyInboxListeners({ kind: "mark_all" });
-      void refreshUnreadCount();
+      // Optimistic zero already applied for this role; socket confirms.
       return updated;
     } catch {
       void refreshUnreadCount();

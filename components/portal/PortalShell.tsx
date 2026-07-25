@@ -5,6 +5,12 @@ import PortalAuthGuard from "@/components/portal/PortalAuthGuard";
 import PortalBottomNav, { type PortalNavItem } from "@/components/portal/PortalBottomNav";
 import PortalSidebar from "@/components/portal/PortalSidebar";
 import PortalTopBar from "@/components/portal/PortalTopBar";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  hydrateSidebarFromStorage,
+  setMobileNavOpen,
+  setSidebarCollapsed,
+} from "@/store/slices/uiSlice";
 
 interface PortalShellProps {
   children: React.ReactNode;
@@ -14,8 +20,29 @@ interface PortalShellProps {
 }
 
 export default function PortalShell({ children, navItems, brand, topBar }: PortalShellProps) {
-  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const dispatch = useAppDispatch();
+  const mobileNavOpen = useAppSelector((s) => s.ui.mobileNavOpen);
+  const sidebarCollapsed = useAppSelector((s) => s.ui.sidebarCollapsed);
+
+  // Read the persisted preference after mount so SSR and first paint agree.
+  React.useEffect(() => {
+    dispatch(hydrateSidebarFromStorage());
+  }, [dispatch]);
+
+  const handleCollapsedChange = React.useCallback(
+    (collapsed: boolean) => dispatch(setSidebarCollapsed(collapsed)),
+    [dispatch]
+  );
+
+  const closeMobileNav = React.useCallback(
+    () => dispatch(setMobileNavOpen(false)),
+    [dispatch]
+  );
+
+  const openMobileNav = React.useCallback(
+    () => dispatch(setMobileNavOpen(true)),
+    [dispatch]
+  );
 
   return (
     <PortalAuthGuard>
@@ -26,11 +53,11 @@ export default function PortalShell({ children, navItems, brand, topBar }: Porta
           accent={topBar.accent}
           mobileOpen={mobileNavOpen}
           collapsed={sidebarCollapsed}
-          onCollapsedChange={setSidebarCollapsed}
-          onMobileClose={() => setMobileNavOpen(false)}
+          onCollapsedChange={handleCollapsedChange}
+          onMobileClose={closeMobileNav}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <PortalTopBar {...topBar} onMenuClick={() => setMobileNavOpen(true)} />
+          <PortalTopBar {...topBar} onMenuClick={openMobileNav} />
           <main className="flex-1 pb-24 lg:pb-6">{children}</main>
           <PortalBottomNav items={navItems} accent={topBar.accent} />
         </div>

@@ -26,37 +26,44 @@ export function useLoadMoreList<T>({
   const [error, setError] = useState<string | null>(null);
   const pageRef = useRef(1);
   const fetchRef = useRef(fetchPage);
+  /** Bumped on every new request so a slow response cannot overwrite a newer one. */
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     fetchRef.current = fetchPage;
   }, [fetchPage]);
 
   const loadPage = useCallback(async (page: number, append: boolean) => {
+    const requestId = ++requestIdRef.current;
     if (append) setLoadingMore(true);
     else setLoading(true);
     setError(null);
 
     try {
       const data = await fetchRef.current(page);
+      if (requestId !== requestIdRef.current) return;
       setPagination(data.pagination);
       pageRef.current = data.pagination.page;
       setItems((prev) => (append ? [...prev, ...data.results] : data.results));
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(getErrorMessage(err));
       if (!append) {
         setItems([]);
         setPagination(EMPTY_PAGINATION);
       }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
 
-    let cancelled = false;
+    const requestId = ++requestIdRef.current;
     pageRef.current = 1;
 
     async function run() {
@@ -65,23 +72,25 @@ export function useLoadMoreList<T>({
 
       try {
         const data = await fetchRef.current(1);
-        if (cancelled) return;
+        if (requestId !== requestIdRef.current) return;
         setPagination(data.pagination);
         pageRef.current = data.pagination.page;
         setItems(data.results);
       } catch (err) {
-        if (cancelled) return;
+        if (requestId !== requestIdRef.current) return;
         setError(getErrorMessage(err));
         setItems([]);
         setPagination(EMPTY_PAGINATION);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }
 
     void run();
     return () => {
-      cancelled = true;
+      // Invalidate in-flight requests so they cannot overwrite a newer reset
+      // or a loadMore that started after this effect was cleaned up.
+      requestIdRef.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, ...resetDeps]);

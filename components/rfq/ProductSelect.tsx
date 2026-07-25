@@ -56,6 +56,8 @@ export default function ProductSelect({
       return;
     }
 
+    // Only re-run when the selected value changes. Including `products` here
+    // re-fetched /products/:id every time the subcategory list resolved.
     const inList = products.some((product) => String(product.id) === value);
     if (inList) {
       setPrefetchedName(null);
@@ -66,15 +68,26 @@ export default function ProductSelect({
     const productId = Number(value);
     if (!Number.isInteger(productId) || productId < 1) return;
 
-    void fetchProductById(productId).then((product) => {
-      if (!cancelled && product) {
-        setPrefetchedName(product.basic_details.name);
-      }
-    });
+    void fetchProductById(productId)
+      .then((product) => {
+        if (!cancelled && product) {
+          setPrefetchedName(product.basic_details.name);
+        }
+      })
+      .catch(() => {
+        /* keep the raw id label */
+      });
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- products checked only to short-circuit; value drives the fetch
+  }, [value]);
+
+  useEffect(() => {
+    if (value && products.some((product) => String(product.id) === value)) {
+      setPrefetchedName(null);
+    }
   }, [value, products]);
 
   useEffect(() => {
@@ -129,6 +142,8 @@ export default function ProductSelect({
       });
       setPage(pagination.page || nextPage);
       setHasMore(pagination.page < pagination.totalPages);
+    } catch {
+      setHasMore(false);
     } finally {
       setLoadingMore(false);
     }

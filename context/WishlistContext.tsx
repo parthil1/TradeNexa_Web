@@ -10,7 +10,10 @@ import React, {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchWishlist, toggleWishlistApi } from "@/services/wishlistService";
+import {
+  useGetWishlistQuery,
+  useToggleWishlistMutation,
+} from "@/store/api/wishlistApi";
 import type { ApiProductListItem } from "@/types/catalog";
 import { showErrorToast } from "@/utils/toast";
 
@@ -28,38 +31,70 @@ interface WishlistContextValue {
 
 const WishlistContext = createContext<WishlistContextValue | undefined>(undefined);
 
+/**
+ * Keeps a local optimistic overlay on top of the RTK Query wishlist cache so
+ * hearts flip instantly while the mutation is in flight. The cache remains the
+ * source of truth after invalidation settles.
+ */
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const [wishlistMap, setWishlistMap] = useState<Record<number, boolean>>({});
-  const [wishlistTotal, setWishlistTotal] = useState(0);
+  const [overlay, setOverlay] = useState<Record<number, boolean>>({});
+  const [overlayTotalDelta, setOverlayTotalDelta] = useState(0);
 
-  const refreshWishlist = useCallback(async () => {
-    if (authLoading) return;
-
-    if (!isAuthenticated) {
-      setWishlistMap({});
-      setWishlistTotal(0);
-      return;
-    }
-
-    try {
-      const { results, pagination } = await fetchWishlist({ page: 1, limit: 100 });
-      const next: Record<number, boolean> = {};
-      for (const product of results) {
-        next[product.id] = true;
-      }
-      setWishlistMap(next);
-      setWishlistTotal(pagination.total > 0 ? pagination.total : results.length);
-    } catch {
-      setWishlistMap({});
-      setWishlistTotal(0);
-    }
-  }, [authLoading, isAuthenticated]);
+  const { data, refetch } = useGetWishlistQuery(
+    { page: 1, limit: 100 },
+    { skip: authLoading || !isAuthenticated }
+  );
+  const [toggleWishlistMutation] = useToggleWishlistMutation();
 
   useEffect(() => {
     if (authLoading) return;
-    void refreshWishlist();
-  }, [authLoading, refreshWishlist]);
+    if (!isAuthenticated) {
+      setOverlay({});
+      setOverlayTotalDelta(0);
+    }
+  }, [authLoading, isAuthenticated]);
+
+  // When the server cache refreshes, drop overlays that now match it.
+  useEffect(() => {
+    if (!data) return;
+    const serverIds = new Set(data.results.map((p) => p.id));
+    setOverlay((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [idStr, want] of Object.entries(prev)) {
+        const id = Number(idStr);
+        const onServer = serverIds.has(id);
+        if (want === onServer) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    setOverlayTotalDelta(0);
+  }, [data]);
+
+  const baseMap = useMemo(() => {
+    const map: Record<number, boolean> = {};
+    for (const product of data?.results ?? []) {
+      map[product.id] = true;
+    }
+    return map;
+  }, [data]);
+
+  const wishlistMap = useMemo(() => ({ ...baseMap, ...overlay }), [baseMap, overlay]);
+
+  const wishlistTotal = Math.max(0, (data?.total ?? 0) + overlayTotalDelta);
+
+  const refreshWishlist = useCallback(async () => {
+    if (authLoading || !isAuthenticated) {
+      setOverlay({});
+      setOverlayTotalDelta(0);
+      return;
+    }
+    await refetch();
+  }, [authLoading, isAuthenticated, refetch]);
 
   const isWishlisted = useCallback(
     (productId: number, fromProduct?: boolean) => {
@@ -71,57 +106,23 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     [wishlistMap]
   );
 
-  const toggleWishlist = useCallback(async (productId: number, currentlyWishlisted?: boolean) => {
-    let previous = false;
+  const toggleWishlist = useCallback(
+    async (productId: number, currentlyWishlisted?: boolean) => {
+      const previous =
+        currentlyWishlisted ?? (productId in wishlistMap ? wishlistMap[productId] : false);
 
-    setWishlistMap((prev) => {
-      previous =
-        currentlyWishlisted ?? (productId in prev ? prev[productId] : false);
-      return { ...prev, [productId]: !previous };
-    });
-    setWishlistTotal((prev) => (previous ? Math.max(0, prev - 1) : prev + 1));
-
-    try {
-      const isWishlist = await toggleWishlistApi(productId, previous);
-      setWishlistMap((prev) => ({ ...prev, [productId]: isWishlist }));
-
-      if (isWishlist !== !previous) {
-        setWishlistTotal((prev) => {
-          if (isWishlist && previous) return prev + 1;
-          if (!isWishlist && !previous) return Math.max(0, prev - 1);
-          return prev;
-        });
-      }
-    } catch (err) {
-      setWishlistMap((prev) => ({ ...prev, [productId]: previous }));
-      setWishlistTotal((prev) => (previous ? prev + 1 : Math.max(0, prev - 1)));
-      const message =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message: string }).message)
-          : "Failed to update wishlist";
-      showErrorToast(message);
-    }
-  }, []);
-
-  const addToWishlist = useCallback((productId: number) => {
-    setWishlistMap((prev) => ({ ...prev, [productId]: true }));
-  }, []);
-
-  const removeFromWishlist = useCallback(
-    async (productId: number) => {
-      if (wishlistMap[productId] === false) return;
-
-      const previous = wishlistMap[productId] ?? true;
-      setWishlistMap((prev) => ({ ...prev, [productId]: false }));
-      setWishlistTotal((prev) => Math.max(0, prev - 1));
+      setOverlay((prev) => ({ ...prev, [productId]: !previous }));
+      setOverlayTotalDelta((delta) => delta + (previous ? -1 : 1));
 
       try {
-        const isWishlist = await toggleWishlistApi(productId, previous);
-        setWishlistMap((prev) => ({ ...prev, [productId]: isWishlist }));
-        await refreshWishlist();
+        const isWishlist = await toggleWishlistMutation({
+          productId,
+          currentlyWishlisted: previous,
+        }).unwrap();
+        setOverlay((prev) => ({ ...prev, [productId]: isWishlist }));
       } catch (err) {
-        setWishlistMap((prev) => ({ ...prev, [productId]: previous }));
-        setWishlistTotal((prev) => prev + 1);
+        setOverlay((prev) => ({ ...prev, [productId]: previous }));
+        setOverlayTotalDelta((delta) => delta + (previous ? 1 : -1));
         const message =
           err && typeof err === "object" && "message" in err
             ? String((err as { message: string }).message)
@@ -129,11 +130,42 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         showErrorToast(message);
       }
     },
-    [refreshWishlist, wishlistMap]
+    [toggleWishlistMutation, wishlistMap]
   );
 
-  const syncFromProducts = useCallback((products: ApiProductListItem[], total?: number) => {
-    setWishlistMap((prev) => {
+  const addToWishlist = useCallback((productId: number) => {
+    setOverlay((prev) => ({ ...prev, [productId]: true }));
+  }, []);
+
+  const removeFromWishlist = useCallback(
+    async (productId: number) => {
+      if (wishlistMap[productId] === false) return;
+      const previous = wishlistMap[productId] ?? true;
+
+      setOverlay((prev) => ({ ...prev, [productId]: false }));
+      setOverlayTotalDelta((delta) => delta - 1);
+
+      try {
+        await toggleWishlistMutation({
+          productId,
+          currentlyWishlisted: previous,
+        }).unwrap();
+        // Tag invalidation refetches the shared cache — no manual refresh.
+      } catch (err) {
+        setOverlay((prev) => ({ ...prev, [productId]: previous }));
+        setOverlayTotalDelta((delta) => delta + 1);
+        const message =
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message: string }).message)
+            : "Failed to update wishlist";
+        showErrorToast(message);
+      }
+    },
+    [toggleWishlistMutation, wishlistMap]
+  );
+
+  const syncFromProducts = useCallback((products: ApiProductListItem[], _total?: number) => {
+    setOverlay((prev) => {
       const next = { ...prev };
       for (const product of products) {
         if (product.is_wishlist === true) {
@@ -142,14 +174,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
-    if (typeof total === "number") {
-      setWishlistTotal(total);
-    }
   }, []);
 
   const clearWishlist = useCallback(() => {
-    setWishlistMap({});
-    setWishlistTotal(0);
+    setOverlay({});
+    setOverlayTotalDelta(0);
   }, []);
 
   const wishlistedIds = useMemo(

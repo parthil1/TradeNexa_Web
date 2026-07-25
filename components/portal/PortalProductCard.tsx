@@ -28,7 +28,7 @@ interface PortalProductCardProps {
   showApprovalStatus?: boolean;
 }
 
-export default function PortalProductCard({
+export default React.memo(function PortalProductCard({
   product,
   href,
   editHref,
@@ -244,4 +244,4 @@ export default function PortalProductCard({
       </div>
     </motion.div>
   );
-}
+});

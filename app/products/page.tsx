@@ -78,7 +78,9 @@ function ProductsPageContent() {
       }
     }
 
-    void redirectToCatalogRoute();
+    void redirectToCatalogRoute().catch(() => {
+      if (!cancelled) setRedirecting(false);
+    });
     return () => {
       cancelled = true;
     };

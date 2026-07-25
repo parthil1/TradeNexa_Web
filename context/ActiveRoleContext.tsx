@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { UserRole } from "@/types/auth";
 import {
   type ActiveRole,
@@ -20,10 +20,13 @@ interface ActiveRoleContextValue {
 const ActiveRoleContext = createContext<ActiveRoleContextValue | undefined>(undefined);
 
 export function ActiveRoleProvider({ children }: { children: React.ReactNode }) {
-  const [activeRole, setActiveRoleState] = useState<ActiveRole>(
-    () => readStoredActiveRole() ?? "buyer"
-  );
+  const [activeRole, setActiveRoleState] = useState<ActiveRole>("buyer");
   const [canSwitchRole, setCanSwitchRole] = useState(false);
+
+  useEffect(() => {
+    const stored = readStoredActiveRole();
+    if (stored) setActiveRoleState(stored);
+  }, []);
 
   const setActiveRole = useCallback((role: ActiveRole) => {
     setActiveRoleState(role);
@@ -52,12 +55,13 @@ export function ActiveRoleProvider({ children }: { children: React.ReactNode }) 
     syncActiveRoleToServiceWorker(role);
   }, []);
 
+  const value = useMemo(
+    () => ({ activeRole, setActiveRole, syncActiveRoleForUser, canSwitchRole }),
+    [activeRole, setActiveRole, syncActiveRoleForUser, canSwitchRole]
+  );
+
   return (
-    <ActiveRoleContext.Provider
-      value={{ activeRole, setActiveRole, syncActiveRoleForUser, canSwitchRole }}
-    >
-      {children}
-    </ActiveRoleContext.Provider>
+    <ActiveRoleContext.Provider value={value}>{children}</ActiveRoleContext.Provider>
   );
 }
 

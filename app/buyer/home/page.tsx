@@ -18,13 +18,14 @@ import PortalProductCard from "@/components/portal/PortalProductCard";
 import BuyerHomeBanner from "@/components/portal/BuyerHomeBanner";
 import SupplierCard from "@/components/portal/SupplierCard";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchActiveBanners } from "@/services/bannerService";
-import { fetchCategories, fetchProducts, fetchTrendingProductItems } from "@/services/catalogService";
+import { fetchProducts, fetchTrendingProductItems } from "@/services/catalogService";
 import { fetchSuppliers } from "@/services/supplierService";
-import type { ApiBanner } from "@/types/banner";
-import type { ApiCategory, ApiProductListItem } from "@/types/catalog";
+import { useGetActiveBannersQuery, useGetCategoriesQuery } from "@/store/api/referenceApi";
+import type { ApiProductListItem } from "@/types/catalog";
 import type { ApiSupplier } from "@/types/supplier";
 import { getCategoryFallbackIcon } from "@/utils/categoryIcons";
+
+const HOME_CATEGORY_COUNT = 8;
 
 const quickLinks = [
   {
@@ -77,36 +78,61 @@ function SectionLink({ href, children }: { href: string; children: React.ReactNo
 
 export default function BuyerHomePage() {
   const { user } = useAuth();
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [suppliers, setSuppliers] = useState<ApiSupplier[]>([]);
   const [suppliersLoading, setSuppliersLoading] = useState(true);
   const [trending, setTrending] = useState<ApiProductListItem[]>([]);
   const [recent, setRecent] = useState<ApiProductListItem[]>([]);
-  const [banners, setBanners] = useState<ApiBanner[]>([]);
-  const [bannersLoading, setBannersLoading] = useState(true);
+
+  // Cached across navigation and shared with the marketing pages.
+  const { data: allCategories } = useGetCategoriesQuery();
+  const { data: bannerData, isLoading: bannersLoading } = useGetActiveBannersQuery();
+  const categories = React.useMemo(
+    () => (allCategories ?? []).slice(0, HOME_CATEGORY_COUNT),
+    [allCategories]
+  );
+  const banners = bannerData ?? [];
 
   const displayName = user?.name || user?.company || "Buyer";
   const initial = displayName.charAt(0).toUpperCase();
 
   useEffect(() => {
-    fetchCategories({ page: 1, limit: 8 }).then((r) => setCategories(r.results));
-    fetchTrendingProductItems(6).then(setTrending);
-    fetchProducts({ page: 1, limit: 8, sort_by: "created_at", sort_order: "desc" }).then((r) =>
-      setRecent(r.results)
-    );
-    fetchActiveBanners(10)
-      .then(setBanners)
-      .catch(() => setBanners([]))
-      .finally(() => setBannersLoading(false));
+    let cancelled = false;
+
+    fetchTrendingProductItems(6)
+      .then((items) => {
+        if (!cancelled) setTrending(items);
+      })
+      .catch(() => {
+        if (!cancelled) setTrending([]);
+      });
+
+    fetchProducts({ page: 1, limit: 8, sort_by: "created_at", sort_order: "desc" })
+      .then((r) => {
+        if (!cancelled) setRecent(r.results);
+      })
+      .catch(() => {
+        if (!cancelled) setRecent([]);
+      });
+
     fetchSuppliers({
       page: 1,
       limit: 6,
       sort_by: "rating",
       sort_order: "desc",
     })
-      .then((r) => setSuppliers(r.results))
-      .catch(() => setSuppliers([]))
-      .finally(() => setSuppliersLoading(false));
+      .then((r) => {
+        if (!cancelled) setSuppliers(r.results);
+      })
+      .catch(() => {
+        if (!cancelled) setSuppliers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSuppliersLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

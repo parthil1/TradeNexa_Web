@@ -12,7 +12,7 @@ interface SupplierCardProps {
   className?: string;
 }
 
-export default function SupplierCard({ supplier, className = "" }: SupplierCardProps) {
+export default React.memo(function SupplierCard({ supplier, className = "" }: SupplierCardProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const logoUrl = resolveImageUrl(supplier.logo);
   const showLogo = Boolean(logoUrl) && !logoFailed;
@@ -60,4 +60,4 @@ export default function SupplierCard({ supplier, className = "" }: SupplierCardP
       </div>
     </Link>
   );
-}
+});
