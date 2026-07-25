@@ -492,7 +492,10 @@ export default function PortalProductDetailView({
   const contactPhone = getSellerContactPhone(product);
   const inquiryMessage = `Hi, I'm interested in "${basic.name}" listed on TradeNexa. Please share more details.`;
   const isSellerView = Boolean(links.editProduct);
-  const inquiryAlreadySent = hasActiveInquiry;
+  // Always present "Send Inquiry" on buyer product pages — never swap to
+  // "Continue chat" even when an active inquiry already exists.
+  void hasActiveInquiry;
+  const inquiryAlreadySent = false;
   // Always show inquiry CTA on buyer product pages, regardless of marketplace
   // accept_inquiry / can_contact_seller flags or stock status.
   const showInquiryCta = !isSellerView && Boolean(links.product);
