@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Calendar, MessageSquare, Package } from "lucide-react";
+import { ArrowRight, Calendar, Package } from "lucide-react";
 import InquiryStatusBadge from "@/components/inquiry/InquiryStatusBadge";
 import type { ApiInquiry } from "@/types/inquiry";
 import {
@@ -79,12 +79,6 @@ export default function InquiryListCard({
             <Calendar className="h-3.5 w-3.5" aria-hidden />
             {formatInquiryDate(inquiry.created_at)}
           </span>
-          {inquiry.conversation_id ? (
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-success-soft px-2.5 py-1 font-semibold text-whatsapp-dark">
-              <MessageSquare className="h-3.5 w-3.5" aria-hidden />
-              Chat ready
-            </span>
-          ) : null}
         </div>
 
         <div className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary">
