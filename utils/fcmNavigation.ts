@@ -17,6 +17,11 @@ export function recipientPortalForType(type: string, status?: string | null): Po
     case "PRODUCT_REJECTED":
     case "RFQ_QUOTATION_ACCEPTED":
     case "RFQ_QUOTATION_REJECTED":
+    case "RFQ_INVITED":
+    case "RFQ_ASSIGNED":
+    case "RFQ_RECEIVED":
+    case "NEW_RFQ":
+    case "RFQ_PUBLISHED":
       return "seller";
     case "INQUIRY_REJECTED":
     case "QUOTATION_RECEIVED":
@@ -115,18 +120,42 @@ function resolveByTypeAndAction(
     return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
   }
 
+  // Seller invited to a new / private RFQ — open lead detail.
+  if (
+    type === "RFQ_INVITED" ||
+    type === "RFQ_ASSIGNED" ||
+    type === "RFQ_RECEIVED" ||
+    type === "NEW_RFQ" ||
+    type === "RFQ_PUBLISHED"
+  ) {
+    const rid = data.rfq_id?.trim() || ref;
+    return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
+  }
+
   if (action === "OPEN_RFQ") {
     const rid = data.rfq_id?.trim() || ref;
-    if (!rid) return portal === "seller" ? "/seller/leads" : "/buyer/inquiries";
-    return portal === "seller" ? sellerRfqLeadPath(rid) : buyerRfqPath(rid);
+    const sellerSide = portal === "seller" || activeRole === "seller";
+    if (!rid) return sellerSide ? "/seller/leads" : "/buyer/inquiries";
+    return sellerSide ? sellerRfqLeadPath(rid) : buyerRfqPath(rid);
   }
 
   if (type === "RFQ_STATUS_UPDATED") {
     const rid = data.rfq_id?.trim() || ref;
-    if (portal === "seller") {
+    if (portal === "seller" || activeRole === "seller") {
       return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
     }
     return rid ? buyerRfqPath(rid) : "/buyer/inquiries";
+  }
+
+  // Fallback: title/body for “New RFQ” invites when type is missing/unknown.
+  const title = (data.title || "").toUpperCase();
+  const body = (data.body || "").toUpperCase();
+  if (
+    (title.includes("NEW RFQ") || body.includes("INVITED YOU TO QUOTE")) &&
+    (activeRole === "seller" || portal === "seller")
+  ) {
+    const rid = data.rfq_id?.trim() || ref;
+    return rid ? sellerRfqLeadPath(rid) : "/seller/leads";
   }
 
   return portal === "seller" ? "/seller/dashboard" : "/buyer/notifications";
@@ -184,6 +213,11 @@ function recipientPortalForType(type, status) {
     case "PRODUCT_REJECTED":
     case "RFQ_QUOTATION_ACCEPTED":
     case "RFQ_QUOTATION_REJECTED":
+    case "RFQ_INVITED":
+    case "RFQ_ASSIGNED":
+    case "RFQ_RECEIVED":
+    case "NEW_RFQ":
+    case "RFQ_PUBLISHED":
       return "seller";
     case "INQUIRY_REJECTED":
     case "QUOTATION_RECEIVED":
@@ -256,15 +290,35 @@ function resolveByTypeAndAction(data, type, action, activeRole) {
     var rid2 = (data.rfq_id || ref).trim();
     return rid2 ? sellerRfqLeadPath(rid2) : "/seller/leads";
   }
+  if (
+    type === "RFQ_INVITED" ||
+    type === "RFQ_ASSIGNED" ||
+    type === "RFQ_RECEIVED" ||
+    type === "NEW_RFQ" ||
+    type === "RFQ_PUBLISHED"
+  ) {
+    var ridInvite = (data.rfq_id || ref).trim();
+    return ridInvite ? sellerRfqLeadPath(ridInvite) : "/seller/leads";
+  }
   if (action === "OPEN_RFQ") {
     var ridOpen = (data.rfq_id || ref).trim();
-    if (!ridOpen) return portal === "seller" ? "/seller/leads" : "/buyer/inquiries";
-    return portal === "seller" ? sellerRfqLeadPath(ridOpen) : buyerRfqPath(ridOpen);
+    var sellerSide = portal === "seller" || activeRole === "seller";
+    if (!ridOpen) return sellerSide ? "/seller/leads" : "/buyer/inquiries";
+    return sellerSide ? sellerRfqLeadPath(ridOpen) : buyerRfqPath(ridOpen);
   }
   if (type === "RFQ_STATUS_UPDATED") {
     var rid3 = (data.rfq_id || ref).trim();
-    if (portal === "seller") return rid3 ? sellerRfqLeadPath(rid3) : "/seller/leads";
+    if (portal === "seller" || activeRole === "seller") return rid3 ? sellerRfqLeadPath(rid3) : "/seller/leads";
     return rid3 ? buyerRfqPath(rid3) : "/buyer/inquiries";
+  }
+  var title = (data.title || "").toUpperCase();
+  var body = (data.body || "").toUpperCase();
+  if (
+    (title.indexOf("NEW RFQ") >= 0 || body.indexOf("INVITED YOU TO QUOTE") >= 0) &&
+    (activeRole === "seller" || portal === "seller")
+  ) {
+    var ridTitle = (data.rfq_id || ref).trim();
+    return ridTitle ? sellerRfqLeadPath(ridTitle) : "/seller/leads";
   }
   return portal === "seller" ? "/seller/dashboard" : "/buyer/notifications";
 }
