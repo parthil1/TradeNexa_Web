@@ -777,7 +777,7 @@ export default function PortalProductDetailView({
                 <button
                   type="button"
                   onClick={goSendInquiry}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"
+                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Send Inquiry
@@ -986,7 +986,7 @@ export default function PortalProductDetailView({
               <button
                 type="button"
                 onClick={goSendInquiry}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90"
+                className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90"
               >
                 <MessageCircle className="h-4 w-4" />
                 Send Inquiry
