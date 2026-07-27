@@ -82,6 +82,11 @@ function parsePositiveId(value: unknown): number | null {
   return null;
 }
 
+/** Normalize API `is_completed_profile` (boolean | 0/1). */
+export function isCompletedProfileFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 export function getSellerIdFromProfile(profile: ApiUserProfile): number | null {
   const direct = parsePositiveId(profile.seller_id);
   if (direct) return direct;
@@ -136,6 +141,7 @@ export function mapApiProfileToUser(profile: ApiUserProfile): User {
     role: parseUserRole(profile.role, profile.role_id),
     phone: extractPhoneFromMobile(mobile),
     country_code: extractCountryCode(mobile),
+    isCompletedProfile: isCompletedProfileFlag(profile.is_completed_profile),
   };
 }
 

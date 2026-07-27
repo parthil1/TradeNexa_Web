@@ -14,6 +14,8 @@ export interface User {
   role: UserRole;
   phone: string;
   country_code: string;
+  /** From GET /auth/profile `is_completed_profile`. */
+  isCompletedProfile?: boolean;
 }
 
 export interface SendOtpResponse {

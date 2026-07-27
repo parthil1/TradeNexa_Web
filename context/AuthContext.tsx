@@ -44,8 +44,10 @@ import { showErrorToast } from "@/utils/toast";
 import {
   getDashboardPathForRole,
   getDefaultActiveRole,
+  isPortalPath,
   writeStoredActiveRole,
 } from "@/utils/roleNavigation";
+import { requiresCompletedProfile } from "@/utils/profileGate";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -78,6 +80,7 @@ interface AuthContextType {
   resendOtpAction: () => Promise<boolean>;
   registerAction: (formData: RegisterRequest) => Promise<RegisterResponse | null>;
   openCompleteProfileModal: (role: UserRole) => void;
+  closeCompleteProfileModal: () => void;
   skipCompleteProfile: () => void;
   completeProfileAction: (payload: CompleteProfileData) => Promise<boolean>;
   deleteAccountAction: () => Promise<boolean>;
@@ -261,10 +264,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetResendOtp = () => setResendOtpState(initialOpState());
   const resetRegister = () => setRegisterState(initialOpState());
 
-  const openCompleteProfileModal = (role: UserRole) => {
+  const openCompleteProfileModal = useCallback((role: UserRole) => {
     setCompleteProfileRole(role);
     setIsCompleteProfileOpen(true);
-  };
+  }, []);
+
+  const closeCompleteProfileModal = useCallback(() => {
+    setIsCompleteProfileOpen(false);
+    if (skipProfileTimerRef.current) window.clearTimeout(skipProfileTimerRef.current);
+    skipProfileTimerRef.current = window.setTimeout(() => {
+      skipProfileTimerRef.current = null;
+      setCompleteProfileRole(null);
+      setCompleteProfileState(initialOpState());
+    }, 300);
+  }, []);
 
   const skipCompleteProfile = useCallback(() => {
     const currentUser =
@@ -279,18 +292,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })()
         : user;
 
-    setIsCompleteProfileOpen(false);
-    if (skipProfileTimerRef.current) window.clearTimeout(skipProfileTimerRef.current);
-    skipProfileTimerRef.current = window.setTimeout(() => {
-      skipProfileTimerRef.current = null;
-      setCompleteProfileRole(null);
-      setCompleteProfileState(initialOpState());
-    }, 300);
+    closeCompleteProfileModal();
 
-    if (currentUser) {
+    const path = typeof window !== "undefined" ? window.location.pathname : "";
+    // Leaving a gated page (or marketing) without completing → go to a safe home.
+    if (currentUser && (!isPortalPath(path) || requiresCompletedProfile(path))) {
       redirectToDashboard(currentUser);
     }
-  }, [user, redirectToDashboard]);
+  }, [user, redirectToDashboard, closeCompleteProfileModal]);
 
   const sendOtpRequest = async (phone: string, countryCode: string) => {
     const mobile_number = formatMobileNumber(countryCode, phone);
@@ -447,7 +456,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (result) {
-      skipCompleteProfile();
+      closeCompleteProfileModal();
+      // After registration on the marketing site, land in the portal.
+      if (typeof window !== "undefined" && !isPortalPath(window.location.pathname)) {
+        redirectToDashboard(result);
+      }
       return true;
     }
     return false;
@@ -512,6 +525,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendOtpAction,
         registerAction,
         openCompleteProfileModal,
+        closeCompleteProfileModal,
         skipCompleteProfile,
         completeProfileAction,
         deleteAccountAction,

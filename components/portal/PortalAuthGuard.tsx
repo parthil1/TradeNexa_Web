@@ -12,6 +12,10 @@ import {
   getHomePathForRole,
   getPortalForPath,
 } from "@/utils/roleNavigation";
+import {
+  isUserProfileComplete,
+  requiresCompletedProfile,
+} from "@/utils/profileGate";
 
 const AuthModal = dynamic(() => import("@/components/AuthModal"), { ssr: false });
 const CompleteProfileModal = dynamic(() => import("@/components/CompleteProfileModal"), {
@@ -21,8 +25,18 @@ const CompleteProfileModal = dynamic(() => import("@/components/CompleteProfileM
 export default function PortalAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, loading } = useAuth();
+  const {
+    isAuthenticated,
+    user,
+    loading,
+    isCompleteProfileOpen,
+    openCompleteProfileModal,
+  } = useAuth();
   const { syncActiveRoleForUser } = useActiveRole();
+
+  const profileIncomplete = Boolean(user) && !isUserProfileComplete(user);
+  const needsProfileGate =
+    Boolean(isAuthenticated && user && profileIncomplete && requiresCompletedProfile(pathname));
 
   useEffect(() => {
     if (loading) return;
@@ -47,6 +61,11 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
     }
     if (portal === "seller" && !canAccessSellerPortal(user.role)) {
       router.replace(getHomePathForRole(user.role));
+      return;
+    }
+
+    if (requiresCompletedProfile(pathname) && !isUserProfileComplete(user)) {
+      openCompleteProfileModal(user.role);
     }
   }, [
     loading,
@@ -55,6 +74,7 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
     pathname,
     router,
     syncActiveRoleForUser,
+    openCompleteProfileModal,
   ]);
 
   if (loading || !isAuthenticated || !user) {
@@ -76,7 +96,15 @@ export default function PortalAuthGuard({ children }: { children: React.ReactNod
 
   return (
     <>
-      {children}
+      {needsProfileGate ? (
+        <div className="flex min-h-dvh items-center justify-center bg-muted px-6">
+          {!isCompleteProfileOpen ? (
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          ) : null}
+        </div>
+      ) : (
+        children
+      )}
       <AuthModal />
       <CompleteProfileModal />
     </>
