@@ -1,17 +1,10 @@
 /**
  * Portal routes that require `is_completed_profile === true`.
- * Products / catalog / RFQ / inquiry areas open the complete-profile modal instead.
+ * Opens the complete-profile modal instead of the page.
+ *
+ * Buyer product/category browsing stays open; inquiry / RFQ / chat actions stay gated.
  */
 const PROFILE_REQUIRED_PREFIXES = [
-  // Buyer — products & catalog browsing
-  "/buyer/search",
-  "/buyer/product",
-  "/buyer/trending-products",
-  "/buyer/categories",
-  "/buyer/category",
-  "/buyer/suppliers",
-  "/buyer/supplier",
-  "/buyer/wishlist",
   // Buyer — RFQs
   "/buyer/inquiries",
   "/buyer/rfq",
@@ -37,7 +30,7 @@ const PROFILE_REQUIRED_PREFIXES = [
 ] as const;
 
 export function requiresCompletedProfile(pathname: string): boolean {
-  const path = pathname.split("?")[0] || pathname;
+  const path = (pathname.split("?")[0] || pathname).replace(/\/+$/, "") || "/";
   return PROFILE_REQUIRED_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
   );

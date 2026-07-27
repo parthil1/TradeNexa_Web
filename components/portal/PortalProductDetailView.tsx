@@ -54,6 +54,7 @@ import ProductApprovalBadge from "@/components/seller/ProductApprovalBadge";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/hooks/useAuth";
 import { showErrorToast } from "@/utils/toast";
+import { isUserProfileComplete } from "@/utils/profileGate";
 import {
   findMyInquiryForProduct,
   getInquiryErrorMessage,
@@ -411,7 +412,7 @@ export default function PortalProductDetailView({
   compact = false,
 }: PortalProductDetailViewProps) {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, openCompleteProfileModal } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const [descExpanded, setDescExpanded] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -527,6 +528,10 @@ export default function PortalProductDetailView({
       router.push("/");
       return;
     }
+    if (user && !isUserProfileComplete(user)) {
+      openCompleteProfileModal(user.role);
+      return;
+    }
     router.push(`/buyer/send-inquiry?product=${product.id}`);
   };
 
@@ -534,6 +539,10 @@ export default function PortalProductDetailView({
     if (!isAuthenticated) {
       showErrorToast("Please sign in to continue the conversation.");
       router.push("/");
+      return;
+    }
+    if (user && !isUserProfileComplete(user)) {
+      openCompleteProfileModal(user.role);
       return;
     }
     setOpeningChat(true);

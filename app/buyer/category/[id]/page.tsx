@@ -22,7 +22,9 @@ import LocationFilterBar from "@/components/location/LocationFilterBar";
 
 export default function BuyerCategoryPage() {
   const params = useParams();
-  const categoryId = Number(params.id);
+  const rawId = params?.id;
+  const idValue = Array.isArray(rawId) ? rawId[0] : rawId;
+  const categoryId = Number(idValue);
 
   if (!Number.isInteger(categoryId) || categoryId <= 0) {
     return (
