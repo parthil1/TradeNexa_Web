@@ -40,6 +40,7 @@ export interface RegisterRequest {
 export interface CompleteProfileFormData {
   companyName: string;
   industry: string;
+  categoryId: string;
   gstNumber: string;
   address: string;
   city: string;

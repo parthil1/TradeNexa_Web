@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FormField } from "@/components/common/FormField";
+import { Select } from "@/components/common/Select";
 import { Textarea } from "@/components/common/Textarea";
 import StateSelect from "@/components/location/StateSelect";
 import CitySelect from "@/components/location/CitySelect";
 import type { CompleteProfileFormData, UserRole } from "@/types/auth";
 import { useOptionalGeoLocation } from "@/context/GeoLocationContext";
+import { useGetCategoriesQuery } from "@/store/api/referenceApi";
 import { fetchCities, fetchStates } from "@/services/locationService";
 import { isGeoCacheFresh, readGeoLastLocation } from "@/utils/geoLocationStorage";
 import { scrollToFirstFormError } from "@/utils/scrollToFormError";
@@ -20,12 +22,14 @@ import {
   Loader2,
   MapPin,
   AlertCircle,
+  Tags,
   X,
 } from "lucide-react";
 
 export const EMPTY_COMPLETE_PROFILE_FORM: CompleteProfileFormData = {
   companyName: "",
   industry: "",
+  categoryId: "",
   gstNumber: "",
   address: "",
   city: "",
@@ -255,6 +259,13 @@ export default function CompleteProfileForm({
   const geoRequestAttempted = useRef(false);
   const locationHydratedRef = useRef(false);
   const [prefilledFromLocation, setPrefilledFromLocation] = useState(false);
+  const { data: categories = [], isLoading: categoriesLoading } = useGetCategoriesQuery({
+    limit: 100,
+  });
+  const categoryOptions = useMemo(
+    () => categories.map((c) => ({ value: String(c.id), label: c.name })),
+    [categories]
+  );
 
   const MAX_IMAGE_SIZE_MB = 5;
   const id = (key: string) => `${fieldIdPrefix}-${key}`;
@@ -492,6 +503,7 @@ export default function CompleteProfileForm({
     }
 
     if (showSellerFields) {
+      if (!form.categoryId.trim()) next.categoryId = "Category is required";
       if (!form.gstNumber.trim()) next.gstNumber = "GST number is required";
       if (!form.panNumber.trim()) next.panNumber = "PAN number is required";
       if (!form.businessDescription.trim()) {
@@ -509,6 +521,7 @@ export default function CompleteProfileForm({
               "state",
               "city",
               "pincode",
+              "categoryId",
               "gstNumber",
               "panNumber",
               "businessDescription",
@@ -521,6 +534,7 @@ export default function CompleteProfileForm({
                 "state",
                 "city",
                 "pincode",
+                "categoryId",
                 "gstNumber",
                 "panNumber",
                 "businessDescription",
@@ -536,6 +550,7 @@ export default function CompleteProfileForm({
           state: id("state"),
           city: id("city"),
           pincode: id("pincode"),
+          categoryId: id("category"),
           gstNumber: id("gst"),
           panNumber: id("pan"),
           businessDescription: id("description"),
@@ -752,6 +767,27 @@ export default function CompleteProfileForm({
               </FormField>
             </div>
           </>
+        )}
+
+        {showSellerFields && (
+          <FormField label="Category" htmlFor={id("category")} required error={errors.categoryId}>
+            <div className="relative">
+              <Tags className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-fg" />
+              <Select
+                id={id("category")}
+                value={form.categoryId}
+                onChange={(e) => {
+                  updateForm({ categoryId: e.target.value });
+                  if (errors.categoryId) setErrors((prev) => ({ ...prev, categoryId: "" }));
+                }}
+                options={categoryOptions}
+                placeholder={categoriesLoading ? "Loading categories..." : "Select category"}
+                error={!!errors.categoryId}
+                disabled={categoriesLoading}
+                className="pl-10"
+              />
+            </div>
+          </FormField>
         )}
 
         <FormField

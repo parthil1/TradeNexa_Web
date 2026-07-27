@@ -53,6 +53,7 @@ export function buildProfileFormData(payload: CompleteProfileData): FormData {
 
   if (role === "seller") {
     formData.append("company_name", d.companyName.trim());
+    formData.append("category_id", d.categoryId.trim());
     formData.append("gst_number", d.gstNumber.trim());
     formData.append("pan_number", d.panNumber.trim());
     formData.append("business_description", d.businessDescription.trim());
@@ -69,6 +70,7 @@ export function buildProfileFormData(payload: CompleteProfileData): FormData {
   // buyer + seller (matches Postman multipart PUT /auth/profile)
   formData.append("company_name", d.companyName.trim());
   formData.append("industry", d.industry.trim());
+  formData.append("category_id", d.categoryId.trim());
   formData.append("gst_number", d.gstNumber.trim());
   formData.append("pan_number", d.panNumber.trim());
   formData.append("business_description", d.businessDescription.trim());

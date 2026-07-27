@@ -53,6 +53,7 @@ export interface ApiUserProfile {
   seller_id?: number | null;
   seller?: { id?: number | null } | null;
   industry?: string | null;
+  category_id?: number | string | null;
   gst_number?: string | null;
   pan_number?: string | null;
   cin_number?: string | null;
@@ -164,6 +165,10 @@ export function mapProfileToCompleteProfileForm(profile: ApiUserProfile): Comple
   return {
     companyName: String(profile.company_name ?? ""),
     industry: String(profile.industry ?? ""),
+    categoryId: (() => {
+      const id = parsePositiveId(profile.category_id);
+      return id != null ? String(id) : "";
+    })(),
     gstNumber: String(profile.gst_number ?? ""),
     address: String(
       addressObj?.address_line_1 ??
